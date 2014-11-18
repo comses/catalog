@@ -20,9 +20,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 SECRET_KEY = 'jhg#dxmnxevl4xfkj(+3*w3#&@3!=u&2(s4wz$(6rq7lejfmb8'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+#DEBUG = True
 
-TEMPLATE_DEBUG = True
+#TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -51,7 +51,6 @@ ROOT_URLCONF = 'catalog.urls'
 
 WSGI_APPLICATION = 'catalog.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 
@@ -67,7 +66,7 @@ DATABASES = {
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Phoenix'
 
 USE_I18N = True
 
