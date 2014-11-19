@@ -1,0 +1,17 @@
+language: python
+python:
+    - "2.7"
+notifications:
+    email: comses-dev@googlegroups.com
+env: DB=postgres
+services:
+    - memcached
+    - redis
+before_script:
+    - psql -c 'create user catalog CREATEDB;' -U postgres
+    - psql -c 'create database comses_catalog' -U catalog -d template1
+    - cp vcweb/settings/local.py.example vcweb/settings/local.py
+install: "pip install -r requirements.txt"
+script: fab coverage
+after_success:
+    - coveralls

@@ -1,3 +1,5 @@
 *.pyc
 *~
 catalog/settings/local.py
+.coverage
+htmlcov
