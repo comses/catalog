@@ -1,2 +1,13 @@
 Django==1.7.1
+Markdown==2.5.1
+argparse==1.2.1
+django-autocomplete-light==2.0.3
+django-bootstrap3==4.11.0
+django-contact-form==1.0
+django-kronos==0.4
+django-model-utils==2.2
+djangorestframework==2.4.4
 psycopg2==2.5.4
+raven==5.1.1
+six==1.8.0
+wsgiref==0.1.2

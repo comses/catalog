@@ -2,81 +2,257 @@
 Django settings for catalog project.
 
 For more information on this file, see
-https://docs.djangoproject.com/en/1.6/topics/settings/
+https://docs.djangoproject.com/en/1.7/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/1.6/ref/settings/
+https://docs.djangoproject.com/en/1.7/ref/settings/
 """
-
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+import logging
 
+DEBUG = True
+TEMPLATE_DEBUG = DEBUG
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
+USE_TZ = True
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'jhg#dxmnxevl4xfkj(+3*w3#&@3!=u&2(s4wz$(6rq7lejfmb8'
+SITE_URL = 'http://localhost:8000'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-#DEBUG = True
+# tweaking standard BASE_DIR because we're in the settings subdirectory.
+BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
-#TEMPLATE_DEBUG = True
+EMAIL_HOST = 'smtp.asu.edu'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+ALLOWED_HOSTS = ('.asu.edu', 'localhost',)
+ADMINS = (
+    ('Allen Lee', 'allen.lee@asu.edu'),
+)
+MANAGERS = ADMINS
 
-ALLOWED_HOSTS = []
+DATA_DIR = 'data'
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(DATA_DIR, 'catalog.sqlite3'),
+    },
+    'postgres': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'comses_catalog',
+        'USER': 'catalog',
+        'PASSWORD': '',
+    }
+}
 
-# Application definition
+# Local time zone for this installation. Choices can be found here:
+# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+# although not all choices may be available on all operating systems.
+# If running in a Windows environment this must be set to the same as your
+# system time zone.
+TIME_ZONE = 'America/Phoenix'
 
-INSTALLED_APPS = (
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'core',
+# Language code for this installation. All choices can be found here:
+# http://www.i18nguy.com/unicode/language-identifiers.html
+LANGUAGE_CODE = 'en-us'
+
+# If you set this to False, Django will make some optimizations so as not
+# to load the internationalization machinery.
+USE_I18N = False
+
+# URL prefix for admin media -- CSS, JavaScript and images. Make sure to use a
+# trailing slash.  Default is '/static/admin/'
+# ADMIN_MEDIA_PREFIX = '/static/admin/'
+
+# Make this unique, and don't share it with anybody.
+SECRET_KEY = '2km^iq&48&6uv*x$ew@56d0#w9zqth@)_4tby(85+ac2wf4r-u'
+
+TEMPLATE_CONTEXT_PROCESSORS = (
+    'django.contrib.auth.context_processors.auth',
+    "django.core.context_processors.debug",
+    'django.core.context_processors.request',
+    'django.core.context_processors.static',
+    "django.core.context_processors.tz",
+    'django.contrib.messages.context_processors.messages',
+    'dealer.contrib.django.context_processor',
 )
 
 MIDDLEWARE_CLASSES = (
+    'raven.contrib.django.raven_compat.middleware.Sentry404CatchMiddleware',
+    'raven.contrib.django.raven_compat.middleware.SentryResponseErrorIdMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
 ROOT_URLCONF = 'catalog.urls'
 
-WSGI_APPLICATION = 'catalog.wsgi.application'
+# cookie storage vs session storage of django messages
+# MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
 
-# Database
-# https://docs.djangoproject.com/en/1.6/ref/settings/#databases
+TEMPLATE_DIRS = (
+    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+)
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+DJANGO_APPS = (
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+)
+
+THIRD_PARTY_APPS = (
+    'autocomplete_light',
+    'raven.contrib.django.raven_compat',
+    'contact_form',
+    'kronos',
+    'bootstrap3',
+)
+
+
+CATALOG_APPS = ('catalog.core',)
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + CATALOG_APPS
+
+LOGIN_REDIRECT_URL = '/dashboard'
+
+# activation window
+ACCOUNT_ACTIVATION_DAYS = 30
+
+# use email as username for authentication
+AUTHENTICATION_BACKENDS = (
+    "catalog.core.backends.EmailAuthenticationBackend",
+    "django.contrib.auth.backends.ModelBackend",
+)
+
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+)
+STATIC_URL = '/static/'
+STATIC_ROOT = '/var/www/catalog/static/'
+STATICFILES_DIRS = (os.path.join(BASE_DIR, 'catalog', 'static').replace('\\', '/'),)
+
+# Media file configuration (for user uploads etc) ####
+
+# Absolute path to the directory that holds media.
+# Example: "/home/media/media.lawrence.com/"
+MEDIA_ROOT = '/var/www/catalog/uploads'
+
+# URL that handles the media served from MEDIA_ROOT. Make sure to use a
+# trailing slash if there is a path component (optional in other cases).
+# Examples: "http://media.lawrence.com", "http://example.com/media/"
+MEDIA_URL = 'https://catalog.comses.net/uploads/'
+
+
+def is_accessible(directory_path):
+    return os.path.isdir(directory_path) and os.access(directory_path, os.W_OK | os.X_OK)
+
+LOG_DIRECTORY = '/opt/catalog/logs'
+
+if not is_accessible(LOG_DIRECTORY):
+    try:
+        os.makedirs(LOG_DIRECTORY)
+    except OSError:
+        print "Unable to create absolute log directory at %s, setting to relative path logs instead" % LOG_DIRECTORY
+        LOG_DIRECTORY = 'logs'
+        if not is_accessible(LOG_DIRECTORY):
+            try:
+                os.makedirs(LOG_DIRECTORY)
+            except OSError:
+                print "Couldn't create any log directory, startup will fail"
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'root': {
+        'level': 'WARNING',
+        'handlers': ['sentry', 'catalog.file'],
+    },
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s [%(name)s|%(funcName)s:%(lineno)d] %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
+    'handlers': {
+        'sentry': {
+            'level': 'ERROR',
+            'formatter': 'verbose',
+            'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'catalog.file': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'verbose',
+            'filename': os.path.join(LOG_DIRECTORY, 'catalog.log'),
+            'backupCount': 6,
+            'maxBytes': 10000000,
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'level': 'ERROR',
+            'handlers': ['console'],
+            'propagate': False,
+        },
+        'raven': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+            'propagate': False,
+        },
+        'sentry.errors': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+            'propagate': False,
+        },
+        'catalog': {
+            'level': 'DEBUG',
+            'handlers': ['catalog.file', 'console'],
+            'propagate': False,
+        },
     }
 }
 
-# Internationalization
-# https://docs.djangoproject.com/en/1.6/topics/i18n/
+# Required if using CAS
+CAS_UNIVERSITY_NAME = "Arizona State University"
+CAS_UNIVERSITY_URL = "http://www.asu.edu"
+WEB_DIRECTORY_URL = "https://webapp4.asu.edu/directory/ws/search?asuriteId="
 
-LANGUAGE_CODE = 'en-us'
+# Required settings for CAS Library
+CAS_SERVER_URL = "https://weblogin.asu.edu/cas/"
+CAS_IGNORE_REFERER = True
+# CAS_LOGOUT_COMPLETELY = True
+# CAS_PROVIDE_URL_TO_LOGOUT = True
+CAS_REDIRECT_URL = "/cas/asu"
+CAS_AUTOCREATE_USERS = False
+CAS_RESPONSE_CALLBACKS = (
+    'catalog.core.views.get_cas_user',
+)
+CAS_CUSTOM_FORBIDDEN = 'cas_error'
 
-TIME_ZONE = 'America/Phoenix'
+# reset in local.py to enable more verbose logging (e.g.,
+# DISABLED_TEST_LOGLEVEL = logging.NOTSET)
+DISABLED_TEST_LOGLEVEL = logging.WARNING
 
-USE_I18N = True
+# TEST_RUNNER = 'catalog.core.tests.runner.CatalogTestRunner'
 
-USE_L10N = True
-
-USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.6/howto/static-files/
-
-STATIC_URL = '/static/'
+# revision reporting support using dealer
+DEALER_TYPE = 'git'
+DEALER_SILENT = True
+DEALER_BACKENDS = ('git', 'mercurial')
+DEALER_PATH = BASE_DIR

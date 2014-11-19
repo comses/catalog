@@ -1,18 +1,29 @@
-# Local Development Django settings for vcweb
+# Local Development Django settings for catalog
 from .base import *
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
+"""
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
+        'LOCATION': '127.0.0.1:11211',
+    }
+}
+"""
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'comses',
-        'USER': 'comses',
+        'NAME': 'comses_catalog',
+        'USER': 'catalog',
         'PASSWORD': 'CUSTOMIZE_ME',
     }
 }
-
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# disabling i18n until we need it
+USE_I18N = False
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = 'customize this local secret key'
