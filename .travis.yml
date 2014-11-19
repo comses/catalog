@@ -10,7 +10,7 @@ services:
 before_script:
     - psql -c 'create user catalog CREATEDB;' -U postgres
     - psql -c 'create database comses_catalog' -U catalog -d template1
-    - cp vcweb/settings/local.py.example vcweb/settings/local.py
+    - cp catalog/settings/local.py.example catalog/settings/local.py
 install: "pip install -r requirements.txt"
 script: fab coverage
 after_success:
