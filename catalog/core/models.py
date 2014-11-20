@@ -1,13 +1,18 @@
 from django.db import models
+from django.utils.translation import ugettext_lazy as _
+
+from model_utils import Choices
+from model_utils.managers import InheritanceManager
+
 
 class Creator(models.Model):
-    CREATOR_CHOICES = (
-                ('AUTHOR', 'author'),
-                ('REVIEWED_AUTHOR', 'reviewed author'),
-                ('CONTRIBUTOR', 'contributor'),
-                ('EDITOR', 'editor'),
-                ('TRANSLATOR', 'translator'),
-                ('SERIES_EDITOR', 'series editor'),
+    CREATOR_CHOICES = Choices(
+                ('AUTHOR', _('author')),
+                ('REVIEWED_AUTHOR', _('reviewed author')),
+                ('CONTRIBUTOR', _('contributor')),
+                ('EDITOR', _('editor')),
+                ('TRANSLATOR', _('translator')),
+                ('SERIES_EDITOR', _('series editor')),
             )
     creator_type = models.CharField(choices=CREATOR_CHOICES, max_length=32)
     first_name = models.CharField(max_length=200)
@@ -25,6 +30,8 @@ class Note(models.Model):
 
 
 class Publication(models.Model):
+    objects = InheritanceManager()
+
     title = models.TextField()
     abstract = models.TextField()
     short_title = models.CharField(max_length=200)
@@ -37,13 +44,14 @@ class Publication(models.Model):
     call_number = models.PositiveIntegerField()
     rights = models.CharField(max_length=200)
     extra = models.TextField()
+    published_language = models.CharField(max_length=200, default='English')
+    date_added = models.DateTimeField()
+    date_modified = models.DateTimeField()
+
     tags = models.ManyToManyField('Tag')
     notes = models.ManyToManyField('Note')
     creators = models.ManyToManyField('Creator')
-    published_language = models.CharField(max_length=200)
     added_by = models.ForeignKey('auth.User')
-    date_added = models.DateTimeField()
-    date_modified = models.DateTimeField()
 
 
 class JournalArticle(Publication):
