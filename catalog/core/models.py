@@ -18,15 +18,29 @@ class Creator(models.Model):
     first_name = models.CharField(max_length=200)
     last_name = models.CharField(max_length=200)
 
+    def __str__(self):
+        return '{0} {1} ({2})'.format(self.first_name, self.last_name, self.creator_type)
+
+    def __unicode__(self):
+        return u'{0} {1} ({2})'.format(self.first_name, self.last_name, self.creator_type)
+
 
 class Tag(models.Model):
     name = models.CharField(max_length=100)
     tag_type = models.CharField(max_length=100)
 
+    def __str__(self):
+        return '{0}'.format(self.name)
+
+    def __unicode__(self):
+        return u'{0}'.format(self.name)
 
 class Note(models.Model):
-    title = models.TextField()
     note = models.TextField()
+    date_added = models.DateTimeField()
+    date_modified = models.DateTimeField()
+
+    tags = models.ManyToManyField('Tag')
 
 
 class Publication(models.Model):
@@ -36,12 +50,12 @@ class Publication(models.Model):
     abstract = models.TextField()
     short_title = models.CharField(max_length=200)
     url = models.URLField()
-    date_published = models.DateTimeField()
+    date_published = models.CharField(max_length=32)
     date_accessed = models.DateTimeField()
     archive = models.CharField(max_length=200)
     archive_location = models.CharField(max_length=200)
     library_catalog = models.CharField(max_length=200)
-    call_number = models.PositiveIntegerField()
+    call_number = models.CharField(max_length=200)
     rights = models.CharField(max_length=200)
     extra = models.TextField()
     published_language = models.CharField(max_length=200, default='English')
@@ -55,11 +69,11 @@ class Publication(models.Model):
 
 
 class JournalArticle(Publication):
-    publication = models.CharField(max_length=200)
-    pages = models.PositiveIntegerField()
+    publication_title = models.CharField(max_length=200)
+    pages = models.CharField(max_length=200)
     issn = models.CharField(max_length=200)
-    volume = models.PositiveIntegerField()
-    issue = models.PositiveIntegerField()
+    volume = models.CharField(max_length=200)
+    issue = models.CharField(max_length=200)
     series = models.CharField(max_length=200)
     series_title = models.CharField(max_length=200)
     series_text = models.CharField(max_length=200)
@@ -67,29 +81,29 @@ class JournalArticle(Publication):
     doi = models.CharField(max_length=200)
 
 
-class Book(Publication):
-    series = models.CharField(max_length=200)
-    series_number = models.PositiveIntegerField()
-    volume = models.PositiveIntegerField()
-    num_of_volume = models.PositiveIntegerField()
-    edition = models.PositiveIntegerField()
-    place = models.CharField(max_length=200)
-    publisher = models.CharField(max_length=200)
-    num_of_pages = models.PositiveIntegerField()
-    isbn = models.CharField(max_length=200)
+#class Book(Publication):
+#    series = models.CharField(max_length=200)
+#    series_number = models.PositiveIntegerField(null=True, blank=True)
+#    volume = models.PositiveIntegerField(null=True, blank=True)
+#    num_of_volume = models.PositiveIntegerField(null=True, blank=True)
+#    edition = models.PositiveIntegerField(null=True, blank=True)
+#    place = models.CharField(max_length=200)
+#    publisher = models.CharField(max_length=200)
+#    num_of_pages = models.PositiveIntegerField(null=True, blank=True)
+#    isbn = models.CharField(max_length=200)
 
 
-class Report(Publication):
-    report_number = models.PositiveIntegerField()
-    report_type = models.CharField(max_length=200)
-    series_title = models.CharField(max_length=200)
-    place = models.CharField(max_length=200)
-    institution = models.CharField(max_length=200)
-    pages = models.PositiveIntegerField()
+#class Report(Publication):
+#    report_number = models.PositiveIntegerField(null=True, blank=True)
+#    report_type = models.CharField(max_length=200)
+#    series_title = models.CharField(max_length=200)
+#    place = models.CharField(max_length=200)
+#    institution = models.CharField(max_length=200)
+#    pages = models.PositiveIntegerField(null=True, blank=True)
 
 
-class Thesis(Publication):
-    thesis_type = models.CharField(max_length=200)
-    university = models.CharField(max_length=200)
-    place = models.CharField(max_length=200)
-    num_of_pages = models.PositiveIntegerField()
+#class Thesis(Publication):
+#    thesis_type = models.CharField(max_length=200)
+#    university = models.CharField(max_length=200)
+#    place = models.CharField(max_length=200)
+#    num_of_pages = models.PositiveIntegerField(null=True, blank=True)

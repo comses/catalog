@@ -128,7 +128,7 @@ ACCOUNT_ACTIVATION_DAYS = 30
 
 # use email as username for authentication
 AUTHENTICATION_BACKENDS = (
-    "catalog.core.backends.EmailAuthenticationBackend",
+#    "catalog.core.backends.EmailAuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",
 )
 
