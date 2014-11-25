@@ -18,9 +18,6 @@ class Creator(models.Model):
     first_name = models.CharField(max_length=200)
     last_name = models.CharField(max_length=200)
 
-    def __str__(self):
-        return '{0} {1} ({2})'.format(self.first_name, self.last_name, self.creator_type)
-
     def __unicode__(self):
         return u'{0} {1} ({2})'.format(self.first_name, self.last_name, self.creator_type)
 
@@ -28,9 +25,6 @@ class Creator(models.Model):
 class Tag(models.Model):
     name = models.CharField(max_length=100)
     tag_type = models.CharField(max_length=100)
-
-    def __str__(self):
-        return '{0}'.format(self.name)
 
     def __unicode__(self):
         return u'{0}'.format(self.name)
@@ -41,9 +35,6 @@ class Note(models.Model):
     date_modified = models.DateTimeField()
 
     tags = models.ManyToManyField('Tag')
-
-    def __str(self):
-        return '{0}'.format(self.note).encode('ascii', errors='replace')
 
     def __unicode__(self):
         return u'{0}'.format(self.note)
@@ -71,9 +62,6 @@ class Publication(models.Model):
     notes = models.ManyToManyField('Note')
     creators = models.ManyToManyField('Creator')
     added_by = models.ForeignKey('auth.User')
-
-    def __str(self):
-        return '{0}'.format(self.title).encode('ascii', errors='replace')
 
     def __unicode__(self):
         return u'{0}'.format(self.title)

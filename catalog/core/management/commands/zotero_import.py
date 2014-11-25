@@ -4,7 +4,7 @@ import re
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from catalog.core.models import Publication, Creator, JournalArticle, Tag, Note
+from catalog.core.models import Publication, Creator, JournalArticle, Tag, Note, Book
 
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')
@@ -70,7 +70,6 @@ class Command(BaseCommand):
         item.doi = data['DOI']
         item.added_by = self.get_user(meta)
         item.save()
-
         for c in self.get_creators(data):
             item.creators.add(c)
         for t in self.get_tags(data):
@@ -135,13 +134,11 @@ class Command(BaseCommand):
                     print "Parent Key: " + item['data']['parentItem']
 
     def handle(self, *args, **options):
-        r = requests.get('https://api.zotero.org/groups/284000/items?v=3&limit=100')
-        items = len(r.json())
-        sum = items
-        self.generate_entry(r.json())
-
-        while items != 0:
-            r = requests.get('https://api.zotero.org/groups/284000/items?v=3&limit=100&start='+ str(sum))
+        start = 0
+        while True:
+            r = requests.get('https://api.zotero.org/groups/284000/items?v=3&limit=100&start='+ str(start))
             items = len(r.json())
-            sum += items
+            if items == 0:
+                break
+            start += items
             self.generate_entry(r.json())
