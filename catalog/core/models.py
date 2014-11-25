@@ -42,6 +42,11 @@ class Note(models.Model):
 
     tags = models.ManyToManyField('Tag')
 
+    def __str(self):
+        return '{0}'.format(self.note).encode('ascii', errors='replace')
+
+    def __unicode__(self):
+        return u'{0}'.format(self.note)
 
 class Publication(models.Model):
     objects = InheritanceManager()
@@ -67,6 +72,12 @@ class Publication(models.Model):
     creators = models.ManyToManyField('Creator')
     added_by = models.ForeignKey('auth.User')
 
+    def __str(self):
+        return '{0}'.format(self.title).encode('ascii', errors='replace')
+
+    def __unicode__(self):
+        return u'{0}'.format(self.title)
+
 
 class JournalArticle(Publication):
     publication_title = models.CharField(max_length=200)
@@ -81,16 +92,16 @@ class JournalArticle(Publication):
     doi = models.CharField(max_length=200)
 
 
-#class Book(Publication):
-#    series = models.CharField(max_length=200)
-#    series_number = models.PositiveIntegerField(null=True, blank=True)
-#    volume = models.PositiveIntegerField(null=True, blank=True)
-#    num_of_volume = models.PositiveIntegerField(null=True, blank=True)
-#    edition = models.PositiveIntegerField(null=True, blank=True)
-#    place = models.CharField(max_length=200)
-#    publisher = models.CharField(max_length=200)
-#    num_of_pages = models.PositiveIntegerField(null=True, blank=True)
-#    isbn = models.CharField(max_length=200)
+class Book(Publication):
+    series = models.CharField(max_length=200)
+    series_number = models.CharField(max_length=32)
+    volume = models.CharField(max_length=32)
+    num_of_volume = models.CharField(max_length=32)
+    edition = models.CharField(max_length=32)
+    place = models.CharField(max_length=32)
+    publisher = models.CharField(max_length=200)
+    num_of_pages = models.CharField(max_length=32)
+    isbn = models.CharField(max_length=200)
 
 
 #class Report(Publication):

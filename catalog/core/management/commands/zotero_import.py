@@ -68,9 +68,6 @@ class Command(BaseCommand):
         item.series_text = data['seriesTitle']
         item.journal_abbr= data['journalAbbreviation']
         item.doi = data['DOI']
-        if 'note' in data.keys():
-            # FIXME
-            print "Note:" + data['note']
         item.added_by = self.get_user(meta)
         item.save()
 
@@ -91,12 +88,51 @@ class Command(BaseCommand):
             item.tags.add(t)
         item.save()
 
+    def create_book(seld, data, meta):
+        item = Book()
+        item.title = data['title']
+        item.abstract = data['abstractNote']
+        item.short_title = data['shortTitle']
+        item.url = data['url']
+        item.date_published = data['date']
+        item.date_accessed = data['accessDate'] or datetime.datetime.now()
+        item.archive = data['archive']
+        item.archive_location = data['archiveLocation']
+        item.library_catalog = data['libraryCatalog']
+        item.call_number = data['callNumber']
+        item.rights = data['rights']
+        item.extra = data['extra']
+        item.published_language = data['language']
+        item.date_added = data['dateAdded']
+        item.date_modified = data['dateModified']
+        item.edition = data['edition']
+        item.num_of_pages = data['numPages']
+        item.num_of_volume = data['numberOfVolumes']
+        item.place = data['place']
+        item.publisher = data['publisher']
+        item.volume = data['volume']
+        item.series = data['series']
+        item.series_numner = data['seriesNumber']
+        item.added_by = self.get_user(meta)
+        item.save()
+        for c in self.get_creators(data):
+            item.creators.add(c)
+        for t in self.get_tags(data):
+            item.tags.add(t)
+        item.save()
+
+
     def generate_entry(self, data):
         for item in data:
+            print item['data']['itemType'] + "key: " + item['data']['key']
             if item['data']['itemType'] == 'journalArticle':
                 self.create_journal(item['data'], item['meta'])
+            elif item['data']['itemType'] == 'book':
+                self.create_book(item['data'], item['meta'])
             elif item['data']['itemType'] == 'note':
-                self.create_note(item['data'], item['meta'])
+                note = self.create_note(item['data'], item['meta'])
+                if 'parentItem' in item['data'].keys():
+                    print "Parent Key: " + item['data']['parentItem']
 
     def handle(self, *args, **options):
         r = requests.get('https://api.zotero.org/groups/284000/items?v=3&limit=100')
