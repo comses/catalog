@@ -1,0 +1,24 @@
+#signin-form, .cas-login {
+   margin-top: 100px;
+}
+
+.cas-login a.submit {
+    background: transparent url(../images/ASU/signin_bttn.png) 0 0 no-repeat;
+    border: none;
+    display: block;
+    height: 33px;
+    color: #903;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    height: 34px;
+    line-height: 34px;
+    padding: 0 15px;
+    width: 83px;
+}
+
+.cas-login a.submit:hover {
+    color: #fff;
+    background-position: 0 -35px;
+    text-decoration: none;
+}

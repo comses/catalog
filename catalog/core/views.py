@@ -1,3 +1,39 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.views.generic import FormView, TemplateView
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_protect
+from django.contrib.auth import login, logout
+from django.core.urlresolvers import reverse
 
-# Create your views here.
+from .forms import LoginForm
+
+@login_required
+def dashboard(request):
+    return render(request, 'index.html', {})
+
+class LoginView(FormView):
+    form_class = LoginForm
+    template_name = 'accounts/login.html'
+
+    @method_decorator(csrf_protect)
+    @method_decorator(never_cache)
+    def dispatch(self, *args, **kwargs):
+        return super(LoginView, self).dispatch(*args, **kwargs)
+
+    def form_valid(self, form):
+        login(self.request, form.get_user())
+        return super(LoginView, self).form_valid(form)
+
+    def get_success_url(self):
+        next_url = self.request.GET.get('next', '')
+        # if no next_url specified, redirect to index (dashboard page).
+        return next_url if next_url else reverse('dashboard')
+
+class LogoutView(TemplateView):
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        logout(request)
+        return redirect('login')
