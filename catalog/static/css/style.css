@@ -1,7 +1,67 @@
-#signin-form, .cas-login {
-   margin-top: 100px;
+body {
+    font-size: 14px;
+    line-height: 1.42857143;
+    color: #333;
+    background-color: #fff;
+    background: #343434 url("../images/background.png") repeat;
+}
+.navbar {
+    background-color: #f8f8f8;
+    background: -webkit-gradient(linear, left top, left bottom, from(#f8f8f8), to(#f2f2f2));
+    background: -webkit-linear-gradient(top, #f8f8f8, #f2f2f2);
+    background: -moz-linear-gradient(top, #f8f8f8, #f2f2f2);
+    background: -ms-linear-gradient(top, #f8f8f8, #f2f2f2);
+    background: -o-linear-gradient(top, #f8f8f8, #f2f2f2);
+    background: linear-gradient(top, #f8f8f8, #f2f2f2);
+    border-bottom: 1px solid #ddd;
+    box-shadow: inset 0px 1px 1px #fff;
 }
 
+.widget-wrapper {
+    border: 1px solid #c9c9c9;
+    border-radius: 3px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    background: #fafafa;
+}
+
+.widget-head, .widget-foot{
+    background-color: #f8f8f8;
+    background: -webkit-gradient(linear, left top, left bottom, from(#f8f8f8), to(#f2f2f2));
+    background: -webkit-linear-gradient(top, #f8f8f8, #f2f2f2);
+    background: -moz-linear-gradient(top, #f8f8f8, #f2f2f2);
+    background: -ms-linear-gradient(top, #f8f8f8, #f2f2f2);
+    background: -o-linear-gradient(top, #f8f8f8, #f2f2f2);
+    background: linear-gradient(top, #f8f8f8, #f2f2f2);
+    border-top-right-radius: 3px;
+    border-top-left-radius: 3px;
+    text-shadow: 0px 1px #fff;
+    padding: 8px 15px;
+}
+
+.widget-head {
+    color: #666;
+    font-size: 13px;
+    font-weight: bold;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #ccc;
+}
+
+.widget-content {
+    padding: 25px;
+}
+
+.widget-foot {
+    border-top: 1px solid #ccc;
+    font-size: 12px;
+    color: #555;
+    box-shadow: inset 0px 1px 1px #fff;
+    border-bottom: 1px solid #fff
+}
+
+#signin-form, .cas-login {
+    padding: 25px;
+}
 .cas-login a.submit {
     background: transparent url(../images/ASU/signin_bttn.png) 0 0 no-repeat;
     border: none;

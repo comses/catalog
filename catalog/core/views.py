@@ -9,9 +9,21 @@ from django.core.urlresolvers import reverse
 
 from .forms import LoginForm
 
-@login_required
-def dashboard(request):
+class LoginRequiredMixin(object):
+    @classmethod
+    def as_view(cls, **initkwargs):
+        view = super(LoginRequiredMixin, cls).as_view(**initkwargs)
+        return login_required(view)
+
+
+
+def index(request):
     return render(request, 'index.html', {})
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = "dashboard.html"
+
 
 class LoginView(FormView):
     form_class = LoginForm
@@ -30,6 +42,7 @@ class LoginView(FormView):
         next_url = self.request.GET.get('next', '')
         # if no next_url specified, redirect to index (dashboard page).
         return next_url if next_url else reverse('dashboard')
+
 
 class LogoutView(TemplateView):
 
