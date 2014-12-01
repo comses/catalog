@@ -35,9 +35,9 @@ class Command(BaseCommand):
         for t in data['tags']:
             values = t['tag'].split(': ')
             if len(values) == 2:
-                tag, created = Tag.objects.get_or_create(name=values[1], tag_type=values[0])
+                tag, created = Tag.objects.get_or_create(value=values[1], key=values[0])
             else:
-                tag, created = Tag.objects.get_or_create(name=values[0])
+                tag, created = Tag.objects.get_or_create(value=values[0])
             tags.append(tag)
         return tags
 

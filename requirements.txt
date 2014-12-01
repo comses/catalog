@@ -7,6 +7,7 @@ dealer==1.1.1
 django-autocomplete-light==2.0.3
 django-bootstrap3==4.11.0
 django-contact-form==1.0
+django-extensions==1.4.8
 django-filter==0.8
 django-kronos==0.4
 django-model-utils==2.2
@@ -16,5 +17,6 @@ paramiko==1.15.1
 psycopg2==2.5.4
 pycrypto==2.6.1
 raven==5.1.1
+requests==2.4.3
 six==1.8.0
 wsgiref==0.1.2

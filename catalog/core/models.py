@@ -7,13 +7,13 @@ from model_utils.managers import InheritanceManager
 
 class Creator(models.Model):
     CREATOR_CHOICES = Choices(
-                ('AUTHOR', _('author')),
-                ('REVIEWED_AUTHOR', _('reviewed author')),
-                ('CONTRIBUTOR', _('contributor')),
-                ('EDITOR', _('editor')),
-                ('TRANSLATOR', _('translator')),
-                ('SERIES_EDITOR', _('series editor')),
-            )
+        ('AUTHOR', _('author')),
+        ('REVIEWED_AUTHOR', _('reviewed author')),
+        ('CONTRIBUTOR', _('contributor')),
+        ('EDITOR', _('editor')),
+        ('TRANSLATOR', _('translator')),
+        ('SERIES_EDITOR', _('series editor')),
+    )
     creator_type = models.CharField(choices=CREATOR_CHOICES, max_length=32)
     first_name = models.CharField(max_length=200)
     last_name = models.CharField(max_length=200)
@@ -23,11 +23,12 @@ class Creator(models.Model):
 
 
 class Tag(models.Model):
-    name = models.CharField(max_length=100)
-    tag_type = models.CharField(max_length=100)
+    key = models.CharField(max_length=100)
+    value = models.CharField(max_length=100)
 
     def __unicode__(self):
-        return u'{0}'.format(self.name)
+        return u'{0}:{1}'.format(self.key, self.value)
+
 
 class Note(models.Model):
     note = models.TextField()
@@ -39,6 +40,21 @@ class Note(models.Model):
     def __unicode__(self):
         return u'{0}'.format(self.note)
 
+
+class Platform(models.Model):
+    """ model platform, e.g, NetLogo or RePast """
+    name = models.CharField(max_length=256)
+    url = models.URLField()
+    description = models.TextField()
+
+
+class Sponsor(models.Model):
+    """ funding agency sponsoring this research """
+    name = models.CharField(max_length=256)
+    url = models.URLField()
+    description = models.TextField()
+
+
 class Publication(models.Model):
     objects = InheritanceManager()
 
@@ -46,7 +62,14 @@ class Publication(models.Model):
     abstract = models.TextField()
     short_title = models.CharField(max_length=200)
     url = models.URLField()
-    date_published = models.CharField(max_length=32)
+    archived_url = models.URLField()
+    contact_email = models.EmailField()
+    platform = models.ForeignKey(Platform)
+# FIXME: this might need to be a ManyToMany instead, some publications have multiple sponsors
+    sponsor = models.ForeignKey(Sponsor)
+    model_docs = models.CharField(max_length=32)
+    date_published_text = models.CharField(max_length=32)
+    date_published = models.DateField()
     date_accessed = models.DateTimeField()
     archive = models.CharField(max_length=200)
     archive_location = models.CharField(max_length=200)
@@ -67,8 +90,14 @@ class Publication(models.Model):
         return u'{0}'.format(self.title)
 
 
+class Journal(models.Model):
+    name = models.CharField(max_length=256)
+    url = models.URLField(max_length=256)
+    abbreviation = models.CharField(max_length=256)
+
+
 class JournalArticle(Publication):
-    publication_title = models.CharField(max_length=200)
+    journal = models.ForeignKey(Journal)
     pages = models.CharField(max_length=200)
     issn = models.CharField(max_length=200)
     volume = models.CharField(max_length=200)
@@ -76,7 +105,6 @@ class JournalArticle(Publication):
     series = models.CharField(max_length=200)
     series_title = models.CharField(max_length=200)
     series_text = models.CharField(max_length=200)
-    journal_abbr = models.CharField(max_length=200)
     doi = models.CharField(max_length=200)
 
 
@@ -91,18 +119,19 @@ class Book(Publication):
     num_of_pages = models.CharField(max_length=32)
     isbn = models.CharField(max_length=200)
 
+"""
+class Report(Publication):
+    report_number = models.PositiveIntegerField(null=True, blank=True)
+    report_type = models.CharField(max_length=200)
+    series_title = models.CharField(max_length=200)
+    place = models.CharField(max_length=200)
+    institution = models.CharField(max_length=200)
+    pages = models.PositiveIntegerField(null=True, blank=True)
 
-#class Report(Publication):
-#    report_number = models.PositiveIntegerField(null=True, blank=True)
-#    report_type = models.CharField(max_length=200)
-#    series_title = models.CharField(max_length=200)
-#    place = models.CharField(max_length=200)
-#    institution = models.CharField(max_length=200)
-#    pages = models.PositiveIntegerField(null=True, blank=True)
 
-
-#class Thesis(Publication):
-#    thesis_type = models.CharField(max_length=200)
-#    university = models.CharField(max_length=200)
-#    place = models.CharField(max_length=200)
-#    num_of_pages = models.PositiveIntegerField(null=True, blank=True)
+class Thesis(Publication):
+    thesis_type = models.CharField(max_length=200)
+    university = models.CharField(max_length=200)
+    place = models.CharField(max_length=200)
+    num_of_pages = models.PositiveIntegerField(null=True, blank=True)
+"""
