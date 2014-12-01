@@ -1,5 +1,5 @@
 import requests
-import datetime
+from datetime import datetime
 import re
 
 from django.contrib.auth.models import User
@@ -50,7 +50,18 @@ class Command(BaseCommand):
         item.short_title = data['shortTitle'].strip()
         item.url = data['url'].strip()
         item.date_published_text = data['date'].strip()
-        item.date_accessed = data['accessDate'] or datetime.datetime.now()
+        try:
+            item.date_published = datetime.strptime(data['date'].strip(), '%b %Y')
+        except:
+            try:
+                item.date_published = datetime.strptime(data['date'].strip(), '%B %Y')
+            except:
+                try:
+                    item.date_published = datetime.strptime(data['date'].strip(), '%b %d %Y')
+                except:
+                    print "Date: " + item.date_published_text + "Could not be parsed"
+
+        item.date_accessed = data['accessDate'] or datetime.now()
         item.archive = data['archive'].strip()
         item.archive_location = data['archiveLocation'].strip()
         item.library_catalog = data['libraryCatalog'].strip()
@@ -142,13 +153,10 @@ class Command(BaseCommand):
 
     def generate_entry(self, data):
         for item in data:
-            print item['data']['itemType'] + "key: " + item['data']['key']
             if item['data']['itemType'] == 'journalArticle':
                 article = self.create_journal(item['data'], item['meta'])
                 if note_map.has_key(item['data']['key']):
                     note = note_map[item['data']['key']]
-                    print note
-                    print article
                     note.publication = article
                     note.save()
                 else:
@@ -158,10 +166,7 @@ class Command(BaseCommand):
             elif item['data']['itemType'] == 'note':
                 note = self.create_note(item['data'], item['meta'])
                 if item['data'].has_key('parentItem'):
-                    print "Parent Key: " + item['data']['parentItem']
                     if pub_map.has_key(item['data']['parentItem']):
-                        print note
-                        print pub_map[item['data']['parentItem']]
                         note.publication = pub_map[item['data']['parentItem']]
                         note.save()
                     else:
