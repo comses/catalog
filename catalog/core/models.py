@@ -36,6 +36,7 @@ class Note(models.Model):
     date_modified = models.DateTimeField()
 
     tags = models.ManyToManyField('Tag')
+    publication = models.ForeignKey('Publication', null=True)
 
     def __unicode__(self):
         return u'{0}'.format(self.note)
@@ -47,12 +48,18 @@ class Platform(models.Model):
     url = models.URLField()
     description = models.TextField()
 
+    def __unicode__(self):
+        return u'{0}'.format(self.name)
+
 
 class Sponsor(models.Model):
     """ funding agency sponsoring this research """
     name = models.CharField(max_length=256)
     url = models.URLField()
     description = models.TextField()
+
+    def __unicode__(self):
+        return u'{0}'.format(self.name)
 
 
 class Publication(models.Model):
@@ -64,12 +71,9 @@ class Publication(models.Model):
     url = models.URLField()
     archived_url = models.URLField()
     contact_email = models.EmailField()
-    platform = models.ForeignKey(Platform)
-# FIXME: this might need to be a ManyToMany instead, some publications have multiple sponsors
-    sponsor = models.ForeignKey(Sponsor)
     model_docs = models.CharField(max_length=32)
     date_published_text = models.CharField(max_length=32)
-    date_published = models.DateField()
+    date_published = models.DateField(null=True, blank=True)
     date_accessed = models.DateTimeField()
     archive = models.CharField(max_length=200)
     archive_location = models.CharField(max_length=200)
@@ -81,8 +85,9 @@ class Publication(models.Model):
     date_added = models.DateTimeField()
     date_modified = models.DateTimeField()
 
+    platforms = models.ManyToManyField('Platform', null=True)
+    sponsors = models.ManyToManyField('Sponsor', null=True)
     tags = models.ManyToManyField('Tag')
-    notes = models.ManyToManyField('Note')
     creators = models.ManyToManyField('Creator')
     added_by = models.ForeignKey('auth.User')
 
@@ -94,6 +99,9 @@ class Journal(models.Model):
     name = models.CharField(max_length=256)
     url = models.URLField(max_length=256)
     abbreviation = models.CharField(max_length=256)
+
+    def __unicode__(self):
+        return u'{0}'.format(self.name)
 
 
 class JournalArticle(Publication):

@@ -4,10 +4,13 @@ import re
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from catalog.core.models import Publication, Creator, JournalArticle, Tag, Note, Book
+from catalog.core.models import Publication, Creator, JournalArticle, Tag, Note, Book, Platform, Sponsor, Journal
 
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
+pub_map = {}
+note_map = {}
 
 class Command(BaseCommand):
     help = 'Imports data from zotero'
@@ -17,8 +20,8 @@ class Command(BaseCommand):
         return all_cap_re.sub(r'\1_\2', s1).upper()
 
     def get_user(self, meta_data):
-        first_name, last_name = meta_data['createdByUser']['name'].split(' ')
-        username =  meta_data['createdByUser']['username']
+        first_name, last_name = meta_data['createdByUser']['name'].strip().split(' ')
+        username =  meta_data['createdByUser']['username'].strip()
         user, created = User.objects.get_or_create(username=username,  defaults={'first_name': first_name, 'last_name': last_name })
         return user
 
@@ -26,59 +29,76 @@ class Command(BaseCommand):
         creators = []
         for c in data['creators']:
             creator, created = Creator.objects.get_or_create(creator_type=self.convert(c['creatorType']),
-                    first_name=c['firstName'], last_name=c['lastName'])
+                    first_name=c['firstName'].strip(), last_name=c['lastName'].strip())
             creators.append(creator)
         return creators
 
     def get_tags(self, data):
         tags = []
         for t in data['tags']:
-            values = t['tag'].split(': ')
+            values = t['tag'].strip().split(': ')
             if len(values) == 2:
-                tag, created = Tag.objects.get_or_create(value=values[1], key=values[0])
+                tag, created = Tag.objects.get_or_create(value=values[1].strip(), key=values[0].strip())
             else:
-                tag, created = Tag.objects.get_or_create(value=values[0])
+                tag, created = Tag.objects.get_or_create(value=values[0].strip())
             tags.append(tag)
         return tags
 
-    def create_journal(self, data, meta):
-        item = JournalArticle()
-        item.title = data['title']
-        item.abstract = data['abstractNote']
-        item.short_title = data['shortTitle']
-        item.url = data['url']
-        item.date_published = data['date']
+    def set_common_fields(self, item, data, meta):
+        item.title = data['title'].strip()
+        item.abstract = data['abstractNote'].strip()
+        item.short_title = data['shortTitle'].strip()
+        item.url = data['url'].strip()
+        item.date_published_text = data['date'].strip()
         item.date_accessed = data['accessDate'] or datetime.datetime.now()
-        item.archive = data['archive']
-        item.archive_location = data['archiveLocation']
-        item.library_catalog = data['libraryCatalog']
-        item.call_number = data['callNumber']
-        item.rights = data['rights']
-        item.extra = data['extra']
-        item.published_language = data['language']
+        item.archive = data['archive'].strip()
+        item.archive_location = data['archiveLocation'].strip()
+        item.library_catalog = data['libraryCatalog'].strip()
+        item.call_number = data['callNumber'].strip()
+        item.rights = data['rights'].strip()
+        item.extra = data['extra'].strip()
+        item.published_language = data['language'].strip()
         item.date_added = data['dateAdded']
         item.date_modified = data['dateModified']
-        item.publication_title = data['publicationTitle']
-        item.pages = data['pages']
-        item.issn = data['ISSN']
-        item.volume = data['volume']
-        item.issue = data['issue']
-        item.series = data['series']
-        item.series_title = data['seriesText']
-        item.series_text = data['seriesTitle']
-        item.journal_abbr= data['journalAbbreviation']
-        item.doi = data['DOI']
         item.added_by = self.get_user(meta)
+        return item
+
+    def create_journal(self, data, meta):
+        item = JournalArticle()
+        item = self.set_common_fields(item, data, meta)
+        item.journal, created = Journal.objects.get_or_create(name=data['publicationTitle'].strip(),
+                defaults={'abbreviation': data['journalAbbreviation'].strip()})
+        item.pages = data['pages'].strip()
+        item.issn = data['ISSN'].strip().strip()
+        item.volume = data['volume'].strip()
+        item.issue = data['issue'].strip()
+        item.series = data['series'].strip()
+        item.series_title = data['seriesText'].strip()
+        item.series_text = data['seriesTitle'].strip()
+        item.doi = data['DOI'].strip()
         item.save()
         for c in self.get_creators(data):
             item.creators.add(c)
         for t in self.get_tags(data):
+            if t.key == 'codeurl':
+                item.archive_url = t.value
+            elif t.key == 'email':
+                item.contact_email = t.value
+            elif t.key == 'docs':
+                item.model_docs = t.value
+            elif t.key == 'platform' and t.value != 'unknown':
+                platform, created = Platform.objects.get_or_create(name=t.value)
+                item.platforms.add(platform)
+            elif t.key == 'sponsor' or t.key == 'sponse' and t.value != 'none':
+                sponsor, created = Sponsor.objects.get_or_create(name=t.value)
+                item.sponsors.add(sponsor)
             item.tags.add(t)
         item.save()
+        return item
 
     def create_note(self, data, meta):
         item = Note()
-        item.note = data['note']
+        item.note = data['note'].strip()
         item.date_added = data['dateAdded']
         item.date_modified = data['dateModified']
         item.added_by = self.get_user(meta)
@@ -86,52 +106,66 @@ class Command(BaseCommand):
         for t in self.get_tags(data):
             item.tags.add(t)
         item.save()
+        return item
 
     def create_book(seld, data, meta):
         item = Book()
-        item.title = data['title']
-        item.abstract = data['abstractNote']
-        item.short_title = data['shortTitle']
-        item.url = data['url']
-        item.date_published = data['date']
-        item.date_accessed = data['accessDate'] or datetime.datetime.now()
-        item.archive = data['archive']
-        item.archive_location = data['archiveLocation']
-        item.library_catalog = data['libraryCatalog']
-        item.call_number = data['callNumber']
-        item.rights = data['rights']
-        item.extra = data['extra']
-        item.published_language = data['language']
-        item.date_added = data['dateAdded']
-        item.date_modified = data['dateModified']
-        item.edition = data['edition']
-        item.num_of_pages = data['numPages']
-        item.num_of_volume = data['numberOfVolumes']
-        item.place = data['place']
-        item.publisher = data['publisher']
-        item.volume = data['volume']
-        item.series = data['series']
-        item.series_numner = data['seriesNumber']
+        item = self.set_common_fields(item, data, meta)
+        item.edition = data['edition'].strip()
+        item.num_of_pages = data['numPages'].strip()
+        item.num_of_volume = data['numberOfVolumes'].strip()
+        item.place = data['place'].strip()
+        item.publisher = data['publisher'].strip()
+        item.volume = data['volume'].strip()
+        item.series = data['series'].strip()
+        item.series_numner = data['seriesNumber'].strip()
         item.added_by = self.get_user(meta)
         item.save()
         for c in self.get_creators(data):
             item.creators.add(c)
         for t in self.get_tags(data):
+            if t.key == 'codeurl':
+                item.archive_url = t.value
+            elif t.key == 'email':
+                item.contact_email = t.value
+            elif t.key == 'docs':
+                item.model_docs = t.value
+            elif t.key == 'platform' and t.value != 'unknown':
+                platform, created = Platform.objects.get_or_create(name=t.value)
+                item.platforms.add(platform)
+            elif (t.key == 'sponsor' or t.key == 'sponse') and t.value != 'none':
+                sponsor, created = Sponsor.objects.get_or_create(name=t.value)
+                item.sponsors.add(sponsor)
             item.tags.add(t)
         item.save()
-
+        return item
 
     def generate_entry(self, data):
         for item in data:
             print item['data']['itemType'] + "key: " + item['data']['key']
             if item['data']['itemType'] == 'journalArticle':
-                self.create_journal(item['data'], item['meta'])
+                article = self.create_journal(item['data'], item['meta'])
+                if note_map.has_key(item['data']['key']):
+                    note = note_map[item['data']['key']]
+                    print note
+                    print article
+                    note.publication = article
+                    note.save()
+                else:
+                    pub_map.update({item['data']['key']: article})
             elif item['data']['itemType'] == 'book':
-                self.create_book(item['data'], item['meta'])
+                pub_map.update({item['data']['key']: self.create_book(item['data'], item['meta'])})
             elif item['data']['itemType'] == 'note':
                 note = self.create_note(item['data'], item['meta'])
-                if 'parentItem' in item['data'].keys():
+                if item['data'].has_key('parentItem'):
                     print "Parent Key: " + item['data']['parentItem']
+                    if pub_map.has_key(item['data']['parentItem']):
+                        print note
+                        print pub_map[item['data']['parentItem']]
+                        note.publication = pub_map[item['data']['parentItem']]
+                        note.save()
+                    else:
+                        note_map.update({item['data']['parentItem']: note})
 
     def handle(self, *args, **options):
         start = 0
