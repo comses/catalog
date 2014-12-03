@@ -30,6 +30,13 @@ MANAGERS = ADMINS
 
 DATA_DIR = 'data'
 
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
+        'URL': 'http://127.0.0.1:8983/solr'
+    },
+}
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -114,6 +121,9 @@ THIRD_PARTY_APPS = (
     'contact_form',
     'kronos',
     'bootstrap3',
+    'haystack',
+    'django_filters',
+    'django_tables2',
 )
 
 

@@ -1,0 +1,3 @@
+{{ object.title }}
+{{ object.added_by.get_full_name }}
+{{ object.abstract }}

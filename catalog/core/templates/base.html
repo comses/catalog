@@ -4,6 +4,7 @@
 {% url 'logout' as logout %}
 {% url 'index' as index %}
 {% url 'dashboard' as dashboard %}
+{% url 'publications' as publications %}
 
 <!doctype html>
 <html class="no-js" lang="">
@@ -26,7 +27,7 @@
         <![endif]-->
         <header id="header">
             {% block header %}
-                <nav class="navbar collapse navbar-collapse bs-navbar-collapse" role="navigation">         
+                <nav class="navbar navbar-default collapse navbar-collapse bs-navbar-collapse" role="navigation">
                     <div class="container">
                         <div class="navbar-header">
                             <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
@@ -40,6 +41,8 @@
                         <ul class='nav navbar-nav'>
                             {% if user.is_authenticated %}
                                 <li class='{% active_re request dashboard %}'><a href='{{ dashboard }}'><i class='fa fa-tachometer'></i> Dashboard</a></li>
+                                <li class='{% active_re request publications %}'><a href='{{ publications }}'><i class='fa fa-newspaper-o'></i> Publications</a></li>
+                                <li class='{% active_re request "search" %}'><a href='/search'><i class='fa fa-search'></i> Search</a></li>
                             {% endif %}
                             <li class='{% active_re request "contact" %}'><a href='/contact'><i class='fa fa-bell-o'></i> Contact us</a></li>
                             <li><a target='_blank' href='{{ issues_url }}'><i class='fa fa-bullhorn'></i> Report a bug</a></li>

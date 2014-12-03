@@ -8,13 +8,18 @@ from django.contrib.auth import login, logout
 from django.core.urlresolvers import reverse
 
 from .forms import LoginForm
+from .models import Publication
+
+from django_tables2 import Table, SingleTableView
+
+import django_filters
+
 
 class LoginRequiredMixin(object):
     @classmethod
     def as_view(cls, **initkwargs):
         view = super(LoginRequiredMixin, cls).as_view(**initkwargs)
         return login_required(view)
-
 
 
 def index(request):
@@ -50,3 +55,16 @@ class LogoutView(TemplateView):
         user = request.user
         logout(request)
         return redirect('login')
+
+
+class PublicationTable(Table):
+    class Meta:
+        model = Publication
+        fields = ('title', 'added_by', 'date_published')
+
+
+class PublicationView(LoginRequiredMixin, SingleTableView):
+    template_name = "publications.html"
+    model = Publication
+    table_class = PublicationTable
+
