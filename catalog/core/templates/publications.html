@@ -4,15 +4,24 @@
 {% load bootstrap3 %}
 
 {% block content %}
-    <div class="container">
-        {% if table.page %}
-        <div class="table-container">
-        {% endif %} 
+    <div cass="row">
+        <form method="get" class="col-md-4" role="form">
+            <h2>Filter Criteria</h2>
+            {% bootstrap_form filter.form %}
+            {% buttons %}
+            <button type="submit" class="btn btn-primary">
+               <i class="fa fa-filter"></i> Filter
+            </button>
+            {% endbuttons %}
+        </form>
+    </div>
+    <div class="row">
         {% block table %}
         <table class="table table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
             {% block table.thead %}
             <thead>
                 <tr>
+                <th> <input type="checkbox"> </th>
                 {% for column in table.columns %}
                     {% if column.orderable %}
                     <th {{ column.attrs.th.as_html }}><a href="{% querystring table.prefixed_order_by_field=column.order_by_alias.next %}">{{ column.header }}</a></th>
@@ -28,6 +37,7 @@
                 {% for row in table.page.object_list|default:table.rows %} {# support pagination #}
                 {% block table.tbody.row %}
                 <tr class="{% cycle "odd" "even" %}">
+                    <td> <input type="checkbox"> </td>
                     {% for column, cell in row.items %}
                         <td {{ column.attrs.td.as_html }}>{{ cell }}</td>
                     {% endfor %}
@@ -47,7 +57,6 @@
             {% endblock table.tfoot %}
         </table>
         {% endblock table %}
-         
         {% if table.page %}
             {% block pagination %}
                 {% bootstrap_pagination table.page %}

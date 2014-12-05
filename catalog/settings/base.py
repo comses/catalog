@@ -124,6 +124,7 @@ THIRD_PARTY_APPS = (
     'haystack',
     'django_filters',
     'django_tables2',
+    'rest_framework',
 )
 
 

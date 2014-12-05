@@ -3,6 +3,8 @@ from django.forms import widgets, ValidationError
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
+from .models import Publication
+
 class LoginForm(forms.Form):
     username = forms.CharField()
     password = forms.CharField(widget=widgets.PasswordInput)
@@ -27,3 +29,9 @@ class LoginForm(forms.Form):
                 raise forms.ValidationError(
                     _("This user has been deactivated. Please contact us if this is in error."))
         return cleaned_data
+
+
+class PublicationDetailForm(forms.ModelForm):
+    class Meta:
+        model = Publication
+        exclude = ['date_added', 'date_modified']

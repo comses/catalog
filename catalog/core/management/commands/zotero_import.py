@@ -4,7 +4,8 @@ import re
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from catalog.core.models import Publication, Creator, JournalArticle, Tag, Note, Book, Platform, Sponsor, Journal
+from catalog.core.models import (Publication, Creator, JournalArticle, Tag,
+    Note, Book, Platform, Sponsor, Journal, STATUS_CHOICES)
 
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')
@@ -59,9 +60,9 @@ class Command(BaseCommand):
                 try:
                     item.date_published = datetime.strptime(data['date'].strip(), '%b %d %Y')
                 except:
-                    print "Date: " + item.date_published_text + "Could not be parsed"
+                    print "Date: " + item.date_published_text + " Could not be parsed"
 
-        item.date_accessed = data['accessDate'] or datetime.now()
+        item.date_accessed = data['accessDate'] or datetime.now().date()
         item.archive = data['archive'].strip()
         item.archive_location = data['archiveLocation'].strip()
         item.library_catalog = data['libraryCatalog'].strip()
@@ -91,9 +92,11 @@ class Command(BaseCommand):
         for c in self.get_creators(data):
             item.creators.add(c)
         for t in self.get_tags(data):
-            if t.key == 'codeurl':
-                item.archive_url = t.value
-            elif t.key == 'email':
+            if t.key == 'codeurl' and t.value != 'none':
+                item.archived_url = re.search("(?P<url>https?://[^\s]+)", t.value).group("url")
+                if item.archived_url[-1] == '>':
+                    item.archived_url = item.archived_url[:-1]
+            elif t.key == 'email' and t.value != 'none':
                 item.contact_email = t.value
             elif t.key == 'docs':
                 item.model_docs = t.value
@@ -104,6 +107,16 @@ class Command(BaseCommand):
                 sponsor, created = Sponsor.objects.get_or_create(name=t.value)
                 item.sponsors.add(sponsor)
             item.tags.add(t)
+
+        if item.archived_url:
+            response = requests.get(item.archived_url)
+            if response.status_code == 200:
+                item.status = STATUS_CHOICES.COMPLETE
+            else:
+                item.status = STATUS_CHOICES.INVALID_URL
+        else:
+            item.status = STATUS_CHOICES.INCOMPLETE
+
         item.save()
         return item
 
@@ -135,9 +148,9 @@ class Command(BaseCommand):
         for c in self.get_creators(data):
             item.creators.add(c)
         for t in self.get_tags(data):
-            if t.key == 'codeurl':
-                item.archive_url = t.value
-            elif t.key == 'email':
+            if t.key == 'codeurl' and t.value != 'none':
+                item.archived_url = t.value
+            elif t.key == 'email' and t.value != 'none':
                 item.contact_email = t.value
             elif t.key == 'docs':
                 item.model_docs = t.value

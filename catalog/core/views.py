@@ -7,12 +7,22 @@ from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth import login, logout
 from django.core.urlresolvers import reverse
 
-from .forms import LoginForm
+from .forms import LoginForm, PublicationDetailForm
 from .models import Publication
 
-from django_tables2 import Table, SingleTableView
+from crispy_forms.helper import FormHelper
+from django_tables2.utils import A
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+from .serializers import PublicationSerializer
+
 
 import django_filters
+import django_tables2 as tables
 
 
 class LoginRequiredMixin(object):
@@ -20,14 +30,6 @@ class LoginRequiredMixin(object):
     def as_view(cls, **initkwargs):
         view = super(LoginRequiredMixin, cls).as_view(**initkwargs)
         return login_required(view)
-
-
-def index(request):
-    return render(request, 'index.html', {})
-
-
-class DashboardView(LoginRequiredMixin, TemplateView):
-    template_name = "dashboard.html"
 
 
 class LoginView(FormView):
@@ -57,14 +59,79 @@ class LogoutView(TemplateView):
         return redirect('login')
 
 
-class PublicationTable(Table):
+def index(request):
+    return render(request, 'index.html', {})
+
+
+class DashboardView(LoginRequiredMixin, TemplateView):
+    template_name = "dashboard.html"
+
+
+class PublicationFilter(django_filters.FilterSet):
     class Meta:
         model = Publication
-        fields = ('title', 'added_by', 'date_published')
+        """ Fields by which user can filter the publications """
+        fields = ['added_by', 'date_published', 'status']
 
 
-class PublicationView(LoginRequiredMixin, SingleTableView):
-    template_name = "publications.html"
-    model = Publication
-    table_class = PublicationTable
+class PublicationTable(tables.Table):
+    title = tables.LinkColumn('publication_detail', args=[A('pk')])
+    class Meta:
+        model = Publication
+        """ Fields to display in the Publication table """
+        fields = ('title', 'status', 'date_published')
+
+
+class PublicationList(LoginRequiredMixin, APIView):
+    """
+    List all publications, or create a new publication.
+    """
+    renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
+
+    def get(self, request, format=None):
+        publications = Publication.objects.all()
+        if request.accepted_renderer.format == 'html':
+            f = PublicationFilter(request.GET, queryset=publications)
+            t = PublicationTable(f.qs)
+            tables.RequestConfig(request).configure(t)
+            return Response({'table': t, 'filter': f}, template_name="publications.html")
+
+        serializer = PublicationSerializer(publications, many=True)
+        return Response(serializer.data)
+
+
+class PublicationDetail(LoginRequiredMixin, APIView):
+    """
+    Retrieve, update or delete a publication instance.
+    """
+    renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
+
+    def get_object(self, pk):
+        try:
+            return Publication.objects.get(pk=pk)
+        except Publication.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        publication = self.get_object(pk)
+        if request.accepted_renderer.format == 'html':
+            form = PublicationDetailForm(instance=publication)
+            data = {'form': form}
+            return Response(data, template_name='publication_detail.html')
+
+        serializer = PublicationSerializer(publication)
+        return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+        publication = self.get_object(pk)
+        serializer = PublicationSerializer(publication, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+        publication = self.get_object(pk)
+        publication.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 

@@ -5,15 +5,24 @@ from model_utils import Choices
 from model_utils.managers import InheritanceManager
 
 
+STATUS_CHOICES = Choices(
+    ('INCOMPLETE', _('Archive URL not present.')),
+    ('INVALID_URL', _('Invalid Archive URL')),
+    ('EMAIL_SENT', _('Email Sent')),
+    ('COMPLETE', _('Archived')),
+)
+
+CREATOR_CHOICES = Choices(
+    ('AUTHOR', _('author')),
+    ('REVIEWED_AUTHOR', _('reviewed author')),
+    ('CONTRIBUTOR', _('contributor')),
+    ('EDITOR', _('editor')),
+    ('TRANSLATOR', _('translator')),
+    ('SERIES_EDITOR', _('series editor')),
+)
+
+
 class Creator(models.Model):
-    CREATOR_CHOICES = Choices(
-        ('AUTHOR', _('author')),
-        ('REVIEWED_AUTHOR', _('reviewed author')),
-        ('CONTRIBUTOR', _('contributor')),
-        ('EDITOR', _('editor')),
-        ('TRANSLATOR', _('translator')),
-        ('SERIES_EDITOR', _('series editor')),
-    )
     creator_type = models.CharField(choices=CREATOR_CHOICES, max_length=32)
     first_name = models.CharField(max_length=200)
     last_name = models.CharField(max_length=200)
@@ -27,7 +36,10 @@ class Tag(models.Model):
     value = models.CharField(max_length=100)
 
     def __unicode__(self):
-        return u'{0}:{1}'.format(self.key, self.value)
+        if self.key:
+            return u'{0}: {1}'.format(self.key, self.value)
+        else:
+            return u'{0}'.format(self.value)
 
 
 class Note(models.Model):
@@ -74,7 +86,8 @@ class Publication(models.Model):
     model_docs = models.CharField(max_length=32)
     date_published_text = models.CharField(max_length=32)
     date_published = models.DateField(null=True, blank=True)
-    date_accessed = models.DateTimeField()
+    # FIXME Should we add default date (i.e today) to date_accessed
+    date_accessed = models.DateField(null=True, blank=True)
     archive = models.CharField(max_length=200)
     archive_location = models.CharField(max_length=200)
     library_catalog = models.CharField(max_length=200)
@@ -84,6 +97,7 @@ class Publication(models.Model):
     published_language = models.CharField(max_length=200, default='English')
     date_added = models.DateTimeField()
     date_modified = models.DateTimeField()
+    status = models.CharField(choices=STATUS_CHOICES, max_length=32)
 
     platforms = models.ManyToManyField('Platform', null=True)
     sponsors = models.ManyToManyField('Sponsor', null=True)

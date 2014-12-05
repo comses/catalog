@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load bootstrap3 %}
+
+{% block content %}
+    <div cass="row">
+        <form method="post" class="col-md-4" role="form">
+            <h2>Publication</h2>
+            {% bootstrap_form form %}
+            {% buttons %}
+            <button type="submit" class="btn btn-primary">
+               <i class="fa fa-filter"></i> Filter
+            </button>
+            {% endbuttons %}
+        </form>
+    </div>
+{% endblock content %}
