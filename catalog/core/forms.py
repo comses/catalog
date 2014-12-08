@@ -3,7 +3,7 @@ from django.forms import widgets, ValidationError
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Publication
+from .models import Publication, JournalArticle
 
 class LoginForm(forms.Form):
     username = forms.CharField()
@@ -34,4 +34,10 @@ class LoginForm(forms.Form):
 class PublicationDetailForm(forms.ModelForm):
     class Meta:
         model = Publication
+        exclude = ['date_added', 'date_modified']
+
+
+class JournalArticleDetailForm(forms.ModelForm):
+    class Meta:
+        model = JournalArticle
         exclude = ['date_added', 'date_modified']

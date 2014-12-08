@@ -7,8 +7,8 @@ from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth import login, logout
 from django.core.urlresolvers import reverse
 
-from .forms import LoginForm, PublicationDetailForm
-from .models import Publication
+from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm
+from .models import Publication, JournalArticle
 
 from crispy_forms.helper import FormHelper
 from django_tables2.utils import A
@@ -108,14 +108,18 @@ class PublicationDetail(LoginRequiredMixin, APIView):
 
     def get_object(self, pk):
         try:
-            return Publication.objects.get(pk=pk)
+            return Publication.objects.get_subclass(pk=pk)
         except Publication.DoesNotExist:
             raise Http404
 
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
         if request.accepted_renderer.format == 'html':
-            form = PublicationDetailForm(instance=publication)
+            if isinstance(publication, JournalArticle):
+                form = JournalArticleDetailForm(instance=publication)
+            else:
+                form = PublicationDetailForm(instance=publication)
+
             data = {'form': form}
             return Response(data, template_name='publication_detail.html')
 
