@@ -1,28 +1,22 @@
 from django.shortcuts import render, redirect
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.views.generic import FormView, TemplateView
-from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
-from django.contrib.auth import login, logout
+from django.views.generic import FormView, TemplateView
+from django.utils.decorators import method_decorator
 from django.core.urlresolvers import reverse
 
-from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm
-from .models import Publication, JournalArticle
-
-from crispy_forms.helper import FormHelper
-from django_tables2.utils import A
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .serializers import PublicationSerializer
-
-
-import django_filters
 import django_tables2 as tables
+from django_tables2.utils import A
+
+from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, DateRangeSearchForm
+from .models import Publication, JournalArticle
+from .serializers import PublicationSerializer
 
 
 class LoginRequiredMixin(object):
@@ -67,19 +61,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "dashboard.html"
 
 
-class PublicationFilter(django_filters.FilterSet):
-    class Meta:
-        model = Publication
-        """ Fields by which user can filter the publications """
-        fields = ['added_by', 'date_published', 'status']
-
-
 class PublicationTable(tables.Table):
     title = tables.LinkColumn('publication_detail', args=[A('pk')])
     class Meta:
         model = Publication
         """ Fields to display in the Publication table """
-        fields = ('title', 'status', 'date_published')
+        fields = ('title', 'status')
 
 
 class PublicationList(LoginRequiredMixin, APIView):
@@ -91,10 +78,9 @@ class PublicationList(LoginRequiredMixin, APIView):
     def get(self, request, format=None):
         publications = Publication.objects.all()
         if request.accepted_renderer.format == 'html':
-            f = PublicationFilter(request.GET, queryset=publications)
-            t = PublicationTable(f.qs)
-            tables.RequestConfig(request).configure(t)
-            return Response({'table': t, 'filter': f}, template_name="publications.html")
+            t = PublicationTable(publications)
+            tables.RequestConfig(request, paginate={"per_page": 15}).configure(t)
+            return Response({'table': t}, template_name="publications.html")
 
         serializer = PublicationSerializer(publications, many=True)
         return Response(serializer.data)
@@ -138,4 +124,3 @@ class PublicationDetail(LoginRequiredMixin, APIView):
         publication = self.get_object(pk)
         publication.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-

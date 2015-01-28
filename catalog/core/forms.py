@@ -3,7 +3,10 @@ from django.forms import widgets, ValidationError
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
+from haystack.forms import SearchForm
+
 from .models import Publication, JournalArticle
+
 
 class LoginForm(forms.Form):
     username = forms.CharField()
@@ -35,9 +38,40 @@ class PublicationDetailForm(forms.ModelForm):
     class Meta:
         model = Publication
         exclude = ['date_added', 'date_modified']
+        widgets = {
+            'title': widgets.Textarea(attrs={'rows': 3}),
+        }
 
 
 class JournalArticleDetailForm(forms.ModelForm):
     class Meta:
         model = JournalArticle
         exclude = ['date_added', 'date_modified']
+        widgets = {
+            'title': widgets.Textarea(attrs={'rows': 3}),
+        }
+
+
+class DateRangeSearchForm(SearchForm):
+    start_date = forms.DateField(required=False)
+    end_date = forms.DateField(required=False)
+
+    def no_query_found(self):
+        return self.searchqueryset.all()
+
+    def search(self):
+        # First, store the SearchQuerySet received from other processing.
+        sqs = super(DateRangeSearchForm, self).search()
+
+        if not self.is_valid():
+            return self.no_query_found()
+
+        # Check to see if a start_date was chosen.
+        if self.cleaned_data['start_date']:
+            sqs = sqs.filter(pub_date__gte=self.cleaned_data['start_date'])
+
+        # Check to see if an end_date was chosen.
+        if self.cleaned_data['end_date']:
+            sqs = sqs.filter(pub_date__lte=self.cleaned_data['end_date'])
+
+        return sqs
