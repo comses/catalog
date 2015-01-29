@@ -8,6 +8,7 @@ django-autocomplete-light==2.0.7
 django-bootstrap3==5.1.1
 django-contact-form==1.0
 django-extensions==1.4.9
+django-filter==0.9.0
 django-haystack==2.3.1
 django-kronos==0.5
 django-model-utils==2.2

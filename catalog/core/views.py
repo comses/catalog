@@ -11,12 +11,14 @@ from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-import django_tables2 as tables
 from django_tables2.utils import A
 
 from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, DateRangeSearchForm
 from .models import Publication, JournalArticle
 from .serializers import PublicationSerializer
+
+import django_filters
+import django_tables2 as tables
 
 
 class LoginRequiredMixin(object):
@@ -61,6 +63,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "dashboard.html"
 
 
+class PublicationFilter(django_filters.FilterSet):
+
+    def __init__(self, *args, **kwargs):
+        super(PublicationFilter, self).__init__(*args, **kwargs)
+
+        for name, field in self.filters.iteritems():
+            if isinstance(field, django_filters.ChoiceFilter):
+                # Add "Any" entry to choice fields.
+                field.extra['choices'] = tuple([("", "Any"), ] + list(field.extra['choices']))
+
+    class Meta:
+        model = Publication
+        """ Fields by which user can filter the publications """
+        fields = {'status': ['exact'], 'email_sent_count': ['gte']}
+
+
 class PublicationTable(tables.Table):
     title = tables.LinkColumn('publication_detail', args=[A('pk')])
     class Meta:
@@ -78,9 +96,10 @@ class PublicationList(LoginRequiredMixin, APIView):
     def get(self, request, format=None):
         publications = Publication.objects.all()
         if request.accepted_renderer.format == 'html':
-            t = PublicationTable(publications)
+            f = PublicationFilter(request.GET, queryset=publications)
+            t = PublicationTable(f.qs)
             tables.RequestConfig(request, paginate={"per_page": 15}).configure(t)
-            return Response({'table': t}, template_name="publications.html")
+            return Response({'table': t, 'filter': f}, template_name="publications.html")
 
         serializer = PublicationSerializer(publications, many=True)
         return Response(serializer.data)

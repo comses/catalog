@@ -4,6 +4,17 @@
 {% load bootstrap3 %}
 
 {% block content %}
+    <div cass="row">
+        <form method="get" class="col-md-4" role="form">
+            <h2>Filter Criteria</h2>
+            {% bootstrap_form filter.form %}
+            {% buttons %}
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa fa-filter"></i> Filter
+                </button>
+            {% endbuttons %}
+        </form>
+    </div>
     <div class="row">
         {% block table %}
         <table class="table table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
@@ -48,7 +59,7 @@
         {% endblock table %}
         {% if table.page %}
             {% block pagination %}
-                {% bootstrap_pagination table.page %}
+                {% bootstrap_pagination table.page url=request.get_full_path %}
             {% endblock pagination %}
         {% endif %}
     </div>

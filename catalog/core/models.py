@@ -8,7 +8,6 @@ from model_utils.managers import InheritanceManager
 STATUS_CHOICES = Choices(
     ('INCOMPLETE', _('Archive URL not present.')),
     ('INVALID_URL', _('Invalid Archive URL')),
-    ('EMAIL_SENT', _('Email Sent')),
     ('COMPLETE', _('Archived')),
 )
 
@@ -79,29 +78,30 @@ class Publication(models.Model):
 
     title = models.TextField()
     abstract = models.TextField()
-    short_title = models.CharField(max_length=200)
-    url = models.URLField()
-    archived_url = models.URLField()
-    contact_email = models.EmailField()
-    model_docs = models.CharField(max_length=32)
+    short_title = models.CharField(max_length=200, blank=True)
+    url = models.URLField(blank=True)
+    archived_url = models.URLField(blank=True)
+    contact_email = models.EmailField(blank=True)
+    model_docs = models.CharField(max_length=32, blank=True)
     date_published_text = models.CharField(max_length=32)
     date_published = models.DateField(null=True, blank=True)
     # FIXME Should we add default date (i.e today) to date_accessed
     date_accessed = models.DateField(null=True, blank=True)
-    archive = models.CharField(max_length=200)
-    archive_location = models.CharField(max_length=200)
-    library_catalog = models.CharField(max_length=200)
-    call_number = models.CharField(max_length=200)
-    rights = models.CharField(max_length=200)
-    extra = models.TextField()
+    archive = models.CharField(max_length=200, blank=True)
+    archive_location = models.CharField(max_length=200, blank=True)
+    library_catalog = models.CharField(max_length=200, blank=True)
+    call_number = models.CharField(max_length=200, blank=True)
+    rights = models.CharField(max_length=200, blank=True)
+    extra = models.TextField(blank=True)
     published_language = models.CharField(max_length=200, default='English')
     date_added = models.DateTimeField()
     date_modified = models.DateTimeField()
     status = models.CharField(choices=STATUS_CHOICES, max_length=32)
 
-    platforms = models.ManyToManyField('Platform', null=True)
-    sponsors = models.ManyToManyField('Sponsor', null=True)
-    tags = models.ManyToManyField('Tag')
+    email_sent_count = models.PositiveIntegerField(default=0)
+    platforms = models.ManyToManyField('Platform', null=True, blank=True)
+    sponsors = models.ManyToManyField('Sponsor', null=True, blank=True)
+    tags = models.ManyToManyField('Tag', null=True, blank=True)
     creators = models.ManyToManyField('Creator')
     added_by = models.ForeignKey('auth.User')
 
@@ -111,8 +111,8 @@ class Publication(models.Model):
 
 class Journal(models.Model):
     name = models.CharField(max_length=256)
-    url = models.URLField(max_length=256)
-    abbreviation = models.CharField(max_length=256)
+    url = models.URLField(max_length=256, blank=True)
+    abbreviation = models.CharField(max_length=256, blank=True)
 
     def __unicode__(self):
         return u'{0}'.format(self.name)
@@ -120,26 +120,26 @@ class Journal(models.Model):
 
 class JournalArticle(Publication):
     journal = models.ForeignKey(Journal)
-    pages = models.CharField(max_length=200)
-    issn = models.CharField(max_length=200)
-    volume = models.CharField(max_length=200)
-    issue = models.CharField(max_length=200)
-    series = models.CharField(max_length=200)
-    series_title = models.CharField(max_length=200)
-    series_text = models.CharField(max_length=200)
-    doi = models.CharField(max_length=200)
+    pages = models.CharField(max_length=200, blank=True)
+    issn = models.CharField(max_length=200, blank=True)
+    volume = models.CharField(max_length=200, blank=True)
+    issue = models.CharField(max_length=200, blank=True)
+    series = models.CharField(max_length=200, blank=True)
+    series_title = models.CharField(max_length=200, blank=True)
+    series_text = models.CharField(max_length=200, blank=True)
+    doi = models.CharField(max_length=200, blank=True)
 
 
 class Book(Publication):
-    series = models.CharField(max_length=200)
-    series_number = models.CharField(max_length=32)
-    volume = models.CharField(max_length=32)
-    num_of_volume = models.CharField(max_length=32)
-    edition = models.CharField(max_length=32)
-    place = models.CharField(max_length=32)
-    publisher = models.CharField(max_length=200)
-    num_of_pages = models.CharField(max_length=32)
-    isbn = models.CharField(max_length=200)
+    series = models.CharField(max_length=200, blank=True)
+    series_number = models.CharField(max_length=32, blank=True)
+    volume = models.CharField(max_length=32, blank=True)
+    num_of_volume = models.CharField(max_length=32, blank=True)
+    edition = models.CharField(max_length=32, blank=True)
+    place = models.CharField(max_length=32, blank=True)
+    publisher = models.CharField(max_length=200, blank=True)
+    num_of_pages = models.CharField(max_length=32, blank=True)
+    isbn = models.CharField(max_length=200, blank=True)
 
 """
 class Report(Publication):
