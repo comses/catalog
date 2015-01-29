@@ -1,0 +1,33 @@
+upstream django {
+    server unix:///opt/catalog/uwsgi.sock;
+}
+
+server {
+    listen      8081;
+    server_name catalog.comses.net;
+    charset     utf-8;
+    client_max_body_size 75M;
+
+    location /static {
+        alias /var/www/catalog/static;
+    }
+
+    location /media {
+        alias /var/www/catalog/media;
+    }
+
+    location /robots.txt {
+        alias /var/www/catalog/static/robots.txt;
+    }
+
+    location /favicon.ico {
+        alias /var/www/catalog/static/favicon.ico;
+    }
+
+    location / {
+        uwsgi_pass django;
+        include /opt/catalog/deploy/nginx/uwsgi_params;
+    }
+    access_log /opt/catalog/logs/nginx/access.log
+    error_log /opt/catalog/logs/nginx/error.log
+}
