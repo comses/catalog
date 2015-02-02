@@ -63,7 +63,18 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "dashboard.html"
 
 
+class BooleanFilter(django_filters.BooleanFilter):
+
+    def filter(self, qs, value):
+        if value is True:
+            return qs.exclude(**{self.name+"__exact": ''})
+        elif value is False:
+            return qs.filter(**{self.name+"__exact": ''})
+        return qs
+
+
 class PublicationFilter(django_filters.FilterSet):
+    contact_email = BooleanFilter()
 
     def __init__(self, *args, **kwargs):
         super(PublicationFilter, self).__init__(*args, **kwargs)
@@ -84,7 +95,7 @@ class PublicationTable(tables.Table):
     class Meta:
         model = Publication
         """ Fields to display in the Publication table """
-        fields = ('title', 'status')
+        fields = ('title', 'status', 'contact_email')
 
 
 class PublicationList(LoginRequiredMixin, APIView):
@@ -98,7 +109,7 @@ class PublicationList(LoginRequiredMixin, APIView):
         if request.accepted_renderer.format == 'html':
             f = PublicationFilter(request.GET, queryset=publications)
             t = PublicationTable(f.qs)
-            tables.RequestConfig(request, paginate={"per_page": 15}).configure(t)
+            tables.RequestConfig(request, paginate={"per_page": 10}).configure(t)
             return Response({'table': t, 'filter': f}, template_name="publications.html")
 
         serializer = PublicationSerializer(publications, many=True)
