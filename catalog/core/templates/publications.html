@@ -32,7 +32,7 @@
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th><input type="checkbox" data-bind="click: selectAll"/></th>
+                    <th><input type="checkbox" data-bind="checked: allSelected"/></th>
                     <th>Title</th>
                     <th>Date Published</th>
                 </tr>
@@ -102,12 +102,20 @@
 
                 var model = ko.mapping.fromJS(data, pubs_mapping, self)
 
-                model.selectAll = function() {
-                    ko.utils.arrayForEach(this.results(), function(publication) {
-                        publication.isSelected(true);
-                    });
-                    return true;
-                }
+                model.allSelected = ko.computed({
+                    read: function() {
+                        var firstUnchecked = ko.utils.arrayFirst(model.results(), function(item) {
+                            return item.isSelected() == false;
+                        });
+                        return firstUnchecked == null;
+                    },
+                    write: function(value) {
+                        ko.utils.arrayForEach(self.results(), function(item) {
+                            item.isSelected(value);
+                        });
+                    }
+                });
+
                 model.tableInfo = ko.computed(function() {
                     return "Showing "+ model.start_index() + " to " + model.end_index() + " of " + model.count() + " entries";
                 });
