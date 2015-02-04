@@ -2,18 +2,7 @@
 {% load bootstrap3 %}
 
 {% block content %}
-    <div class="clearfix">
-        <form method="get" class="col-md-3" role="form">
-            <h4>Filter Criteria</h4>
-            {% bootstrap_form filter.form %}
-            {% buttons %}
-                <button type="submit" class="btn btn-primary">
-                    <i class="fa fa-filter"></i> Filter
-                </button>
-            {% endbuttons %}
-        </form>
-    </div>
-    <div data-bind="template: { name: 'currentTmpl', data: currentStep }"></div>
+    <div class="clearfix" data-bind="template: { name: 'currentTmpl', data: currentStep }"></div>
     <button data-bind="click: goPrevious, enable: canGoPrevious">Previous Step</button>
     <button data-bind="click: goNext, enable: canGoNext">Next Step</button>
 {% endblock content %}
@@ -29,6 +18,16 @@
         <div data-bind="template: { name: getTemplate, data: model }"></div> 
     </script>
     <script id="choicePubTmpl" type="text/html">
+        <form method="get" class="col-md-3" role="form">
+            <h4>Filter Criteria</h4>
+            {% bootstrap_form filter.form %}
+            {% buttons %}
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa fa-filter"></i> Filter
+                </button>
+            {% endbuttons %}
+        </form>
+
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -55,16 +54,34 @@
             </ul>
         </nav>
     </script>
+
     <script id="basicTmpl" type="text/html">
         <div data-bind="text: message"></div>
     </script>
+
     <script id="choiceTmpl" type="text/html">
-        <input type="checkbox" data-bind="checked: choiceOne" /> Choice One <br/>
-        <input type="checkbox" data-bind="checked: choiceTwo" /> Choice Two
+        <form class="form-horizontal col-md-5" role="form">
+            <div class="form-group">
+                <label class="col-md-5 control-label" for="id_invitation_subject">Invitation Subject</label>
+                <div class="col-md-7">
+                    <input class="form-control" id="id_invitation_subject" name="invitation_subject" placeholder="Invitation subject" required="required" type="text">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-md-5 control-label" for="id_invitation_text">Invitation Text</label>
+                <div class="col-md-7">
+                    <textarea class="form-control" cols="40" id="id_invitation_text" name="invitation_text" placeholder="Invitation text" required="required" rows="4"></textarea>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-md-offset-5 col-md-7">
+                    <button type="button" class="btn btn-warning"><i class="fa fa-eye"></i> Preview Invitation Email</button>
+                    </div>
+                </div>
+            </div>
+        </form>
     </script>
-    <script id="confirmTmpl" type="text/html">
-        <button data-bind="click: confirm">Confirm</button>
-    </script>
+
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ view_model_json | escapejs }}");
 
@@ -135,8 +152,7 @@
                 self.stepModels = ko.observableArray([
                     new Step(1, "Select Publications", "choicePubTmpl", new PagedPublicationGridModel(data)),
                     new Step(2, "Contruct Email", "choiceTmpl", { choiceOne: ko.observable(false), choiceTwo: ko.observable(false) }),
-                    new Step(3, "Confirmation", "confirmTmpl", { confirm: function() {self.currentStep(self.stepModels()[3]); } } ),
-                    new Step(4, "Done!", "basicTmpl", { message: "you are finished!" })
+                    new Step(3, "Done!", "basicTmpl", { message: "you are finished!" })
                 ]);
 
                 self.currentStep = ko.observable(self.stepModels()[0]);
