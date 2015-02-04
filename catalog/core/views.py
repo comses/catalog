@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, DateRangeSearchForm
 from .models import Publication, JournalArticle
 from .serializers import PaginatedPublicationSerializer
+from .http import dumps
 
 import django_filters
 
