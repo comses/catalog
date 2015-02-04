@@ -6,19 +6,18 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.generic import FormView, TemplateView
 from django.utils.decorators import method_decorator
 from django.core.urlresolvers import reverse
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from django_tables2.utils import A
 
 from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, DateRangeSearchForm
 from .models import Publication, JournalArticle
-from .serializers import PublicationSerializer
+from .serializers import PaginatedPublicationSerializer
 
 import django_filters
-import django_tables2 as tables
 
 
 class LoginRequiredMixin(object):
@@ -90,29 +89,30 @@ class PublicationFilter(django_filters.FilterSet):
         fields = {'status': ['exact'], 'email_sent_count': ['gte']}
 
 
-class PublicationTable(tables.Table):
-    title = tables.LinkColumn('publication_detail', args=[A('pk')])
-    class Meta:
-        model = Publication
-        """ Fields to display in the Publication table """
-        fields = ('title', 'status', 'contact_email')
-
-
 class PublicationList(LoginRequiredMixin, APIView):
     """
-    List all publications, or create a new publication.
+    List all publications
     """
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
 
     def get(self, request, format=None):
-        publications = Publication.objects.all()
+        publication_list = Publication.objects.all()
+        f = PublicationFilter(request.GET, queryset=publication_list)
+        paginator = Paginator(f, 10) # Show 10 contacts per page
+        page = request.GET.get('page')
+        try:
+            publications = paginator.page(page)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            publications = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 9999), deliver last page of results.
+            Publications = paginator.page(paginator.num_pages)
+        serializer_context = {'request': request}
+        serializer = PaginatedPublicationSerializer(publications, context=serializer_context)
         if request.accepted_renderer.format == 'html':
-            f = PublicationFilter(request.GET, queryset=publications)
-            t = PublicationTable(f.qs)
-            tables.RequestConfig(request, paginate={"per_page": 10}).configure(t)
-            return Response({'table': t, 'filter': f}, template_name="publications.html")
+            return Response({'view_model_json': dumps(serializer.data), 'filter': f}, template_name="publications.html")
 
-        serializer = PublicationSerializer(publications, many=True)
         return Response(serializer.data)
 
 
