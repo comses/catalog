@@ -7,18 +7,20 @@ from django.views.generic import FormView, TemplateView
 from django.utils.decorators import method_decorator
 from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.template import Context
+from django.template.loader import get_template
 
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-
-from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, DateRangeSearchForm
+from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, AuthorInvitationForm
 from .models import Publication, JournalArticle
 from .serializers import PaginatedPublicationSerializer
-from .http import dumps
+from .http import JsonResponse, dumps
 
 import django_filters
+import markdown
 
 
 class LoginRequiredMixin(object):
@@ -112,7 +114,11 @@ class PublicationList(LoginRequiredMixin, APIView):
         serializer_context = {'request': request}
         serializer = PaginatedPublicationSerializer(publications, context=serializer_context)
         if request.accepted_renderer.format == 'html':
-            return Response({'view_model_json': dumps(serializer.data), 'filter': f}, template_name="publications.html")
+            return Response({
+                'view_model_json': dumps(serializer.data),
+                'filter': f,
+                'form': AuthorInvitationForm()
+            }, template_name="publications.html")
 
         return Response(serializer.data)
 
@@ -155,3 +161,20 @@ class PublicationDetail(LoginRequiredMixin, APIView):
         publication = self.get_object(pk)
         publication.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class EmailPreview(LoginRequiredMixin, APIView):
+    renderer_classes = (JSONRenderer,)
+
+    def get(self, request, format=None):
+        form = AuthorInvitationForm(request.GET or None)
+        if form.is_valid():
+            plaintext_template = get_template('email/invitation-email.txt')
+            c = Context({
+                'invitation_text': form.cleaned_data.get('invitation_text'),
+            })
+            plaintext_content = plaintext_template.render(c)
+            html_content = markdown.markdown(plaintext_content)
+            return Response({'success': True, 'content': html_content})
+        return Response({'success': False, 'errors': form.errors})
+

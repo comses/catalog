@@ -75,3 +75,8 @@ class DateRangeSearchForm(SearchForm):
             sqs = sqs.filter(pub_date__lte=self.cleaned_data['end_date'])
 
         return sqs
+
+
+class AuthorInvitationForm(forms.Form):
+    invitation_subject = forms.CharField(widget=widgets.TextInput())
+    invitation_text = forms.CharField(widget=widgets.Textarea(attrs={'rows': '8'}))

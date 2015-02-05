@@ -1,0 +1,7 @@
+Hi,
+
+{{invitation_text}}
+
+Thanks!
+
+Team VCWEB

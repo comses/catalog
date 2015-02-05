@@ -17,6 +17,7 @@
         <h2 data-bind="text: name"></h2>
         <div data-bind="template: { name: getTemplate, data: model }"></div> 
     </script>
+ 
     <script id="choicePubTmpl" type="text/html">
         <form method="get" class="col-md-3" role="form">
             <h4>Filter Criteria</h4>
@@ -55,31 +56,30 @@
         </nav>
     </script>
 
-    <script id="basicTmpl" type="text/html">
-        <div data-bind="text: message"></div>
-    </script>
-
-    <script id="choiceTmpl" type="text/html">
-        <form class="form-horizontal col-md-5" role="form">
+    <script id="inviteFormTmpl" type="text/html">
+        <form class="form-horizontal col-md-5" role="form" data-bind="submit: previewEmail">
+            <legend class="scheduler-border">Email</legend>
+            {% bootstrap_form form layout="horizontal" label_class="col-md-4" field_class="col-md-8" %}
             <div class="form-group">
-                <label class="col-md-5 control-label" for="id_invitation_subject">Invitation Subject</label>
-                <div class="col-md-7">
-                    <input class="form-control" id="id_invitation_subject" name="invitation_subject" placeholder="Invitation subject" required="required" type="text">
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="col-md-5 control-label" for="id_invitation_text">Invitation Text</label>
-                <div class="col-md-7">
-                    <textarea class="form-control" cols="40" id="id_invitation_text" name="invitation_text" placeholder="Invitation text" required="required" rows="4"></textarea>
-                </div>
-            </div>
-            <div class="form-group">
-                <div class="col-md-offset-5 col-md-7">
-                    <button type="button" class="btn btn-warning"><i class="fa fa-eye"></i> Preview Invitation Email</button>
+                <div class="col-md-offset-4 col-md-8">
+                    <button type="submit" class="btn btn-warning"><i class="fa fa-eye"></i> Preview Invitation Email</button>
                     </div>
                 </div>
             </div>
         </form>
+        <div class="col-md-7" id="email-content">
+            <fieldset class="scheduler-border">
+                <legend class="scheduler-border">Email Preview</legend>
+                <div id="email-text">
+                    <p>Email Preview Section.</p>
+                    <p>Fill in the email details in the form provided on the left and press preview invitation email to preview the final email content.</p>
+                </div>
+            </fieldset> 
+        </div>
+    </script>
+
+    <script id="basicTmpl" type="text/html">
+        <div data-bind="text: message"></div>
     </script>
 
     <script type="text/javascript">
@@ -147,11 +147,26 @@
 
             };
 
+            var InvitationViewModel = function(data) {
+                var self = this;
+                self.previewEmail = function(formElement) {
+                    var formData = $(formElement).serialize()
+                    $.get("{% url 'invite_email_preview' %}?" + formData)
+                        .done(function(result) {
+                            if(result.success){
+                                $("#email-text").html(result.content);
+                            } else {
+                                $("#email-text").html("Please fill in all the fields to preview invitation email.");
+                            }
+                        });
+                }
+            };
+
             var WizardViewModel = function(data) {
                 var self = this;
                 self.stepModels = ko.observableArray([
                     new Step(1, "Select Publications", "choicePubTmpl", new PagedPublicationGridModel(data)),
-                    new Step(2, "Contruct Email", "choiceTmpl", { choiceOne: ko.observable(false), choiceTwo: ko.observable(false) }),
+                    new Step(2, "Contruct Email", "inviteFormTmpl", new InvitationViewModel()),
                     new Step(3, "Done!", "basicTmpl", { message: "you are finished!" })
                 ]);
 
