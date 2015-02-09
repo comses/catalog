@@ -2,9 +2,7 @@
 {% load bootstrap3 %}
 
 {% block content %}
-    <div class="clearfix" data-bind="template: { name: 'currentTmpl', data: currentStep }"></div>
-    <button data-bind="click: goPrevious, enable: canGoPrevious">Previous Step</button>
-    <button data-bind="click: goNext, enable: canGoNext">Next Step</button>
+    <div data-bind="template: { name: 'baseTmpl', data: currentStep }"></div>
 {% endblock content %}
 
 {% block javascript %}
@@ -13,9 +11,27 @@
     <script src='//cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.min.js'></script>
 
     <!-- Templates -->
-    <script id="currentTmpl" type="text/html">
-        <h2 data-bind="text: name"></h2>
-        <div data-bind="template: { name: getTemplate, data: model }"></div> 
+    <script id="baseTmpl" type="text/html">
+        <div class="widget-wrapper">
+            <div class="widget-head">
+                <h4 data-bind="text: name"></h4>
+            </div>
+            <div class="widget-content clearfix" data-bind="template: { name: getTemplate, data: model }"></div>
+            <div class="widget-foot clearfix">
+                <!-- ko if: $root.canGoPrevious -->
+                <button class="btn btn-primary pull-left" data-bind="click: $root.goPrevious">
+                    <i class="fa fa-arrow-left"></i> Go Back</button>
+                <!-- /ko -->
+                <!-- ko if: $root.canGoNext -->
+                <button class="btn btn-primary pull-right" data-bind="click: $root.goNext">
+                    Continue <i class="fa fa-arrow-right"></i></button>
+                <!-- /ko -->
+                <!-- ko ifnot: $root.canGoNext -->
+                <button class="btn btn-primary pull-right" data-bind="click: $root.submitWizard">
+                    Submit <i class="fa fa-arrow-right"></i></button>
+                <!-- /ko -->
+            </div>
+        </div>
     </script>
  
     <script id="choicePubTmpl" type="text/html">
@@ -28,8 +44,7 @@
                 </button>
             {% endbuttons %}
         </form>
-
-        <table class="table table-striped">
+        <table class="table table-condensed">
             <thead>
                 <tr>
                     <th><input type="checkbox" data-bind="checked: allSelected"/></th>
@@ -37,7 +52,7 @@
                     <th>Date Published</th>
                 </tr>
             </thead>
-            <tbody data-bind="foreach: results">
+            <tbody data-bind="foreach: pagedRows">
                 <tr>
                     <td><input type="checkbox" data-bind="checked: isSelected"/></td>
                     <td>
@@ -49,9 +64,9 @@
         </table>
         <nav>
             <ul class="pager">
-                <li class="previous" data-bind="css: {disabled: !canGoPrevious()}"><a href="#" data-bind="attr:{href: previous}"><span aria-hidden="true">&larr;</span> Previous Page</a></li>
+                <li data-bind="css: {disabled: pageIndex() <= 0}"><a href="#" data-bind="click: previousPage"><span aria-hidden="true">&larr;</span> Previous Page</a></li>
                 <li data-bind="text: tableInfo"></li>
-                <li class="next" data-bind="css: {disabled: !canGoNext()}"><a href="#" data-bind="attr:{href: next}">Next Page<span aria-hidden="true">&rarr;</span></a></li>
+                <li data-bind="css: {disabled: pageIndex() >= maxPageIndex()}"><a href="#" data-bind="click: nextPage">Next Page <span aria-hidden="true">&rarr;</span></a></li>
             </ul>
         </nav>
     </script>
@@ -72,14 +87,10 @@
                 <legend class="scheduler-border">Email Preview</legend>
                 <div id="email-text">
                     <p>Email Preview Section.</p>
-                    <p>Fill in the email details in the form provided on the left and press preview invitation email to preview the final email content.</p>
+                    <p>Fill out the details in the form provided on the left and press preview invitation email to preview the final email content.</p>
                 </div>
             </fieldset> 
         </div>
-    </script>
-
-    <script id="basicTmpl" type="text/html">
-        <div data-bind="text: message"></div>
     </script>
 
     <script type="text/javascript">
@@ -107,48 +118,58 @@
                 self.isSelected = ko.observable(false);
             }
 
-            var PagedPublicationGridModel = function(data) {
+            var PublicationTable = function(data) {
                 var self = this;
-                var pubs_mapping = {
-                        'results': {
-                             create: function(options) {
-                                return new Publication(options.data);
-                        }
+
+                self.rows = ko.observableArray([]);
+                self.pageSize = ko.observable(10);
+                self.pageIndex = ko.observable(0);
+                self.previousPage = function() {
+                   if(self.pageIndex() > 0) {
+                        self.pageIndex(self.pageIndex() - 1);
                     }
                 };
-
-                var model = ko.mapping.fromJS(data, pubs_mapping, self)
-
-                model.allSelected = ko.computed({
+                self.nextPage = function() {
+                    if(self.pageIndex() < self.maxPageIndex()) {
+                       self.pageIndex(self.pageIndex() + 1);
+                    }
+                }
+                self.maxPageIndex = ko.computed(function() {
+                    return Math.ceil(self.rows().length / self.pageSize()) - 1;
+                });
+                self.pagedRows = ko.computed(function() {
+                    var size = self.pageSize();
+                    var start = self.pageIndex() * size;
+                    return self.rows().slice(start, start + size);
+                }, self);
+                self.tableInfo = ko.computed(function() {
+                    var startIndex = self.pageIndex() * self.pageSize() + 1;
+                    var endIndex =  startIndex + self.pageSize() -1;
+                    return "Showing "+ startIndex + " to " + endIndex + " of " + self.rows().length + " entries";
+                });
+                self.allSelected = ko.computed({
                     read: function() {
-                        var firstUnchecked = ko.utils.arrayFirst(model.results(), function(item) {
-                            return item.isSelected() == false;
+                        var firstUnchecked = ko.utils.arrayFirst(self.rows(), function(row) {
+                            return row.isSelected() == false;
                         });
                         return firstUnchecked == null;
                     },
                     write: function(value) {
-                        ko.utils.arrayForEach(self.results(), function(item) {
-                            item.isSelected(value);
+                        ko.utils.arrayForEach(self.rows(), function(row) {
+                            row.isSelected(value);
                         });
                     }
                 });
 
-                model.tableInfo = ko.computed(function() {
-                    return "Showing "+ model.start_index() + " to " + model.end_index() + " of " + model.count() + " entries";
-                });
-
-                model.canGoNext = ko.dependentObservable(function() {
-                    return model.next() ? true : false;
-                });
-
-                model.canGoPrevious = ko.dependentObservable(function() {
-                    return model.previous() ? true : false;
-                });
-
+                self.rows(ko.utils.arrayMap(data, function(rowData) { return new Publication(rowData) }));
             };
 
             var InvitationViewModel = function(data) {
                 var self = this;
+
+                self.invitationText = ko.observable();
+                self.invitationSubject =  ko.observable();
+
                 self.previewEmail = function(formElement) {
                     var formData = $(formElement).serialize()
                     $.get("{% url 'invite_email_preview' %}?" + formData)
@@ -165,14 +186,13 @@
             var WizardViewModel = function(data) {
                 var self = this;
                 self.stepModels = ko.observableArray([
-                    new Step(1, "Select Publications", "choicePubTmpl", new PagedPublicationGridModel(data)),
+                    new Step(1, "Select Publications", "choicePubTmpl", new PublicationTable(data)),
                     new Step(2, "Contruct Email", "inviteFormTmpl", new InvitationViewModel()),
-                    new Step(3, "Done!", "basicTmpl", { message: "you are finished!" })
                 ]);
 
                 self.currentStep = ko.observable(self.stepModels()[0]);
 
-                self.currentIndex = ko.dependentObservable(function() {
+                self.currentIndex = ko.computed(function() {
                     return self.stepModels.indexOf(self.currentStep());
                 });
 
@@ -180,17 +200,17 @@
                      return self.currentStep().template();
                 };
 
-                self.canGoNext = ko.dependentObservable(function() {
+                self.canGoNext = ko.computed(function() {
                     return self.currentIndex() < self.stepModels().length - 1;
                 });
 
                 self.goNext = function() {
                     if (self.canGoNext()) {
-                         self.currentStep(self.stepModels()[self.currentIndex() + 1]);
+                        self.currentStep(self.stepModels()[self.currentIndex() + 1]);
                     }
                 };
 
-                self.canGoPrevious = ko.dependentObservable(function() {
+                self.canGoPrevious = ko.computed(function() {
                     return self.currentIndex() > 0;
                 });
 
@@ -199,6 +219,24 @@
                          self.currentStep(self.stepModels()[self.currentIndex() - 1]);
                     }
                 };
+
+                self.submitWizard = function(data, event) {
+                    var publications, subject, text;
+                    ko.utils.arrayForEach(self.stepModels(), function(step) {
+                        if(step.id == 1) {
+                            publications = ko.utils.arrayMap(step.model().rows(), function(row) {
+                                return row.id();
+                            });
+                        }
+                        if(step.id == 2) {
+                            subject = step.model().invitationSubject();
+                            text =  step.model().invitationText();
+                        }
+                    });
+                    console.log(publications);
+                    console.log(subject);
+                    console.log(text);
+                }
             };
             console.log(viewModelJson)
             ko.applyBindings(new WizardViewModel(viewModelJson));

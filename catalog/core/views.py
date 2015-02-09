@@ -16,7 +16,7 @@ from rest_framework.response import Response
 
 from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, AuthorInvitationForm
 from .models import Publication, JournalArticle
-from .serializers import PaginatedPublicationSerializer
+from .serializers import PublicationSerializer
 from .http import JsonResponse, dumps
 
 import django_filters
@@ -101,18 +101,7 @@ class PublicationList(LoginRequiredMixin, APIView):
     def get(self, request, format=None):
         publication_list = Publication.objects.all()
         f = PublicationFilter(request.GET, queryset=publication_list)
-        paginator = Paginator(f, 10) # Show 10 contacts per page
-        page = request.GET.get('page')
-        try:
-            publications = paginator.page(page)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            publications = paginator.page(1)
-        except EmptyPage:
-            # If page is out of range (e.g. 9999), deliver last page of results.
-            Publications = paginator.page(paginator.num_pages)
-        serializer_context = {'request': request}
-        serializer = PaginatedPublicationSerializer(publications, context=serializer_context)
+        serializer = PublicationSerializer(f.qs, many=True)
         if request.accepted_renderer.format == 'html':
             return Response({
                 'view_model_json': dumps(serializer.data),

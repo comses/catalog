@@ -78,5 +78,5 @@ class DateRangeSearchForm(SearchForm):
 
 
 class AuthorInvitationForm(forms.Form):
-    invitation_subject = forms.CharField(widget=widgets.TextInput())
-    invitation_text = forms.CharField(widget=widgets.Textarea(attrs={'rows': '8'}))
+    invitation_subject = forms.CharField(widget=widgets.TextInput(attrs={'data-bind':'value: invitationSubject'}))
+    invitation_text = forms.CharField(widget=widgets.Textarea(attrs={'rows': '8', 'data-bind': 'value: invitationText'}))
