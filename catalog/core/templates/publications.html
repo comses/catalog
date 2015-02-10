@@ -72,7 +72,7 @@
     </script>
 
     <script id="inviteFormTmpl" type="text/html">
-        <form class="form-horizontal col-md-5" role="form" data-bind="submit: previewEmail">
+        <form id="invite-form" class="form-horizontal col-md-5" role="form" data-bind="submit: previewEmail">
             <legend class="scheduler-border">Email</legend>
             {% bootstrap_form form layout="horizontal" label_class="col-md-4" field_class="col-md-8" %}
             <div class="form-group">
@@ -167,8 +167,8 @@
             var InvitationViewModel = function(data) {
                 var self = this;
 
-                self.invitationText = ko.observable();
-                self.invitationSubject =  ko.observable();
+                self.invitation_text = ko.observable();
+                self.invitation_subject =  ko.observable();
 
                 self.previewEmail = function(formElement) {
                     var formData = $(formElement).serialize()
@@ -221,22 +221,27 @@
                 };
 
                 self.submitWizard = function(data, event) {
-                    var publications, subject, text;
+                    var formData = {};
                     ko.utils.arrayForEach(self.stepModels(), function(step) {
                         if(step.id == 1) {
-                            publications = ko.utils.arrayMap(step.model().rows(), function(row) {
-                                return row.id();
-                            });
+                            var pub_pk_list = ko.utils.arrayMap(step.model().rows(), function(row) { return row.id(); });
+                            $.extend(formData, {'pub_pk_list': pub_pk_list.toString()});
                         }
                         if(step.id == 2) {
-                            subject = step.model().invitationSubject();
-                            text =  step.model().invitationText();
+                            $.extend(formData, JSON.parse(ko.toJSON(step.model())));
                         }
                     });
-                    console.log(publications);
-                    console.log(subject);
-                    console.log(text);
-                }
+                    $.ajax({
+                        type: "POST",
+                        url: "{% url 'send_invites' %}",
+                        contentType: "application/json; charset=utf-8",
+                        data: JSON.stringify(formData),
+                        dataType:"json",
+                        success: function(result){ 
+                            alert("done");
+                        }
+                    });
+                 };
             };
             console.log(viewModelJson)
             ko.applyBindings(new WizardViewModel(viewModelJson));

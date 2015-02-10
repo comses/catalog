@@ -37,8 +37,21 @@ class UserSerializer(serializers.ModelSerializer):
     """
         Serializes user querysets.
     """
-    publications = serializers.PrimaryKeyRelatedField(many=True)
+    publications = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = User
         fields = ('id', 'username', 'publications')
+
+
+class InvitationSerializer(serializers.Serializer):
+    invitation_subject = serializers.CharField()
+    invitation_text = serializers.CharField()
+    pub_pk_list = serializers.CharField()
+
+    def save(self, email_from, email_to):
+        subject = self.validated_data['invitation_subject']
+        message = self.validated_data['invitation_text']
+        publication_pk_list = self.validated_data['pub_pk_list']
+        # write code to send email with tmp links to archive publication
+        # send_email(from=email, message=message)

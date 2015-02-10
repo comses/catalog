@@ -13,10 +13,11 @@ from django.template.loader import get_template
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import status
 
 from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, AuthorInvitationForm
 from .models import Publication, JournalArticle
-from .serializers import PublicationSerializer
+from .serializers import PublicationSerializer, InvitationSerializer
 from .http import JsonResponse, dumps
 
 import django_filters
@@ -110,6 +111,19 @@ class PublicationList(LoginRequiredMixin, APIView):
             }, template_name="publications.html")
 
         return Response(serializer.data)
+
+class InviteAuthors(LoginRequiredMixin, APIView):
+    """
+    Send out invitations to authors
+    """
+    renderer_classes = (JSONRenderer, )
+
+    def post(self, request, format=None):
+        serializer = InvitationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save("from_email", "to_email")
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PublicationDetail(LoginRequiredMixin, APIView):
