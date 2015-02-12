@@ -20,20 +20,24 @@
             <div class="widget-foot clearfix">
                 <!-- ko if: $root.canGoPrevious -->
                 <button class="btn btn-primary pull-left" data-bind="click: $root.goPrevious">
-                    <i class="fa fa-arrow-left"></i> Go Back</button>
+                    <i class="fa fa-arrow-left"></i><span data-bind="text: prvBtnTxt"><span></button>
                 <!-- /ko -->
                 <!-- ko if: $root.canGoNext -->
                 <button class="btn btn-primary pull-right" data-bind="click: $root.goNext">
-                    Continue <i class="fa fa-arrow-right"></i></button>
+                    <span data-bind="text: nxtBtnTxt"></span> <i class="fa fa-arrow-right"></i></button>
                 <!-- /ko -->
                 <!-- ko ifnot: $root.canGoNext -->
-                <button class="btn btn-primary pull-right" data-bind="click: $root.submitWizard">
-                    Submit <i class="fa fa-arrow-right"></i></button>
+                <button class="btn btn-primary pull-right" data-bind="click: $root.endWizard">
+                    Done <i class="fa fa-arrow-right"></i></button>
                 <!-- /ko -->
             </div>
         </div>
     </script>
- 
+
+     <script id="basicTmpl" type="text/html">
+        <div data-bind="text: message"></div>
+    </script>
+
     <script id="choicePubTmpl" type="text/html">
         <form method="get" class="col-md-3" role="form">
             <h4>Filter Criteria</h4>
@@ -97,16 +101,18 @@
         var viewModelJson = $.parseJSON("{{ view_model_json | escapejs }}");
 
         $(function(){
-            function Step(id, name, template, model) {
-               var self = this;
-               self.id = id;
-               self.name = ko.observable(name);
-               self.template = template;
-               self.model = ko.observable(model);
+            function Step(id, name, template, model, prvbtntxt, nxtbtntxt) {
+                var self = this;
+                self.id = id;
+                self.name = ko.observable(name);
+                self.template = template;
+                self.model = ko.observable(model);
+                self.prvBtnTxt = ko.observable(prvbtntxt);
+                self.nxtBtnTxt = ko.observable(nxtbtntxt);
 
-               self.getTemplate = function() {
-                   return self.template;
-               }
+                self.getTemplate = function() {
+                    return self.template;
+                }
             }
 
             var Publication =  function(data) {
@@ -186,8 +192,9 @@
             var WizardViewModel = function(data) {
                 var self = this;
                 self.stepModels = ko.observableArray([
-                    new Step(1, "Select Publications", "choicePubTmpl", new PublicationTable(data)),
-                    new Step(2, "Contruct Email", "inviteFormTmpl", new InvitationViewModel()),
+                    new Step(1, "Select Publications", "choicePubTmpl", new PublicationTable(data), "", "Construct Email "),
+                    new Step(2, "Contruct Email", "inviteFormTmpl", new InvitationViewModel(), " Select Publications", "Submit "),
+                    new Step(3, "Done!!", "basicTmpl", { message: "you are finished!" }, "", "Done "),
                 ]);
 
                 self.currentStep = ko.observable(self.stepModels()[0]);
@@ -203,15 +210,40 @@
                 self.canGoNext = ko.computed(function() {
                     return self.currentIndex() < self.stepModels().length - 1;
                 });
-
+                self.formData = {};
                 self.goNext = function() {
                     if (self.canGoNext()) {
-                        self.currentStep(self.stepModels()[self.currentIndex() + 1]);
+                        if(self.currentIndex() == 0) {
+                            var selected_rows = ko.utils.arrayFilter(self.currentStep().model().rows(),
+                                                    function(row) { return row.isSelected(); });
+                            var pub_pk_list = ko.utils.arrayMap(selected_rows, function(row) { 
+                                                                                    if(row.isSelected()) return row.id(); 
+                                                                                });
+                            $.extend(self.formData, {'pub_pk_list': pub_pk_list.toString()});
+                            self.currentStep(self.stepModels()[self.currentIndex() + 1]);
+                        } else if(self.currentIndex() == 1) {
+                            $.extend(self.formData, JSON.parse(ko.toJSON(self.currentStep().model())));
+                            $.ajax({
+                                type: "POST",
+                                url: "{% url 'send_invites' %}",
+                                contentType: "application/json; charset=utf-8",
+                                data: JSON.stringify(self.formData),
+                                dataType:"json",
+                                success: function(result){ 
+                                    self.currentStep(self.stepModels()[self.currentIndex() + 1]);
+                                },
+                                error: function(result) {
+                                    console.log(result.responseJSON);
+                                }
+                            });
+                        } else {
+                             self.currentStep(self.stepModels()[self.currentIndex() + 1]);
+                        }
                     }
                 };
 
                 self.canGoPrevious = ko.computed(function() {
-                    return self.currentIndex() > 0;
+                    return self.currentIndex() > 0 && (self.currentIndex() < self.stepModels().length - 1);
                 });
 
                 self.goPrevious = function() {
@@ -220,30 +252,10 @@
                     }
                 };
 
-                self.submitWizard = function(data, event) {
-                    var formData = {};
-                    ko.utils.arrayForEach(self.stepModels(), function(step) {
-                        if(step.id == 1) {
-                            var pub_pk_list = ko.utils.arrayMap(step.model().rows(), function(row) { return row.id(); });
-                            $.extend(formData, {'pub_pk_list': pub_pk_list.toString()});
-                        }
-                        if(step.id == 2) {
-                            $.extend(formData, JSON.parse(ko.toJSON(step.model())));
-                        }
-                    });
-                    $.ajax({
-                        type: "POST",
-                        url: "{% url 'send_invites' %}",
-                        contentType: "application/json; charset=utf-8",
-                        data: JSON.stringify(formData),
-                        dataType:"json",
-                        success: function(result){ 
-                            alert("done");
-                        }
-                    });
-                 };
+                self.endWizard = function(data, event) {
+                    self.currentStep(self.stepModels()[0]);
+                };
             };
-            console.log(viewModelJson)
             ko.applyBindings(new WizardViewModel(viewModelJson));
         });
     </script>

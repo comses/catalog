@@ -105,7 +105,7 @@ class ContactAuthor(LoginRequiredMixin, APIView):
             subject = serializer.validated_data['invitation_subject']
             message = serializer.validated_data['invitation_text']
             publication_pk_list = serializer.validated_data['pub_pk_list'].split(",")
-            pub_list = Publication.objects.filter(pk__in=publication_pk_list)
+            pub_list = Publication.objects.filter(pk__in=publication_pk_list).exclude(contact_email__exact= '')
 
             messages = []
             for pub in pub_list:
@@ -128,7 +128,6 @@ class ArchivePublication(APIView):
         except signing.BadSignature:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        print pk;
         publication = get_object_or_404(Publication, pk=pk)
         form = ArchivePublicationForm(instance=publication)
         return Response({'form': form}, template_name='publication_detail.html')
