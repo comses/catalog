@@ -1,7 +1,8 @@
 from rest_framework.urlpatterns import format_suffix_patterns
 from django.conf.urls import patterns, include, url
 
-from .views import index, InviteAuthors, LoginView, LogoutView, DashboardView, PublicationDetail, PublicationList, EmailPreview
+from .views import (index, InviteAuthors, LoginView, LogoutView, DashboardView, PublicationDetail,
+                    PublicationList, EmailPreview, ArchivePublication)
 from .forms import DateRangeSearchForm
 
 from haystack.views import SearchView
@@ -12,6 +13,7 @@ urlpatterns = format_suffix_patterns([
     url(r'^publications/(?P<pk>\d+)/$', PublicationDetail.as_view(), name='publication_detail'),
     url(r'^publications/email-preview/$', EmailPreview.as_view(), name='invite_email_preview'),
     url(r'^publications/invite/$', InviteAuthors.as_view(), name='send_invites'),
+    url(r'^publications/archive/(?P<token>[\w:-]+)/$', ArchivePublication.as_view(), name='publication_archive'),
 ])
 
 urlpatterns += [

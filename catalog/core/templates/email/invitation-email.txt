@@ -1,7 +1,11 @@
-Hi,
+{% load i18n %}
+{% load url from future %}
+{% blocktrans %}Hi,{% endblocktrans %}
 
-{{invitation_text}}
+{% blocktrans %} {{ invitation_text }}{% endblocktrans %}
+
+{% trans "You can archive your work by following this link:" %}
+
+http{% if secure %}s{% endif %}://{{ site.domain }}{% url "publication_archive" token %}
 
 Thanks!
-
-Team VCWEB

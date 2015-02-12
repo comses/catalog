@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.sites.models import Site, RequestSite
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import FormView, TemplateView
@@ -9,13 +10,14 @@ from django.core.urlresolvers import reverse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.template import Context
 from django.template.loader import get_template
+from django.core import signing
 
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, AuthorInvitationForm
+from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, AuthorInvitationForm, ArchivePublicationForm
 from .models import Publication, JournalArticle
 from .serializers import PublicationSerializer, InvitationSerializer
 from .http import JsonResponse, dumps
@@ -112,18 +114,53 @@ class PublicationList(LoginRequiredMixin, APIView):
 
         return Response(serializer.data)
 
+
 class InviteAuthors(LoginRequiredMixin, APIView):
     """
     Send out invitations to authors
     """
     renderer_classes = (JSONRenderer, )
 
+    def get_site(self):
+        if Site._meta.installed:
+            return Site.objects.get_current()
+        else:
+            return RequestSite(self.request)
+
     def post(self, request, format=None):
         serializer = InvitationSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save("from_email", "to_email")
+            serializer.save(self.get_site(), secure=self.request.is_secure())
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ArchivePublication(APIView):
+
+    renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
+    token_expires = 3600 * 48  # Two days
+
+    def get_object(self, pk):
+        try:
+            return Publication.objects.get(pk=pk)
+        except Publication.DoesNotExist:
+            raise Http404
+
+    def get(self, request, token, format=None):
+        try:
+            pk = signing.loads(token, max_age=self.token_expires,salt="default_salt")
+        except signing.BadSignature:
+            print "Invalid token"
+            raise Http404
+
+        publication = self.get_object(pk)
+        form = ArchivePublicationForm(instance=publication)
+        return Response({'form': form}, template_name='publication_detail.html')
+
+    def post(self, request, token, format=None):
+        form = ArchivePublicationForm(request.POST or None)
+        if form.is_valid():
+            form.save()
 
 
 class PublicationDetail(LoginRequiredMixin, APIView):
@@ -169,12 +206,21 @@ class PublicationDetail(LoginRequiredMixin, APIView):
 class EmailPreview(LoginRequiredMixin, APIView):
     renderer_classes = (JSONRenderer,)
 
+    def get_site(self):
+        if Site._meta.installed:
+            return Site.objects.get_current()
+        else:
+            return RequestSite(self.request)
+
     def get(self, request, format=None):
         form = AuthorInvitationForm(request.GET or None)
         if form.is_valid():
             plaintext_template = get_template('email/invitation-email.txt')
             c = Context({
                 'invitation_text': form.cleaned_data.get('invitation_text'),
+                'site': self.get_site(),
+                'token': "valid:token",
+                'secure': self.request.is_secure(),
             })
             plaintext_content = plaintext_template.render(c)
             html_content = markdown.markdown(plaintext_content)

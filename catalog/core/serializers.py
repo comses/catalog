@@ -1,8 +1,13 @@
 from django.forms import widgets
+from django.core import signing
+from django.core.mail import send_mass_mail
+from django.contrib.auth.models import User
+from django.template import loader
+
 from rest_framework import serializers, pagination
 
-from django.contrib.auth.models import User
 from .models import Publication
+
 
 class PublicationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -49,9 +54,20 @@ class InvitationSerializer(serializers.Serializer):
     invitation_text = serializers.CharField()
     pub_pk_list = serializers.CharField()
 
-    def save(self, email_from, email_to):
+    def save(self, site, secure=True, salt="default_salt"):
         subject = self.validated_data['invitation_subject']
         message = self.validated_data['invitation_text']
-        publication_pk_list = self.validated_data['pub_pk_list']
-        # write code to send email with tmp links to archive publication
-        # send_email(from=email, message=message)
+        publication_pk_list = self.validated_data['pub_pk_list'].split(",")
+        pub_list = Publication.objects.filter(pk__in=publication_pk_list)
+
+        messages = []
+        for pub in pub_list:
+            context = {
+                'invitation_text': message,
+                'site': site,
+                'token': signing.dumps(pub.pk, salt=salt),
+                'secure': secure,
+            }
+            body = loader.render_to_string('email/invitation-email.txt',context).strip()
+            messages.append((subject, body, "hello@mailinator.com", [pub.contact_email]))
+        send_mass_mail(messages, fail_silently=False)

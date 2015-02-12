@@ -80,3 +80,9 @@ class DateRangeSearchForm(SearchForm):
 class AuthorInvitationForm(forms.Form):
     invitation_subject = forms.CharField(widget=widgets.TextInput(attrs={'data-bind':'value: invitation_subject'}))
     invitation_text = forms.CharField(widget=widgets.Textarea(attrs={'rows': '8', 'data-bind': 'value: invitation_text'}))
+
+
+class ArchivePublicationForm(forms.ModelForm):
+    class Meta:
+        model = Publication
+        fields = ('archived_url', 'author_comments')
