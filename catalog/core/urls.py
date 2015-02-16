@@ -2,10 +2,9 @@ from rest_framework.urlpatterns import format_suffix_patterns
 from django.conf.urls import patterns, url
 
 from .views import (IndexView, LoginView, LogoutView, DashboardView, PublicationDetail,
-                    PublicationList, EmailPreview, ContactAuthor, ArchivePublication)
-from .forms import DateRangeSearchForm
+                    PublicationList, EmailPreview, ContactAuthor, ArchivePublication, CustomSearchView)
 
-from haystack.views import SearchView
+from .forms import CustomSearchForm
 
 # API endpoints
 urlpatterns = format_suffix_patterns([
@@ -24,5 +23,5 @@ urlpatterns += [
 ]
 
 urlpatterns += patterns('haystack.views',
-    url(r'^search/$', SearchView(template='search/search.html', form_class= DateRangeSearchForm), name='haystack_search'),
+    url(r'^search/$', CustomSearchView(form_class = CustomSearchForm), name='haystack_search'),
 )

@@ -11,6 +11,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators import cache, csrf
 from django.views.generic import FormView, TemplateView
 
+from haystack.views import SearchView
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -186,3 +187,7 @@ class EmailPreview(LoginRequiredMixin, APIView):
             html_content = markdown.markdown(plaintext_content)
             return Response({'success': True, 'content': html_content})
         return Response({'success': False, 'errors': form.errors})
+
+
+class CustomSearchView(SearchView):
+    template = 'search/search.html'
