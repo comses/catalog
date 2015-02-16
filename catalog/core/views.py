@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.sites.models import Site, RequestSite
@@ -110,9 +111,9 @@ class ContactAuthor(LoginRequiredMixin, APIView):
 
             messages = []
             for pub in pub_list:
-                token = signing.dumps(pub.pk, salt="default_salt")
+                token = signing.dumps(pub.pk, salt=settings.SALT)
                 body = get_invitation_email_content(message, token, self.request.is_secure(), self.get_site())
-                messages.append((subject, body, "hello@mailinator.com", [pub.contact_email]))
+                messages.append((subject, body, settings.DEFAULT_FROM_EMAIL, [pub.contact_email]))
             send_mass_mail(messages, fail_silently=False)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -120,23 +121,27 @@ class ContactAuthor(LoginRequiredMixin, APIView):
 
 class ArchivePublication(APIView):
 
-    renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
-    token_expires = 3600 * 48  # Two days
+    renderer_classes = (TemplateHTMLRenderer,)
+    token_expires = 3600 * 168  # Seven days
+
+    def get_object(self, token):
+        try:
+            pk = signing.loads(token, max_age=self.token_expires, salt=settings.SALT)
+        except signing.BadSignature:
+            pk = None
+        return get_object_or_404(Publication, pk=pk)
 
     def get(self, request, token, format=None):
-        try:
-            pk = signing.loads(token, max_age=self.token_expires,salt="default_salt")
-        except signing.BadSignature:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        publication = get_object_or_404(Publication, pk=pk)
-        form = ArchivePublicationForm(instance=publication)
+        instance = self.get_object(token)
+        form = ArchivePublicationForm(instance=instance)
         return Response({'form': form}, template_name='publication_detail.html')
 
     def post(self, request, token, format=None):
-        form = ArchivePublicationForm(request.POST or None)
+        instance = self.get_object(token)
+        form = ArchivePublicationForm(request.POST or None, instance=instance)
         if form.is_valid():
             form.save()
+            return Response({'form': form}, template_name='publication_detail.html')
 
 
 class PublicationDetail(LoginRequiredMixin, APIView):

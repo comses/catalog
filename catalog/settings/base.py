@@ -20,6 +20,7 @@ SITE_URL = 'http://localhost:8000'
 # tweaking standard BASE_DIR because we're in the settings subdirectory.
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
+DEFAULT_FROM_EMAIL = 'vcweb@asu.edu'
 EMAIL_HOST = 'smtp.asu.edu'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 ALLOWED_HOSTS = ('.asu.edu', 'localhost',)
@@ -71,6 +72,9 @@ USE_I18N = False
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '2km^iq&48&6uv*x$ew@56d0#w9zqth@)_4tby(85+ac2wf4r-u'
+
+# Salt used to generate token (SALT can remain public unlike SECRET_KEY)
+SALT = '48&6uv*x'
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.auth.context_processors.auth',

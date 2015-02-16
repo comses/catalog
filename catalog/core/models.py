@@ -98,7 +98,7 @@ class Publication(models.Model):
     date_modified = models.DateTimeField()
     status = models.CharField(choices=STATUS_CHOICES, max_length=32)
 
-    author_comments = models.TextField()
+    author_comments = models.TextField(blank=True)
     email_sent_count = models.PositiveIntegerField(default=0)
     platforms = models.ManyToManyField('Platform', null=True, blank=True)
     sponsors = models.ManyToManyField('Sponsor', null=True, blank=True)
