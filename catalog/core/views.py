@@ -22,7 +22,7 @@ from .filters import PublicationFilter
 from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, AuthorInvitationForm, ArchivePublicationForm
 from .http import dumps
 from .models import Publication, JournalArticle
-from .serializers import PublicationSerializer, InvitationSerializer
+from .serializers import PublicationSerializer, JournalArticleSerializer, InvitationSerializer
 
 import markdown
 
@@ -151,14 +151,11 @@ class PublicationDetail(LoginRequiredMixin, APIView):
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
 
     def get(self, request, pk, format=None):
-        publication = get_object_or_404(Publication, pk=pk)
+        publication = Publication.objects.get_subclass(id=pk)
         if request.accepted_renderer.format == 'html':
-            if isinstance(publication, JournalArticle):
-                form = JournalArticleDetailForm(instance=publication)
-            else:
-                form = PublicationDetailForm(instance=publication)
+            form = JournalArticleDetailForm(instance=publication)
             return Response({'form': form}, template_name='publication_detail.html')
-        serializer = PublicationSerializer(publication)
+        serializer = JournalArticleSerializer(publication)
         return Response(serializer.data)
 
 

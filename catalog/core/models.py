@@ -100,6 +100,7 @@ class Publication(models.Model):
 
     author_comments = models.TextField(blank=True)
     email_sent_count = models.PositiveIntegerField(default=0)
+
     platforms = models.ManyToManyField('Platform', null=True, blank=True)
     sponsors = models.ManyToManyField('Sponsor', null=True, blank=True)
     tags = models.ManyToManyField('Tag', null=True, blank=True)
