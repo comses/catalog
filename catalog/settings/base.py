@@ -127,8 +127,8 @@ THIRD_PARTY_APPS = (
     'bootstrap3',
     'haystack',
     'django_filters',
-    'django_tables2',
     'rest_framework',
+    'django_extensions'
 )
 
 

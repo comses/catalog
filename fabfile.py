@@ -154,22 +154,6 @@ def test(name=None, coverage=False):
 
 
 @task
-def sockjs(ip="127.0.0.1", port=None):
-    if port is None:
-        port = catalog_settings.WEBSOCKET_PORT
-    _virtualenv(
-        local, "{python} vcweb/sockjs-redis.py {port}".format(python=env.python, port=port), capture=False)
-
-
-@task
-def tornadio(ip="127.0.0.1", port=None):
-    if port is None:
-        port = catalog_settings.WEBSOCKET_PORT
-    _virtualenv(
-        local, "{python} vcweb/vcwebio.py {port}".format(python=env.python, port=port), capture=False)
-
-
-@task
 def ssl(ip='127.0.0.1', port=8443):
     dj('runsslserver {ip}:{port}'.format(ip=ip, port=port), capture=False)
 
