@@ -150,7 +150,8 @@
                 }, self);
                 self.tableInfo = ko.computed(function() {
                     var startIndex = self.pageIndex() * self.pageSize() + 1;
-                    var endIndex =  startIndex + self.pageSize() -1;
+                    var endIndex = startIndex + self.pageSize() -1;
+                    if(endIndex > self.rows().length) endIndex = self.rows().length;
                     return "Showing "+ startIndex + " to " + endIndex + " of " + self.rows().length + " entries";
                 });
                 self.allSelected = ko.computed({
@@ -253,6 +254,7 @@
                 };
 
                 self.endWizard = function(data, event) {
+                    ko.utils.arrayForEach(self.stepModels()[0].model().rows(), function(row) { row.isSelected(false); });
                     self.currentStep(self.stepModels()[0]);
                 };
             };
