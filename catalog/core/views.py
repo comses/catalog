@@ -19,10 +19,10 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from .filters import PublicationFilter
-from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, AuthorInvitationForm, ArchivePublicationForm
+from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, AuthorInvitationForm, ArchivePublicationForm, CustomSearchForm
 from .http import dumps
 from .models import Publication, JournalArticle
-from .serializers import PublicationSerializer, JournalArticleSerializer, InvitationSerializer
+from .serializers import PublicationSerializer, JournalArticleSerializer, InvitationSerializer, ArchivePublicationSerializer
 
 import markdown
 
@@ -106,14 +106,13 @@ class ContactAuthor(LoginRequiredMixin, APIView):
         if serializer.is_valid():
             subject = serializer.validated_data['invitation_subject']
             message = serializer.validated_data['invitation_text']
-            publication_pk_list = serializer.validated_data['pub_pk_list'].split(",")
-            pub_list = Publication.objects.filter(pk__in=publication_pk_list).exclude(contact_email__exact= '')
+            pub_list = CustomSearchForm(request.GET or None).search()
 
             messages = []
             for pub in pub_list:
                 token = signing.dumps(pub.pk, salt=settings.SALT)
                 body = get_invitation_email_content(message, token, self.request.is_secure(), self.get_site())
-                messages.append((subject, body, settings.DEFAULT_FROM_EMAIL, [pub.contact_email]))
+                messages.append((subject, body, settings.DEFAULT_FROM_EMAIL, [pub.object.contact_email]))
             send_mass_mail(messages, fail_silently=False)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -133,15 +132,16 @@ class ArchivePublication(APIView):
 
     def get(self, request, token, format=None):
         instance = self.get_object(token)
-        form = ArchivePublicationForm(instance=instance)
-        return Response({'form': form}, template_name='publication_detail.html')
+        pub = ArchivePublicationSerializer(instance)
+        return Response(pub.data, template_name='archive_publication_form.html')
 
     def post(self, request, token, format=None):
         instance = self.get_object(token)
-        form = ArchivePublicationForm(request.POST or None, instance=instance)
-        if form.is_valid():
-            form.save()
-            return Response({'form': form}, template_name='publication_detail.html')
+        pub = ArchivePublicationSerializer(instance, data=request.data)
+        if pub.is_valid():
+            pub.save()
+            return Response(pub.data)
+        return Response(pub.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PublicationDetail(LoginRequiredMixin, APIView):

@@ -59,5 +59,9 @@ class JournalArticleSerializer(serializers.ModelSerializer):
 class InvitationSerializer(serializers.Serializer):
     invitation_subject = serializers.CharField()
     invitation_text = serializers.CharField()
-    pub_pk_list = serializers.CharField()
 
+
+class ArchivePublicationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Publication
+        fields = ('title', 'archived_url', 'author_comments')

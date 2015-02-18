@@ -3,6 +3,8 @@ from django.forms import widgets, ValidationError
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
+from model_utils import Choices
+
 from haystack.forms import SearchForm
 
 from .models import Publication, JournalArticle
@@ -53,8 +55,19 @@ class JournalArticleDetailForm(forms.ModelForm):
 
 
 class CustomSearchForm(SearchForm):
+
+    STATUS_CHOICES = Choices(
+        ('', _('Any')),
+        ('INCOMPLETE', _('Archive URL not present.')),
+        ('INVALID_URL', _('Invalid Archive URL')),
+        ('COMPLETE', _('Archived')),
+    )
+
     publication_start_date = forms.DateField(required=False)
     publication_end_date = forms.DateField(required=False)
+    contact_email = forms.BooleanField(required=False)
+    status = forms.ChoiceField(choices=STATUS_CHOICES, required=False)
+    email_count = forms.IntegerField(min_value=0, required=False)
 
     def no_query_found(self):
         return self.searchqueryset.all()
@@ -66,17 +79,30 @@ class CustomSearchForm(SearchForm):
         if not self.is_valid():
             return self.no_query_found()
 
+        criteria = dict()
         # Check to see if a start_date was chosen.
         if self.cleaned_data['publication_start_date']:
-            sqs = sqs.filter(pub_date__gte=self.cleaned_data['publication_start_date'])
+            criteria.update(pub_date__gte=self.cleaned_data['publication_start_date'])
 
         # Check to see if an end_date was chosen.
         if self.cleaned_data['publication_end_date']:
-            sqs = sqs.filter(pub_date__lte=self.cleaned_data['publication_end_date'])
+            criteria.update(pub_date__lte=self.cleaned_data['publication_end_date'])
 
+        # Check to see if status was selected.
+        if self.cleaned_data['status']:
+            criteria.update(status=self.cleaned_data['status'])
+
+        # Check to see if email count was entered
+        if self.cleaned_data['email_count']:
+            criteria.update(email_sent_count=self.cleaned_data['email_count'])
+
+        sqs = sqs.filter(**criteria)
+        if self.cleaned_data['contact_email']:
+            sqs = sqs.exclude(contact_email__exact='')
+
+        # if not using query to search return the results sorted by date
         if not self.cleaned_data['q']:
             sqs = sqs.order_by('-pub_date')
-
         return sqs
 
 
