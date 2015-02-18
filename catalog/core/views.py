@@ -12,18 +12,18 @@ from django.utils.decorators import method_decorator
 from django.views.decorators import cache, csrf
 from django.views.generic import FormView, TemplateView
 
+from django_tables2.utils import A
 from haystack.views import SearchView
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, AuthorInvitationForm, ArchivePublicationForm, CustomSearchForm
+from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
 from .http import dumps
-from .models import Publication, JournalArticle
+from .models import Publication
 from .serializers import PublicationSerializer, JournalArticleSerializer, InvitationSerializer, ArchivePublicationSerializer
 
-from django_tables2.utils import A
 
 import markdown
 import django_tables2 as tables
@@ -114,13 +114,13 @@ class ContactAuthor(LoginRequiredMixin, APIView):
         if serializer.is_valid():
             subject = serializer.validated_data['invitation_subject']
             message = serializer.validated_data['invitation_text']
-            pub_list = CustomSearchForm(request.GET or None).search()
-
+            pk_list = CustomSearchForm(request.GET or None).search().values_list('pk', flat=True)
+            pub_list = Publication.objects.filter(pk__in=pk_list).exclude(contact_email__exact='')
             messages = []
             for pub in pub_list:
                 token = signing.dumps(pub.pk, salt=settings.SALT)
                 body = get_invitation_email_content(message, token, self.request.is_secure(), self.get_site())
-                messages.append((subject, body, settings.DEFAULT_FROM_EMAIL, [pub.object.contact_email]))
+                messages.append((subject, body, settings.DEFAULT_FROM_EMAIL, [pub.contact_email]))
             send_mass_mail(messages, fail_silently=False)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -190,13 +190,13 @@ class EmailPreview(LoginRequiredMixin, APIView):
             return RequestSite(self.request)
 
     def get(self, request, format=None):
-        form = AuthorInvitationForm(request.GET or None)
-        if form.is_valid():
-            message = form.cleaned_data.get('invitation_text')
+        serializer = InvitationSerializer(data=request.GET)
+        if serializer.is_valid():
+            message = serializer.validated_data['invitation_text']
             plaintext_content = get_invitation_email_content(message, "valid:token", self.request.is_secure(), self.get_site())
             html_content = markdown.markdown(plaintext_content)
             return Response({'success': True, 'content': html_content})
-        return Response({'success': False, 'errors': form.errors})
+        return Response({'success': False, 'errors': serializer.errors})
 
 
 class CustomSearchView(SearchView):

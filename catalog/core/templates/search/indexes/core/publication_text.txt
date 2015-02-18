@@ -1,2 +1,3 @@
 {{ object.title }}
+{{ object.abstract }}
 {{ object.date_published }}

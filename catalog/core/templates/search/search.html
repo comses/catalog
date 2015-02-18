@@ -19,11 +19,11 @@
             <div class="widget-content clearfix" data-bind="template: { name: getTemplate, data: model }"></div>
             <div class="widget-foot clearfix">
                 <!-- ko if: $root.canGoPrevious -->
-                <button class="btn btn-primary pull-left" data-bind="click: $root.goPrevious">
+                <button id="prevBtn" class="btn btn-primary pull-left" data-bind="click: $root.goPrevious">
                     <i class="fa fa-arrow-left"></i><span data-bind="text: prvBtnTxt"><span></button>
                 <!-- /ko -->
                 <!-- ko if: $root.canGoNext -->
-                <button class="btn btn-primary pull-right" data-bind="click: $root.goNext">
+                <button id="nextBtn" class="btn btn-primary pull-right" data-bind="click: $root.goNext" data-loading-text="Loading...">
                     <span data-bind="text: nxtBtnTxt"></span> <i class="fa fa-arrow-right"></i></button>
                 <!-- /ko -->
                 <!-- ko ifnot: $root.canGoNext -->
@@ -54,8 +54,8 @@
                 <tbody>
                     {% for row in page.object_list %}
                         <tr class="{% cycle "odd" "even" %}">
-                            <td><a href="/publications/{{ row.object.id }}">{{ row.object.title }}</td>
-                            <td>{{ row.object.date_published }}</td>
+                            <td><a href="/publications/{{ row.pk }}">{{ row.title }}</td>
+                            <td>{{ row.pub_date }}</td>
                         </tr>
                     {% empty %}
                         <tr class="{% cycle "odd" "even" %}">
@@ -162,6 +162,7 @@
  
                 self.goNext = function() {
                     if(self.currentIndex() == 1) {
+                        var $btn = $("#nextBtn").button('loading');
                         $.ajax({
                             type: "POST",
                             url: "{% url 'send_invites' %}" + window.location.search,
@@ -174,6 +175,8 @@
                             error: function(result) {
                                 console.log(result.responseJSON);
                             }
+                        }).always(function() {
+                            $btn.button('reset')
                         });
                     } else {
                          self.currentStep(self.stepModels()[self.currentIndex() + 1]);
