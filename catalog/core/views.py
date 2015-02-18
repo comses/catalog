@@ -18,13 +18,15 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .filters import PublicationFilter
 from .forms import LoginForm, PublicationDetailForm, JournalArticleDetailForm, AuthorInvitationForm, ArchivePublicationForm, CustomSearchForm
 from .http import dumps
 from .models import Publication, JournalArticle
 from .serializers import PublicationSerializer, JournalArticleSerializer, InvitationSerializer, ArchivePublicationSerializer
 
+from django_tables2.utils import A
+
 import markdown
+import django_tables2 as tables
 
 
 class LoginRequiredMixin(object):
@@ -69,6 +71,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
 
 
+class PublicationTable(tables.Table):
+    title = tables.LinkColumn('publication_detail', args=[A('pk')])
+    class Meta:
+        model = Publication
+        """ Fields to display in the Publication table """
+        fields = ('title', 'status', 'contact_email')
+
+
 class PublicationList(LoginRequiredMixin, APIView):
     """
     List all publications
@@ -77,15 +87,13 @@ class PublicationList(LoginRequiredMixin, APIView):
 
     def get(self, request, format=None):
         publication_list = Publication.objects.all()
-        f = PublicationFilter(request.GET, queryset=publication_list)
-        serializer = PublicationSerializer(f.qs, many=True)
-        if request.accepted_renderer.format == 'html':
-            return Response({
-                'view_model_json': dumps(serializer.data),
-                'filter': f,
-                'form': AuthorInvitationForm()
-            }, template_name="publications.html")
 
+        if request.accepted_renderer.format == 'html':
+            t = PublicationTable(publication_list)
+            tables.RequestConfig(request, paginate={"per_page": 10}).configure(t)
+            return Response({'table': t}, template_name="publications.html")
+
+        serializer = PublicationSerializer(publication_list, many=True)
         return Response(serializer.data)
 
 

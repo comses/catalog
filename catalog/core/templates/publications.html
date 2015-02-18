@@ -1,264 +1,49 @@
 {% extends 'base.html' %}
+{% load querystring from django_tables2 %}
+{% load trans blocktrans from i18n %}
 {% load bootstrap3 %}
 
 {% block content %}
-    <div data-bind="template: { name: 'baseTmpl', data: currentStep }"></div>
-{% endblock content %}
-
-{% block javascript %}
-    <!-- External Javascript Libraries -->
-    <script src='//cdnjs.cloudflare.com/ajax/libs/knockout/3.2.0/knockout-min.js'></script>
-    <script src='//cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.min.js'></script>
-
-    <!-- Templates -->
-    <script id="baseTmpl" type="text/html">
-        <div class="widget-wrapper">
-            <div class="widget-head">
-                <h4 data-bind="text: name"></h4>
-            </div>
-            <div class="widget-content clearfix" data-bind="template: { name: getTemplate, data: model }"></div>
-            <div class="widget-foot clearfix">
-                <!-- ko if: $root.canGoPrevious -->
-                <button class="btn btn-primary pull-left" data-bind="click: $root.goPrevious">
-                    <i class="fa fa-arrow-left"></i><span data-bind="text: prvBtnTxt"><span></button>
-                <!-- /ko -->
-                <!-- ko if: $root.canGoNext -->
-                <button class="btn btn-primary pull-right" data-bind="click: $root.goNext">
-                    <span data-bind="text: nxtBtnTxt"></span> <i class="fa fa-arrow-right"></i></button>
-                <!-- /ko -->
-                <!-- ko ifnot: $root.canGoNext -->
-                <button class="btn btn-primary pull-right" data-bind="click: $root.endWizard">
-                    Done <i class="fa fa-arrow-right"></i></button>
-                <!-- /ko -->
-            </div>
+    <div class="widget-wrapper">
+        <div class="widget-head">
+            <h4>Publications</h4>
         </div>
-    </script>
-
-     <script id="basicTmpl" type="text/html">
-        <div data-bind="text: message"></div>
-    </script>
-
-    <script id="choicePubTmpl" type="text/html">
-        <form method="get" class="col-md-3" role="form">
-            <h4>Filter Criteria</h4>
-            {% bootstrap_form filter.form %}
-            {% buttons %}
-                <button type="submit" class="btn btn-primary">
-                    <i class="fa fa-filter"></i> Filter
-                </button>
-            {% endbuttons %}
-        </form>
-        <table class="table table-condensed">
-            <thead>
-                <tr>
-                    <th><input type="checkbox" data-bind="checked: allSelected"/></th>
-                    <th>Title</th>
-                    <th>Date Published</th>
-                </tr>
-            </thead>
-            <tbody data-bind="foreach: pagedRows">
-                <tr>
-                    <td><input type="checkbox" data-bind="checked: isSelected"/></td>
-                    <td>
-                        <a href="#" data-bind="attr:{href: publicationURL}, text: title"></a>
-                    </td>
-                    <td data-bind="text: date_published"></td>
-                </tr>
-            </tbody>
-        </table>
-        <nav>
-            <ul class="pager">
-                <li data-bind="css: {disabled: pageIndex() <= 0}"><a href="#" data-bind="click: previousPage"><span aria-hidden="true">&larr;</span> Previous Page</a></li>
-                <li data-bind="text: tableInfo"></li>
-                <li data-bind="css: {disabled: pageIndex() >= maxPageIndex()}"><a href="#" data-bind="click: nextPage">Next Page <span aria-hidden="true">&rarr;</span></a></li>
-            </ul>
-        </nav>
-    </script>
-
-    <script id="inviteFormTmpl" type="text/html">
-        <form id="invite-form" class="form-horizontal col-md-5" role="form" data-bind="submit: previewEmail">
-            <legend class="scheduler-border">Email</legend>
-            {% bootstrap_form form layout="horizontal" label_class="col-md-4" field_class="col-md-8" %}
-            <div class="form-group">
-                <div class="col-md-offset-4 col-md-8">
-                    <button type="submit" class="btn btn-warning"><i class="fa fa-eye"></i> Preview Invitation Email</button>
-                    </div>
-                </div>
-            </div>
-        </form>
-        <div class="col-md-7" id="email-content">
-            <fieldset class="scheduler-border">
-                <legend class="scheduler-border">Email Preview</legend>
-                <div id="email-text">
-                    <p>Email Preview Section.</p>
-                    <p>Fill out the details in the form provided on the left and press preview invitation email to preview the final email content.</p>
-                </div>
-            </fieldset> 
+        <div class="widget-content clearfix">
+            <table class="table table-striped"{% if table.attrs %} {{ table.attrs.as_html }}{% endif %}>
+                <thead>
+                    <tr>
+                    {% for column in table.columns %}
+                        {% if column.orderable %}
+                        <th {{ column.attrs.th.as_html }}><a href="{% querystring table.prefixed_order_by_field=column.order_by_alias.next %}">{{ column.header }}</a></th>
+                        {% else %}
+                        <th {{ column.attrs.th.as_html }}>{{ column.header }}</th>
+                        {% endif %}
+                    {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in table.page.object_list|default:table.rows %} {# support pagination #}
+                    <tr class="{% cycle "odd" "even" %}">
+                        {% for column, cell in row.items %}
+                            <td {{ column.attrs.td.as_html }}>{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% empty %}
+                    {% if table.empty_text %}
+                    <tr><td colspan="{{ table.columns|length }}">{{ table.empty_text }}</td></tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-    </script>
-
-    <script type="text/javascript">
-        var viewModelJson = $.parseJSON("{{ view_model_json | escapejs }}");
-
-        $(function(){
-            function Step(id, name, template, model, prvbtntxt, nxtbtntxt) {
-                var self = this;
-                self.id = id;
-                self.name = ko.observable(name);
-                self.template = template;
-                self.model = ko.observable(model);
-                self.prvBtnTxt = ko.observable(prvbtntxt);
-                self.nxtBtnTxt = ko.observable(nxtbtntxt);
-
-                self.getTemplate = function() {
-                    return self.template;
-                }
-            }
-
-            var Publication =  function(data) {
-                var self = this;
-                ko.mapping.fromJS(data, {}, self);
-                self.publicationURL = ko.computed(function() {
-                    return window.location.pathname + self.id()
-                });
-                self.isSelected = ko.observable(false);
-            }
-
-            var PublicationTable = function(data) {
-                var self = this;
-
-                self.rows = ko.observableArray([]);
-                self.pageSize = ko.observable(10);
-                self.pageIndex = ko.observable(0);
-                self.previousPage = function() {
-                   if(self.pageIndex() > 0) {
-                        self.pageIndex(self.pageIndex() - 1);
-                    }
-                };
-                self.nextPage = function() {
-                    if(self.pageIndex() < self.maxPageIndex()) {
-                       self.pageIndex(self.pageIndex() + 1);
-                    }
-                }
-                self.maxPageIndex = ko.computed(function() {
-                    return Math.ceil(self.rows().length / self.pageSize()) - 1;
-                });
-                self.pagedRows = ko.computed(function() {
-                    var size = self.pageSize();
-                    var start = self.pageIndex() * size;
-                    return self.rows().slice(start, start + size);
-                }, self);
-                self.tableInfo = ko.computed(function() {
-                    var startIndex = self.pageIndex() * self.pageSize() + 1;
-                    var endIndex = startIndex + self.pageSize() -1;
-                    if(endIndex > self.rows().length) endIndex = self.rows().length;
-                    return "Showing "+ startIndex + " to " + endIndex + " of " + self.rows().length + " entries";
-                });
-                self.allSelected = ko.computed({
-                    read: function() {
-                        var firstUnchecked = ko.utils.arrayFirst(self.rows(), function(row) {
-                            return row.isSelected() == false;
-                        });
-                        return firstUnchecked == null;
-                    },
-                    write: function(value) {
-                        ko.utils.arrayForEach(self.rows(), function(row) {
-                            row.isSelected(value);
-                        });
-                    }
-                });
-
-                self.rows(ko.utils.arrayMap(data, function(rowData) { return new Publication(rowData) }));
-            };
-
-            var InvitationViewModel = function(data) {
-                var self = this;
-
-                self.invitation_text = ko.observable();
-                self.invitation_subject =  ko.observable();
-
-                self.previewEmail = function(formElement) {
-                    var formData = $(formElement).serialize()
-                    $.get("{% url 'invite_email_preview' %}?" + formData)
-                        .done(function(result) {
-                            if(result.success){
-                                $("#email-text").html(result.content);
-                            } else {
-                                $("#email-text").html("Please fill in all the fields to preview invitation email.");
-                            }
-                        });
-                }
-            };
-
-            var WizardViewModel = function(data) {
-                var self = this;
-                self.stepModels = ko.observableArray([
-                    new Step(1, "Select Publications", "choicePubTmpl", new PublicationTable(data), "", "Construct Email "),
-                    new Step(2, "Contruct Email", "inviteFormTmpl", new InvitationViewModel(), " Select Publications", "Submit "),
-                    new Step(3, "Done!!", "basicTmpl", { message: "you are finished!" }, "", "Done "),
-                ]);
-
-                self.currentStep = ko.observable(self.stepModels()[0]);
-
-                self.currentIndex = ko.computed(function() {
-                    return self.stepModels.indexOf(self.currentStep());
-                });
-
-                self.getTemplate = function(data) {
-                     return self.currentStep().template();
-                };
-
-                self.canGoNext = ko.computed(function() {
-                    return self.currentIndex() < self.stepModels().length - 1;
-                });
-                self.formData = {};
-                self.goNext = function() {
-                    if (self.canGoNext()) {
-                        if(self.currentIndex() == 0) {
-                            var selected_rows = ko.utils.arrayFilter(self.currentStep().model().rows(),
-                                                    function(row) { return row.isSelected(); });
-                            var pub_pk_list = ko.utils.arrayMap(selected_rows, function(row) { 
-                                                                                    if(row.isSelected()) return row.id(); 
-                                                                                });
-                            $.extend(self.formData, {'pub_pk_list': pub_pk_list.toString()});
-                            self.currentStep(self.stepModels()[self.currentIndex() + 1]);
-                        } else if(self.currentIndex() == 1) {
-                            $.extend(self.formData, JSON.parse(ko.toJSON(self.currentStep().model())));
-                            $.ajax({
-                                type: "POST",
-                                url: "{% url 'send_invites' %}",
-                                contentType: "application/json; charset=utf-8",
-                                data: JSON.stringify(self.formData),
-                                dataType:"json",
-                                success: function(result){ 
-                                    self.currentStep(self.stepModels()[self.currentIndex() + 1]);
-                                },
-                                error: function(result) {
-                                    console.log(result.responseJSON);
-                                }
-                            });
-                        } else {
-                             self.currentStep(self.stepModels()[self.currentIndex() + 1]);
-                        }
-                    }
-                };
-
-                self.canGoPrevious = ko.computed(function() {
-                    return self.currentIndex() > 0 && (self.currentIndex() < self.stepModels().length - 1);
-                });
-
-                self.goPrevious = function() {
-                    if (self.canGoPrevious()) {
-                         self.currentStep(self.stepModels()[self.currentIndex() - 1]);
-                    }
-                };
-
-                self.endWizard = function(data, event) {
-                    ko.utils.arrayForEach(self.stepModels()[0].model().rows(), function(row) { row.isSelected(false); });
-                    self.currentStep(self.stepModels()[0]);
-                };
-            };
-            ko.applyBindings(new WizardViewModel(viewModelJson));
-        });
-    </script>
-{% endblock javascript %}
+        <div class="widget-foot clearfix text-center">
+            {% if table.page %}
+            {% with table.page.paginator.count as total %}
+                <div> {% blocktrans with table.page.number as current and table.paginator.num_pages as total_pages %}Page {{ current }} of {{ total_pages }}. Total entries: {{ total }}{% endblocktrans %}
+                </div>
+                {% bootstrap_pagination table.page url=request.get_full_path %}
+            {% endwith %}
+            {% endif %}
+        </div>
+    </div>
+{% endblock content %} 
