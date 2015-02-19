@@ -67,7 +67,6 @@ class CustomSearchForm(SearchForm):
     publication_end_date = forms.DateField(required=False)
     contact_email = forms.BooleanField(required=False)
     status = forms.ChoiceField(choices=STATUS_CHOICES, required=False)
-    email_count = forms.IntegerField(min_value=0, required=False)
 
     def no_query_found(self):
         return self.searchqueryset.all()
@@ -91,10 +90,6 @@ class CustomSearchForm(SearchForm):
         # Check to see if status was selected.
         if self.cleaned_data['status']:
             criteria.update(status=self.cleaned_data['status'])
-
-        # Check to see if email count was entered
-        if self.cleaned_data['email_count']:
-            criteria.update(email_sent_count=self.cleaned_data['email_count'])
 
         sqs = sqs.filter(**criteria)
         if self.cleaned_data['contact_email']:

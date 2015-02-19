@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <div class="widget-wrapper">
+        <div class="widget-head">
+            <span> Publication: </span>
+            <span data-bind="text: title"></span>
+        </div>
+        <div class="widget-content clearfix">
+            <form class="form-horizontal">
+                <div class="form-group">
+                    <label class="col-md-2 control-label" for="id_url">Archive URL</label>
+                    <div class="col-md-4">
+                        <input class="form-control" id="id_url" name="url" placeholder="Archive URL" data-bind="value: archived_url">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="col-md-2 control-label" for="id_comments">Comments</label>
+                    <div class="col-md-4">
+                        <TextArea class="form-control" id="id_comments" name="comments" data-bind="value: author_comments"></TextArea>
+                    </div>
+
+                </div>
+                <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                        <button type="submit" class="btn btn-primary" data-bind="click: saveInfo">Submit</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div> 
+{% endblock content %}
+
+{% block javascript %}
+    <!-- External Javascript Libraries -->
+    <script src='//cdnjs.cloudflare.com/ajax/libs/knockout/3.2.0/knockout-min.js'></script>
+
+    <script type="text/javascript">
+        var viewModelJson = $.parseJSON("{{ json | escapejs }}");
+        $(function(){
+            var Publication =  function(data) {
+                var self = this;
+
+                self.title = ko.observable(data.title);
+                self.archived_url = ko.observable(data.archived_url);
+                self.author_comments = ko.observable(data.author_comments);
+ 
+                self.saveInfo = function(data, event) {
+                    $.ajax({
+                        type: "POST",
+                        url: window.location.pathname,
+                        data: ko.toJSON(data),
+                        dataType: "json",
+                        contentType: "application/json; charset=utf-8",
+                        success: function(result) {
+                            $('.widget-content').html("Your work has been archived successfully. Thanks.")
+                        }
+                    });
+                }
+            };
+            ko.applyBindings(new Publication(viewModelJson));
+        });
+    </script>
+{% endblock javascript %}

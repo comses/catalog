@@ -5,6 +5,7 @@ from django.contrib.sites.models import Site, RequestSite
 from django.core import signing
 from django.core.mail import send_mass_mail
 from django.core.urlresolvers import reverse
+from django.db.models import F
 from django.shortcuts import redirect, get_object_or_404
 from django.template import Context
 from django.template.loader import get_template
@@ -122,13 +123,14 @@ class ContactAuthor(LoginRequiredMixin, APIView):
                 body = get_invitation_email_content(message, token, self.request.is_secure(), self.get_site())
                 messages.append((subject, body, settings.DEFAULT_FROM_EMAIL, [pub.contact_email]))
             send_mass_mail(messages, fail_silently=False)
+            pub_list.update(email_sent_count=F('email_sent_count')+1)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ArchivePublication(APIView):
 
-    renderer_classes = (TemplateHTMLRenderer,)
+    renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
     token_expires = 3600 * 168  # Seven days
 
     def get_object(self, token):
@@ -141,7 +143,7 @@ class ArchivePublication(APIView):
     def get(self, request, token, format=None):
         instance = self.get_object(token)
         pub = ArchivePublicationSerializer(instance)
-        return Response(pub.data, template_name='archive_publication_form.html')
+        return Response({'json': dumps(pub.data)}, template_name='archive_publication_form.html')
 
     def post(self, request, token, format=None):
         instance = self.get_object(token)
