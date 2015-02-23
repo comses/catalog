@@ -92,21 +92,27 @@ class Command(BaseCommand):
         for c in self.get_creators(data):
             item.creators.add(c)
         for t in self.get_tags(data):
-            if t.key == 'codeurl' and t.value != 'none':
-                item.archived_url = re.search("(?P<url>https?://[^\s]+)", t.value).group("url")
-                if item.archived_url[-1] == '>':
-                    item.archived_url = item.archived_url[:-1]
-            elif t.key == 'email' and t.value != 'none':
-                item.contact_email = t.value
+            if t.key == 'codeurl':
+                if t.value != 'none':
+                    item.archived_url = re.search("(?P<url>https?://[^\s]+)", t.value).group("url")
+                    if item.archived_url[-1] == '>':
+                        item.archived_url = item.archived_url[:-1]
+            elif t.key == 'email':
+                if t.value != 'none':
+                    item.contact_email = t.value
             elif t.key == 'docs':
                 item.model_docs = t.value
             elif t.key == 'platform' and t.value != 'unknown':
                 platform, created = Platform.objects.get_or_create(name=t.value)
                 item.platforms.add(platform)
-            elif t.key == 'sponsor' or t.key == 'sponse' and t.value != 'none':
-                sponsor, created = Sponsor.objects.get_or_create(name=t.value)
-                item.sponsors.add(sponsor)
-            item.tags.add(t)
+            elif t.key == 'sponsor' or t.key == 'sponse':
+                if t.value != 'none':
+                    sponsor, created = Sponsor.objects.get_or_create(name=t.value)
+                    item.sponsors.add(sponsor)
+            elif t.key == 'author':
+                continue
+            else:
+                item.tags.add(t)
 
         if item.archived_url:
             response = requests.get(item.archived_url)
@@ -132,7 +138,7 @@ class Command(BaseCommand):
         item.save()
         return item
 
-    def create_book(seld, data, meta):
+    def create_book(self, data, meta):
         item = Book()
         item = self.set_common_fields(item, data, meta)
         item.edition = data['edition'].strip()
@@ -148,8 +154,11 @@ class Command(BaseCommand):
         for c in self.get_creators(data):
             item.creators.add(c)
         for t in self.get_tags(data):
-            if t.key == 'codeurl' and t.value != 'none':
-                item.archived_url = t.value
+            if t.key == 'codeurl':
+                if t.value != 'none':
+                    item.archived_url = re.search("(?P<url>https?://[^\s]+)", t.value).group("url")
+                    if item.archived_url[-1] == '>':
+                        item.archived_url = item.archived_url[:-1]
             elif t.key == 'email' and t.value != 'none':
                 item.contact_email = t.value
             elif t.key == 'docs':
@@ -157,10 +166,13 @@ class Command(BaseCommand):
             elif t.key == 'platform' and t.value != 'unknown':
                 platform, created = Platform.objects.get_or_create(name=t.value)
                 item.platforms.add(platform)
-            elif (t.key == 'sponsor' or t.key == 'sponse') and t.value != 'none':
+            elif t.key == 'sponsor' or t.key == 'sponse' and t.value != 'none':
                 sponsor, created = Sponsor.objects.get_or_create(name=t.value)
                 item.sponsors.add(sponsor)
-            item.tags.add(t)
+            elif t.key == 'author':
+                continue
+            else:
+                item.tags.add(t)
         item.save()
         return item
 

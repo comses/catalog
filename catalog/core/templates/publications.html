@@ -29,9 +29,7 @@
                         {% endfor %}
                     </tr>
                     {% empty %}
-                    {% if table.empty_text %}
-                    <tr><td colspan="{{ table.columns|length }}">{{ table.empty_text }}</td></tr>
-                    {% endif %}
+                        <tr><td colspan="{{ table.columns|length }}">No Publications in the database to show.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
