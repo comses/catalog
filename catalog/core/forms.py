@@ -7,7 +7,7 @@ from model_utils import Choices
 
 from haystack.forms import SearchForm
 
-from .models import Publication, JournalArticle, Tag, Sponsor
+from .models import Publication, JournalArticle, Tag, Sponsor, STATUS_CHOICES
 
 
 class LoginForm(forms.Form):
@@ -56,13 +56,7 @@ class JournalArticleDetailForm(forms.ModelForm):
 
 class CustomSearchForm(SearchForm):
 
-    STATUS_CHOICES = Choices(
-        ('', _('Any')),
-        ('INCOMPLETE', _('Archive URL not present.')),
-        ('AUTHOR_UPDATED', _('Archive URL updated by Author.')),
-        ('INVALID_URL', _('Invalid Archive URL')),
-        ('COMPLETE', _('Archived')),
-    )
+    STATUS_CHOICES = tuple([("", "Any"), ] + list(STATUS_CHOICES))
 
     publication_start_date = forms.DateField(required=False)
     publication_end_date = forms.DateField(required=False)
