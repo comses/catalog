@@ -7,7 +7,7 @@ from model_utils import Choices
 
 from haystack.forms import SearchForm
 
-from .models import Publication, JournalArticle
+from .models import Publication, JournalArticle, Tag, Sponsor
 
 
 class LoginForm(forms.Form):
@@ -48,7 +48,7 @@ class PublicationDetailForm(forms.ModelForm):
 class JournalArticleDetailForm(forms.ModelForm):
     class Meta:
         model = JournalArticle
-        exclude = ['date_added', 'date_modified']
+        exclude = ['date_added', 'date_modified', 'added_by', 'date_published_text']
         widgets = {
             'title': widgets.Textarea(attrs={'rows': 3}),
         }
@@ -59,6 +59,7 @@ class CustomSearchForm(SearchForm):
     STATUS_CHOICES = Choices(
         ('', _('Any')),
         ('INCOMPLETE', _('Archive URL not present.')),
+        ('AUTHOR_UPDATED', _('Archive URL updated by Author.')),
         ('INVALID_URL', _('Invalid Archive URL')),
         ('COMPLETE', _('Archived')),
     )

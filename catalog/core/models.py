@@ -7,6 +7,7 @@ from model_utils.managers import InheritanceManager
 
 STATUS_CHOICES = Choices(
     ('INCOMPLETE', _('Archive URL not present.')),
+    ('AUTHOR_UPDATED', _('Archive URL updated by Author.')),
     ('INVALID_URL', _('Invalid Archive URL')),
     ('COMPLETE', _('Archived')),
 )

@@ -1,5 +1,6 @@
 from rest_framework.urlpatterns import format_suffix_patterns
-from django.conf.urls import patterns, url
+from django.conf.urls import patterns, url, include
+from django.contrib.auth.decorators import login_required
 
 from .views import (IndexView, LoginView, LogoutView, DashboardView, PublicationDetail,
                     PublicationList, EmailPreview, ContactAuthor, ArchivePublication, CustomSearchView)
@@ -23,5 +24,5 @@ urlpatterns += [
 ]
 
 urlpatterns += patterns('haystack.views',
-    url(r'^search/$', CustomSearchView(form_class = CustomSearchForm), name='haystack_search'),
+    url(r'^search/$', login_required(CustomSearchView(form_class = CustomSearchForm)), name='haystack_search'),
 )
