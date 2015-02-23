@@ -34,16 +34,45 @@ class Command(BaseCommand):
             creators.append(creator)
         return creators
 
-    def get_tags(self, data):
-        tags = []
+    def set_tags(self, data, item):
         for t in data['tags']:
             values = t['tag'].strip().split(': ')
             if len(values) == 2:
-                tag, created = Tag.objects.get_or_create(value=values[1].strip(), key=values[0].strip())
+                key = values[0].strip()
+                value = values[1].strip()
             else:
-                tag, created = Tag.objects.get_or_create(value=values[0].strip())
-            tags.append(tag)
-        return tags
+                key = ''
+                value = values[0].strip()
+
+            if key == 'codeurl':
+                if value != 'none':
+                    item.archived_url = re.search("(?P<url>https?://[^\s]+)", value).group("url")
+                    if item.archived_url[-1] == '>':
+                        item.archived_url = item.archived_url[:-1]
+            elif key == 'email':
+                if value != 'none':
+                    item.contact_email = value
+            elif key == 'docs':
+                item.model_docs = value
+            elif key == 'platform':
+                if value != 'unknown' and value != 'none':
+                    platform, created = Platform.objects.get_or_create(name=value)
+                    item.platforms.add(platform)
+            elif key == 'sponsor' or key == 'sponse':
+                if value != 'none':
+                    sponsor, created = Sponsor.objects.get_or_create(name=value)
+                    item.sponsors.add(sponsor)
+            elif key == 'author':
+                continue
+            else:
+                if key:
+                    print "Tag with key: "+ key + " value: "+ value
+                    tag, created = Tag.objects.get_or_create(value=value, key=key)
+                else:
+                    tag, created = Tag.objects.get_or_create(value=value)
+                item.tags.add(tag)
+        item.save()
+        return item
 
     def set_common_fields(self, item, data, meta):
         item.title = data['title'].strip()
@@ -89,30 +118,11 @@ class Command(BaseCommand):
         item.series_text = data['seriesTitle'].strip()
         item.doi = data['DOI'].strip()
         item.save()
+
         for c in self.get_creators(data):
             item.creators.add(c)
-        for t in self.get_tags(data):
-            if t.key == 'codeurl':
-                if t.value != 'none':
-                    item.archived_url = re.search("(?P<url>https?://[^\s]+)", t.value).group("url")
-                    if item.archived_url[-1] == '>':
-                        item.archived_url = item.archived_url[:-1]
-            elif t.key == 'email':
-                if t.value != 'none':
-                    item.contact_email = t.value
-            elif t.key == 'docs':
-                item.model_docs = t.value
-            elif t.key == 'platform' and t.value != 'unknown':
-                platform, created = Platform.objects.get_or_create(name=t.value)
-                item.platforms.add(platform)
-            elif t.key == 'sponsor' or t.key == 'sponse':
-                if t.value != 'none':
-                    sponsor, created = Sponsor.objects.get_or_create(name=t.value)
-                    item.sponsors.add(sponsor)
-            elif t.key == 'author':
-                continue
-            else:
-                item.tags.add(t)
+
+        item = self.set_tags(data, item)
 
         if item.archived_url:
             response = requests.get(item.archived_url)
@@ -133,9 +143,7 @@ class Command(BaseCommand):
         item.date_modified = data['dateModified']
         item.added_by = self.get_user(meta)
         item.save()
-        for t in self.get_tags(data):
-            item.tags.add(t)
-        item.save()
+        item = self.set_tags(data, item)
         return item
 
     def create_book(self, data, meta):
@@ -153,27 +161,7 @@ class Command(BaseCommand):
         item.save()
         for c in self.get_creators(data):
             item.creators.add(c)
-        for t in self.get_tags(data):
-            if t.key == 'codeurl':
-                if t.value != 'none':
-                    item.archived_url = re.search("(?P<url>https?://[^\s]+)", t.value).group("url")
-                    if item.archived_url[-1] == '>':
-                        item.archived_url = item.archived_url[:-1]
-            elif t.key == 'email' and t.value != 'none':
-                item.contact_email = t.value
-            elif t.key == 'docs':
-                item.model_docs = t.value
-            elif t.key == 'platform' and t.value != 'unknown':
-                platform, created = Platform.objects.get_or_create(name=t.value)
-                item.platforms.add(platform)
-            elif t.key == 'sponsor' or t.key == 'sponse' and t.value != 'none':
-                sponsor, created = Sponsor.objects.get_or_create(name=t.value)
-                item.sponsors.add(sponsor)
-            elif t.key == 'author':
-                continue
-            else:
-                item.tags.add(t)
-        item.save()
+        item = self.set_tags(data, item)
         return item
 
     def generate_entry(self, data):
