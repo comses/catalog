@@ -30,6 +30,33 @@ import markdown
 import django_tables2 as tables
 
 
+class InvitationEmail(object):
+
+    def __init__(self, request):
+        self.request = request
+        self.plaintext_template = get_template('email/invitation-email.txt')
+
+    @property
+    def site(self):
+        if Site._meta.installed:
+            return Site.objects.get_current()
+        else:
+            return RequestSite(self.request)
+
+    @property
+    def is_secure(self):
+        return self.request.is_secure()
+
+    def get_plaintext_content(self, message, token):
+        c = Context({
+            'invitation_text': message,
+            'site': self.site,
+            'token': token,
+            'secure': self.is_secure
+        })
+        return self.plaintext_template.render(c)
+
+
 class LoginRequiredMixin(object):
     @classmethod
     def as_view(cls, **initkwargs):
@@ -98,17 +125,45 @@ class PublicationList(LoginRequiredMixin, APIView):
         return Response(serializer.data)
 
 
+class PublicationDetail(LoginRequiredMixin, APIView):
+    """
+    Retrieve, update or delete a publication instance.
+    """
+    renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
+
+    def get(self, request, pk, format=None):
+        publication = Publication.objects.get_subclass(id=pk)
+        if request.accepted_renderer.format == 'html':
+            form = JournalArticleDetailForm(instance=publication)
+            return Response({'form': form}, template_name='publication_detail.html')
+        serializer = JournalArticleSerializer(publication)
+        return Response(serializer.data)
+
+
+class EmailPreview(LoginRequiredMixin, APIView):
+
+    renderer_classes = (JSONRenderer,)
+
+    def get(self, request, format=None):
+        serializer = InvitationSerializer(data=request.GET)
+        if serializer.is_valid():
+            message = serializer.validated_data['invitation_text']
+            ie = InvitationEmail(self.request)
+            plaintext_content = ie.get_plaintext_content(message, "valid:token")
+            html_content = markdown.markdown(plaintext_content)
+            return Response({'success': True, 'content': html_content})
+        return Response({'success': False, 'errors': serializer.errors})
+
+
+class CustomSearchView(SearchView):
+    template = 'search/search.html'
+
+
 class ContactAuthor(LoginRequiredMixin, APIView):
     """
     Send out invitations to authors to archive their work
     """
     renderer_classes = (JSONRenderer, )
-
-    def get_site(self):
-        if Site._meta.installed:
-            return Site.objects.get_current()
-        else:
-            return RequestSite(self.request)
 
     def post(self, request, format=None):
         serializer = InvitationSerializer(data=request.data)
@@ -116,14 +171,17 @@ class ContactAuthor(LoginRequiredMixin, APIView):
             subject = serializer.validated_data['invitation_subject']
             message = serializer.validated_data['invitation_text']
             pk_list = CustomSearchForm(request.GET or None).search().values_list('pk', flat=True)
+
             pub_list = Publication.objects.filter(pk__in=pk_list).exclude(contact_email__exact='')
             messages = []
+
             for pub in pub_list:
                 token = signing.dumps(pub.pk, salt=settings.SALT)
-                body = get_invitation_email_content(message, token, self.request.is_secure(), self.get_site())
+                ie = InvitationEmail(self.request)
+                body = ie.get_plaintext_content(message, token)
                 messages.append((subject, body, settings.DEFAULT_FROM_EMAIL, [pub.contact_email]))
             send_mass_mail(messages, fail_silently=False)
-            pub_list.update(email_sent_count=F('email_sent_count')+1)
+            pub_list.update(email_sent_count=F('email_sent_count') + 1)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -154,53 +212,3 @@ class ArchivePublication(APIView):
             return Response(pub.data)
         return Response(pub.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-class PublicationDetail(LoginRequiredMixin, APIView):
-    """
-    Retrieve, update or delete a publication instance.
-    """
-    renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
-
-    def get(self, request, pk, format=None):
-        publication = Publication.objects.get_subclass(id=pk)
-        if request.accepted_renderer.format == 'html':
-            form = JournalArticleDetailForm(instance=publication)
-            return Response({'form': form}, template_name='publication_detail.html')
-        serializer = JournalArticleSerializer(publication)
-        return Response(serializer.data)
-
-
-def get_invitation_email_content(message, token, secure, site):
-    plaintext_template = get_template('email/invitation-email.txt')
-    c = Context({
-        'invitation_text': message,
-        'site': site,
-        'token': token,
-        'secure': secure,
-    })
-    plaintext_content = plaintext_template.render(c)
-    return plaintext_content
-
-
-class EmailPreview(LoginRequiredMixin, APIView):
-
-    renderer_classes = (JSONRenderer,)
-
-    def get_site(self):
-        if Site._meta.installed:
-            return Site.objects.get_current()
-        else:
-            return RequestSite(self.request)
-
-    def get(self, request, format=None):
-        serializer = InvitationSerializer(data=request.GET)
-        if serializer.is_valid():
-            message = serializer.validated_data['invitation_text']
-            plaintext_content = get_invitation_email_content(message, "valid:token", self.request.is_secure(), self.get_site())
-            html_content = markdown.markdown(plaintext_content)
-            return Response({'success': True, 'content': html_content})
-        return Response({'success': False, 'errors': serializer.errors})
-
-
-class CustomSearchView(SearchView):
-    template = 'search/search.html'
