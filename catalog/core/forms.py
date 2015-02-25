@@ -3,11 +3,13 @@ from django.forms import widgets, ValidationError
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from model_utils import Choices
+from .models import Publication, JournalArticle, Tag, Sponsor, STATUS_CHOICES
 
 from haystack.forms import SearchForm
+from django_tables2.utils import A
+from model_utils import Choices
 
-from .models import Publication, JournalArticle, Tag, Sponsor, STATUS_CHOICES
+import django_tables2 as tables
 
 
 class LoginForm(forms.Form):
@@ -52,6 +54,14 @@ class JournalArticleDetailForm(forms.ModelForm):
         widgets = {
             'title': widgets.Textarea(attrs={'rows': 3}),
         }
+
+
+class PublicationTable(tables.Table):
+    title = tables.LinkColumn('publication_detail', args=[A('pk')])
+    class Meta:
+        model = Publication
+        """ Fields to display in the Publication table """
+        fields = ('title', 'status', 'contact_email')
 
 
 class CustomSearchForm(SearchForm):

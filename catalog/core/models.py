@@ -1,8 +1,38 @@
+from django.contrib.sites.models import Site, RequestSite
 from django.db import models
+from django.template import Context
+from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 
 from model_utils import Choices
 from model_utils.managers import InheritanceManager
+
+
+class InvitationEmail(object):
+
+    def __init__(self, request):
+        self.request = request
+        self.plaintext_template = get_template('email/invitation-email.txt')
+
+    @property
+    def site(self):
+        if Site._meta.installed:
+            return Site.objects.get_current()
+        else:
+            return RequestSite(self.request)
+
+    @property
+    def is_secure(self):
+        return self.request.is_secure()
+
+    def get_plaintext_content(self, message, token):
+        c = Context({
+            'invitation_text': message,
+            'site': self.site,
+            'token': token,
+            'secure': self.is_secure
+        })
+        return self.plaintext_template.render(c)
 
 
 STATUS_CHOICES = Choices(
@@ -32,14 +62,10 @@ class Creator(models.Model):
 
 
 class Tag(models.Model):
-    key = models.CharField(max_length=100)
-    value = models.CharField(max_length=100)
+    tag = models.CharField(max_length=100, unique=True)
 
     def __unicode__(self):
-        if self.key:
-            return u'{0}: {1}'.format(self.key, self.value)
-        else:
-            return u'{0}'.format(self.value)
+        return unicode(self.tag)
 
 
 class Note(models.Model):
@@ -56,7 +82,7 @@ class Note(models.Model):
 
 class Platform(models.Model):
     """ model platform, e.g, NetLogo or RePast """
-    name = models.CharField(max_length=256)
+    name = models.CharField(max_length=256, unique=True)
     url = models.URLField()
     description = models.TextField()
 
@@ -66,7 +92,7 @@ class Platform(models.Model):
 
 class Sponsor(models.Model):
     """ funding agency sponsoring this research """
-    name = models.CharField(max_length=256)
+    name = models.CharField(max_length=256, unique=True)
     url = models.URLField()
     description = models.TextField()
 

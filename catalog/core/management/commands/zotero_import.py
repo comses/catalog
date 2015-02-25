@@ -23,7 +23,7 @@ class Command(BaseCommand):
     def get_user(self, meta_data):
         first_name, last_name = meta_data['createdByUser']['name'].strip().split(' ')
         username =  meta_data['createdByUser']['username'].strip()
-        user, created = User.objects.get_or_create(username=username,  defaults={'first_name': first_name, 'last_name': last_name })
+        user, created = User.objects.get_or_create(username=username, defaults={'first_name': first_name, 'last_name': last_name })
         return user
 
     def get_creators(self, data):
@@ -67,9 +67,9 @@ class Command(BaseCommand):
             else:
                 if key:
                     print "Tag with key: "+ key + " value: "+ value
-                    tag, created = Tag.objects.get_or_create(value=value, key=key)
+                    tag, created = Tag.objects.get_or_create(tag=t)
                 else:
-                    tag, created = Tag.objects.get_or_create(value=value)
+                    tag, created = Tag.objects.get_or_create(tag=value)
                 item.tags.add(tag)
         item.save()
         return item

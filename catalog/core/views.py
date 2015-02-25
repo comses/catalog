@@ -1,60 +1,26 @@
 from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.sites.models import Site, RequestSite
 from django.core import signing
-from django.core.mail import send_mass_mail
 from django.core.urlresolvers import reverse
-from django.db.models import F
 from django.shortcuts import redirect, get_object_or_404
-from django.template import Context
-from django.template.loader import get_template
 from django.utils.decorators import method_decorator
 from django.views.decorators import cache, csrf
 from django.views.generic import FormView, TemplateView
 
-from django_tables2.utils import A
 from haystack.views import SearchView
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
+from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm, PublicationTable
 from .http import dumps
-from .models import Publication, STATUS_CHOICES
+from .models import Publication, STATUS_CHOICES, InvitationEmail
 from .serializers import PublicationSerializer, JournalArticleSerializer, InvitationSerializer, ArchivePublicationSerializer
-
 
 import markdown
 import django_tables2 as tables
-
-
-class InvitationEmail(object):
-
-    def __init__(self, request):
-        self.request = request
-        self.plaintext_template = get_template('email/invitation-email.txt')
-
-    @property
-    def site(self):
-        if Site._meta.installed:
-            return Site.objects.get_current()
-        else:
-            return RequestSite(self.request)
-
-    @property
-    def is_secure(self):
-        return self.request.is_secure()
-
-    def get_plaintext_content(self, message, token):
-        c = Context({
-            'invitation_text': message,
-            'site': self.site,
-            'token': token,
-            'secure': self.is_secure
-        })
-        return self.plaintext_template.render(c)
 
 
 class LoginRequiredMixin(object):
@@ -97,14 +63,6 @@ class IndexView(TemplateView):
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
-
-
-class PublicationTable(tables.Table):
-    title = tables.LinkColumn('publication_detail', args=[A('pk')])
-    class Meta:
-        model = Publication
-        """ Fields to display in the Publication table """
-        fields = ('title', 'status', 'contact_email')
 
 
 class PublicationList(LoginRequiredMixin, APIView):
@@ -167,21 +125,9 @@ class ContactAuthor(LoginRequiredMixin, APIView):
 
     def post(self, request, format=None):
         serializer = InvitationSerializer(data=request.data)
+        pk_list = CustomSearchForm(request.GET or None).search().values_list('pk', flat=True)
         if serializer.is_valid():
-            subject = serializer.validated_data['invitation_subject']
-            message = serializer.validated_data['invitation_text']
-            pk_list = CustomSearchForm(request.GET or None).search().values_list('pk', flat=True)
-
-            pub_list = Publication.objects.filter(pk__in=pk_list).exclude(contact_email__exact='')
-            messages = []
-
-            for pub in pub_list:
-                token = signing.dumps(pub.pk, salt=settings.SALT)
-                ie = InvitationEmail(self.request)
-                body = ie.get_plaintext_content(message, token)
-                messages.append((subject, body, settings.DEFAULT_FROM_EMAIL, [pub.contact_email]))
-            send_mass_mail(messages, fail_silently=False)
-            pub_list.update(email_sent_count=F('email_sent_count') + 1)
+            serializer.save(self.request, pk_list)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
