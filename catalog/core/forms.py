@@ -9,8 +9,6 @@ from haystack.forms import SearchForm
 from django_tables2.utils import A
 from model_utils import Choices
 
-import django_tables2 as tables
-
 
 class LoginForm(forms.Form):
     username = forms.CharField()
@@ -54,14 +52,6 @@ class JournalArticleDetailForm(forms.ModelForm):
         widgets = {
             'title': widgets.Textarea(attrs={'rows': 3}),
         }
-
-
-class PublicationTable(tables.Table):
-    title = tables.LinkColumn('publication_detail', args=[A('pk')])
-    class Meta:
-        model = Publication
-        """ Fields to display in the Publication table """
-        fields = ('title', 'status', 'contact_email')
 
 
 class CustomSearchForm(SearchForm):

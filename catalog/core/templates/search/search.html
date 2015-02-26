@@ -114,11 +114,10 @@
                     var formData = $(formElement).serialize()
                     $.get("{% url 'invite_email_preview' %}?" + formData)
                         .done(function(result) {
-                            if(result.success){
-                                $("#email-text").html(result.content);
-                            } else {
-                                $("#email-text").html("Please fill in all the fields to preview invitation email.");
-                            }
+                            $("#email-text").html(result.content);
+                        })
+                        .fail(function(result) {
+                            $("#email-text").html("Please fill in all the fields to preview invitation email.");
                         });
                 }
             };

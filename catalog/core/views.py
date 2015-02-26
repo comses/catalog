@@ -15,13 +15,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
-from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm, PublicationTable
+from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
 from .http import dumps
 from .models import Publication, STATUS_CHOICES, InvitationEmail
 from .serializers import PublicationSerializer, PaginatedPublicationSerializer, JournalArticleSerializer, InvitationSerializer, ArchivePublicationSerializer
 
 import markdown
-import django_tables2 as tables
 
 
 class LoginRequiredMixin(object):
@@ -68,7 +67,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 class PublicationList(LoginRequiredMixin, APIView):
     """
-    List all publications
+    List all publications, or create a new publication
     """
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
 
@@ -89,6 +88,13 @@ class PublicationList(LoginRequiredMixin, APIView):
         serializer = PaginatedPublicationSerializer(publications)
         return Response({ 'json': dumps(serializer.data) }, template_name="publications.html")
 
+    def post(self, request, format=None):
+        serializer = PublicationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class PublicationDetail(LoginRequiredMixin, APIView):
     """
@@ -98,6 +104,7 @@ class PublicationDetail(LoginRequiredMixin, APIView):
 
     def get(self, request, pk, format=None):
         publication = Publication.objects.get_subclass(id=pk)
+        # FIXME: make this part more rest friendly
         if request.accepted_renderer.format == 'html':
             form = JournalArticleDetailForm(instance=publication)
             return Response({'form': form}, template_name='publication_detail.html')
@@ -106,18 +113,21 @@ class PublicationDetail(LoginRequiredMixin, APIView):
 
 
 class EmailPreview(LoginRequiredMixin, APIView):
-
+    """
+    Preview the final email content
+    """
     renderer_classes = (JSONRenderer,)
 
     def get(self, request, format=None):
         serializer = InvitationSerializer(data=request.GET)
         if serializer.is_valid():
+            # FIXME: Try to push below code to its serializer class
             message = serializer.validated_data['invitation_text']
             ie = InvitationEmail(self.request)
             plaintext_content = ie.get_plaintext_content(message, "valid:token")
             html_content = markdown.markdown(plaintext_content)
-            return Response({'success': True, 'content': html_content})
-        return Response({'success': False, 'errors': serializer.errors})
+            return Response({'content': html_content})
+        return Response({'content': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CustomSearchView(SearchView):
@@ -135,7 +145,7 @@ class ContactAuthor(LoginRequiredMixin, APIView):
         pk_list = CustomSearchForm(request.GET or None).search().values_list('pk', flat=True)
         if serializer.is_valid():
             serializer.save(self.request, pk_list)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -153,15 +163,15 @@ class ArchivePublication(APIView):
 
     def get(self, request, token, format=None):
         instance = self.get_object(token)
-        pub = ArchivePublicationSerializer(instance)
-        return Response({'json': dumps(pub.data)}, template_name='archive_publication_form.html')
+        serializer = ArchivePublicationSerializer(instance)
+        return Response({'json': dumps(serializer.data)}, template_name='archive_publication_form.html')
 
     def post(self, request, token, format=None):
         instance = self.get_object(token)
-        pub = ArchivePublicationSerializer(instance, data=request.data)
-        if pub.is_valid():
-            pub.validated_data['status'] = STATUS_CHOICES.AUTHOR_UPDATED
-            pub.save()
-            return Response(pub.data)
-        return Response(pub.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = ArchivePublicationSerializer(instance, data=request.data)
+        if serializer.is_valid():
+            serializer.validated_data['status'] = STATUS_CHOICES.AUTHOR_UPDATED
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
