@@ -1,6 +1,7 @@
 from rest_framework.urlpatterns import format_suffix_patterns
 from django.conf.urls import patterns, url, include
 from django.contrib.auth.decorators import login_required
+from django.views.generic import RedirectView
 
 from .views import (IndexView, LoginView, LogoutView, DashboardView, PublicationDetail,
                     PublicationList, EmailPreview, ContactAuthor, ArchivePublication, CustomSearchView)
@@ -21,6 +22,8 @@ urlpatterns += [
     url(r'^dashboard/$', DashboardView.as_view(), name='dashboard'),
     url(r'^accounts/login/$', LoginView.as_view(), name='login'),
     url(r'^accounts/logout/$', LogoutView.as_view(), name='logout'),
+    url(r'bug-report', RedirectView.as_view(url='https://github.com/comses/catalog/issues/new'),
+        name='report_issues')
 ]
 
 urlpatterns += patterns('haystack.views',
