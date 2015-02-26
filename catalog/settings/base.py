@@ -128,7 +128,6 @@ THIRD_PARTY_APPS = (
     'kronos',
     'bootstrap3',
     'haystack',
-    'django_tables2',
     'rest_framework',
     'django_extensions'
 )

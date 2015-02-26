@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.core import signing
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect, get_object_or_404
 from django.utils.decorators import method_decorator
@@ -17,7 +18,7 @@ from rest_framework import status
 from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm, PublicationTable
 from .http import dumps
 from .models import Publication, STATUS_CHOICES, InvitationEmail
-from .serializers import PublicationSerializer, JournalArticleSerializer, InvitationSerializer, ArchivePublicationSerializer
+from .serializers import PublicationSerializer, PaginatedPublicationSerializer, JournalArticleSerializer, InvitationSerializer, ArchivePublicationSerializer
 
 import markdown
 import django_tables2 as tables
@@ -74,13 +75,19 @@ class PublicationList(LoginRequiredMixin, APIView):
     def get(self, request, format=None):
         publication_list = Publication.objects.all()
 
-        if request.accepted_renderer.format == 'html':
-            t = PublicationTable(publication_list)
-            tables.RequestConfig(request, paginate={"per_page": 10}).configure(t)
-            return Response({'table': t}, template_name="publications.html")
+        paginator = Paginator(publication_list, 10) # Show 10 contacts per page
+        page = request.QUERY_PARAMS.get('page')
+        try:
+            publications = paginator.page(page)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page.
+            publications = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range (e.g. 9999), deliver last page of results.
+            publications = paginator.page(paginator.num_pages)
 
-        serializer = PublicationSerializer(publication_list, many=True)
-        return Response(serializer.data)
+        serializer = PaginatedPublicationSerializer(publications)
+        return Response({ 'json': dumps(serializer.data) }, template_name="publications.html")
 
 
 class PublicationDetail(LoginRequiredMixin, APIView):

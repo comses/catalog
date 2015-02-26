@@ -4,7 +4,7 @@ from django.core import signing
 from django.core.mail import send_mass_mail
 from django.db.models import F
 
-from rest_framework import serializers
+from rest_framework import serializers, pagination
 from .models import Tag, Sponsor, Platform, Creator, Publication, JournalArticle, InvitationEmail
 
 
@@ -26,6 +26,28 @@ class PublicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publication
         fields = ('id', 'title', 'date_published')
+
+
+class PaginatedPublicationSerializer(pagination.PaginationSerializer):
+    """
+    Serializes page objects of user querysets.
+    """
+    start_index = serializers.SerializerMethodField()
+    end_index = serializers.SerializerMethodField()
+    num_pages = serializers.ReadOnlyField(source='paginator.num_pages')
+    current_page = serializers.SerializerMethodField()
+
+    class Meta:
+        object_serializer_class = PublicationSerializer
+
+    def get_start_index(self, page):
+        return page.start_index()
+
+    def get_end_index(self, page):
+        return page.end_index()
+
+    def get_current_page(self, page):
+        return page.number
 
 
 class TagSerializer(serializers.ModelSerializer):
