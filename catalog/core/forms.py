@@ -6,7 +6,6 @@ from django.utils.translation import ugettext_lazy as _
 from .models import Publication, JournalArticle, Tag, Sponsor, STATUS_CHOICES
 
 from haystack.forms import SearchForm
-from django_tables2.utils import A
 from model_utils import Choices
 
 
