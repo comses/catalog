@@ -80,7 +80,7 @@ class ContactUsSerializer(serializers.Serializer):
         security_hash = data['security_hash']
         timestamp = str(data['timestamp'])
 
-        info = (str({'timestamp': timestamp}), settings.SECRET_KEY)
+        info = (timestamp, settings.SECRET_KEY)
         new_security_hash = sha1("".join(info)).hexdigest()
         if security_hash != new_security_hash:
             raise serializers.ValidationError("timestamp was tampered!!!")

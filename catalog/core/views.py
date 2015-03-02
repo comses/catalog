@@ -159,16 +159,16 @@ class ContactUsView(APIView):
 
     def get(self, request, format=None):
         timestamp = str(time.time())
-        info = (str({'timestamp': timestamp}), settings.SECRET_KEY)
+        info = (timestamp, settings.SECRET_KEY)
         security_hash = sha1("".join(info)).hexdigest()
 
         data = {
-            'contact_number': u'',
-            'name': u'',
+            'contact_number': '',
+            'name': '',
             'timestamp': timestamp,
             'security_hash': security_hash,
-            'message': u'',
-            'email': u''
+            'message': '',
+            'email': ''
         }
         return Response({'json': dumps(data)}, template_name='contact_us.html')
 
