@@ -97,3 +97,9 @@ body {
 .pagination {
   text-align: center;
 }
+
+
+/* Honeypot Field */
+input#id_contact_number {
+    display: none;
+}

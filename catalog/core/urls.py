@@ -4,7 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic import RedirectView
 
 from .views import (IndexView, LoginView, LogoutView, DashboardView, PublicationDetail,
-                    PublicationList, EmailPreview, ContactAuthor, ArchivePublication, CustomSearchView)
+                    PublicationList, EmailPreview, ContactAuthor, ArchivePublication, CustomSearchView,
+                    ContactUsView)
 
 from .forms import CustomSearchForm
 
@@ -15,6 +16,7 @@ urlpatterns = format_suffix_patterns([
     url(r'^publications/email-preview/$', EmailPreview.as_view(), name='invite_email_preview'),
     url(r'^publications/invite/$', ContactAuthor.as_view(), name='send_invites'),
     url(r'^publications/archive/(?P<token>[\w:-]+)/$', ArchivePublication.as_view(), name='publication_archive'),
+    url(r'^contact/$', ContactUsView.as_view(), name='contact_us'),
 ])
 
 urlpatterns += [
@@ -22,7 +24,7 @@ urlpatterns += [
     url(r'^dashboard/$', DashboardView.as_view(), name='dashboard'),
     url(r'^accounts/login/$', LoginView.as_view(), name='login'),
     url(r'^accounts/logout/$', LogoutView.as_view(), name='logout'),
-    url(r'bug-report', RedirectView.as_view(url='https://github.com/comses/catalog/issues/new'),
+    url(r'^bug-report/$', RedirectView.as_view(url='https://github.com/comses/catalog/issues/new'),
         name='report_issues')
 ]
 

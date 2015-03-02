@@ -1,11 +1,15 @@
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import signing
-from django.core.mail import send_mass_mail
+from django.core.mail import send_mass_mail, send_mail
 from django.db.models import F
 
 from rest_framework import serializers, pagination
 from .models import Tag, Sponsor, Platform, Creator, Publication, JournalArticle, InvitationEmail
+
+from hashlib import sha1
+
+import time
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -48,6 +52,46 @@ class PaginatedPublicationSerializer(pagination.PaginationSerializer):
 
     def get_current_page(self, page):
         return page.number
+
+
+class ContactUsSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    message = serializers.CharField()
+
+    security_hash = serializers.CharField()
+    timestamp = serializers.CharField()
+    # honeypot field
+    contact_number = serializers.CharField(allow_blank=True)
+
+    def validate_contact_number(self, value):
+        if value:
+            raise serializers.ValidationError("Bot Alert...")
+        return value
+
+    def validate_timestamp(self, value):
+        difference = float(time.time()) - float(value)
+        print difference
+        if difference > (2 * 60 * 60) or difference < 5:
+            raise forms.ValidationError("Timestamp check failed")
+        return value
+
+    def validate(self, data):
+        security_hash = data['security_hash']
+        timestamp = str(data['timestamp'])
+
+        info = (str({'timestamp': timestamp}), settings.SECRET_KEY)
+        new_security_hash = sha1("".join(info)).hexdigest()
+        if security_hash != new_security_hash:
+            raise serializers.ValidationError("timestamp was tampered!!!")
+        return data
+
+    def save(self):
+        name = self.validated_data['name']
+        email = self.validated_data['email']
+        message = self.validated_data['message']
+
+        send_mail(from_email=email, message=message, subject="Some Subject", recipient_list=[settings.DEFAULT_FROM_EMAIL])
 
 
 class TagSerializer(serializers.ModelSerializer):

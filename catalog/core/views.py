@@ -10,6 +10,7 @@ from django.views.decorators import cache, csrf
 from django.views.generic import FormView, TemplateView
 
 from haystack.views import SearchView
+from hashlib import sha1
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -18,8 +19,11 @@ from rest_framework import status
 from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
 from .http import dumps
 from .models import Publication, STATUS_CHOICES, InvitationEmail
-from .serializers import PublicationSerializer, PaginatedPublicationSerializer, JournalArticleSerializer, InvitationSerializer, ArchivePublicationSerializer
+from .serializers import (PublicationSerializer, PaginatedPublicationSerializer, JournalArticleSerializer,
+                          InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer)
 
+
+import time
 import markdown
 
 
@@ -145,6 +149,33 @@ class ContactAuthor(LoginRequiredMixin, APIView):
         pk_list = CustomSearchForm(request.GET or None).search().values_list('pk', flat=True)
         if serializer.is_valid():
             serializer.save(self.request, pk_list)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ContactUsView(APIView):
+
+    renderer_classes = (TemplateHTMLRenderer, JSONRenderer, )
+
+    def get(self, request, format=None):
+        timestamp = str(time.time())
+        info = (str({'timestamp': timestamp}), settings.SECRET_KEY)
+        security_hash = sha1("".join(info)).hexdigest()
+
+        data = {
+            'contact_number': u'',
+            'name': u'',
+            'timestamp': timestamp,
+            'security_hash': security_hash,
+            'message': u'',
+            'email': u''
+        }
+        return Response({'json': dumps(data)}, template_name='contact_us.html')
+
+    def post(self, request, format=None):
+        serializer = ContactUsSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
