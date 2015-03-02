@@ -10,7 +10,7 @@
 
 <!doctype html>
 <html class="no-js" lang="">
-{% with JQUERY_VERSION="1.11.1" BOOTSTRAP_VERSION="3.3.1" FONTAWESOME_VERSION="4.2.0" RAVENJS_VERSION="1.1.16" %} 
+{% with JQUERY_VERSION="1.11.1" KNOCKOUT_VERSION="3.3.0" KNOCKOUT_MAPPING_VERSION="2.4.1" BOOTSTRAP_VERSION="3.3.1" FONTAWESOME_VERSION="4.2.0" RAVENJS_VERSION="1.1.16" %} 
     <head>
     {% block head %}
         <meta charset="utf-8">
@@ -86,6 +86,8 @@
         </footer>
 
         <!-- Latest compiled and minified JavaScript -->
+        <script src='//cdnjs.cloudflare.com/ajax/libs/knockout/{{KNOCKOUT_VERSION}}/knockout-min.js'></script>
+        <script src='//cdnjs.cloudflare.com/ajax/libs/knockout.mapping/{{KNOCKOUT_MAPPING_VERSION}}/knockout.mapping.min.js'></script>
         <script src="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VERSION}}/js/bootstrap.min.js"></script>
         <script src="//cdn.ravenjs.com/{{RAVENJS_VERSION}}/jquery,native/raven.min.js"></script>
         <script type="text/javascript" src="{{STATIC_URL}}js/csrf.js"></script>
