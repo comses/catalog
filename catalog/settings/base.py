@@ -89,8 +89,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 )
 
 MIDDLEWARE_CLASSES = (
-    'raven.contrib.django.raven_compat.middleware.Sentry404CatchMiddleware',
-    'raven.contrib.django.raven_compat.middleware.SentryResponseErrorIdMiddleware',
+#    'raven.contrib.django.raven_compat.middleware.Sentry404CatchMiddleware',
+#    'raven.contrib.django.raven_compat.middleware.SentryResponseErrorIdMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -123,7 +123,7 @@ DJANGO_APPS = (
 
 THIRD_PARTY_APPS = (
     'autocomplete_light',
-    'raven.contrib.django.raven_compat',
+#    'raven.contrib.django.raven_compat',
     'contact_form',
     'kronos',
     'bootstrap3',

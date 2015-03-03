@@ -25,14 +25,16 @@ class InvitationEmail(object):
     def is_secure(self):
         return self.request.is_secure()
 
-    def get_plaintext_content(self, message, token):
-        c = Context({
+    def get_context(self, message, token):
+        return Context({
             'invitation_text': message,
             'site': self.site,
             'token': token,
             'secure': self.is_secure
         })
-        return self.plaintext_template.render(c)
+
+    def get_plaintext_content(self, message, token):
+        return self.plaintext_template.render(self.get_context(message, token))
 
 
 STATUS_CHOICES = Choices(

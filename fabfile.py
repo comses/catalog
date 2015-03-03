@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 # default to current working directory
 env.project_path = os.path.dirname(__file__)
 # needed to push catalog.settings onto the path.
-sys.path.append(os.path.abspath(env.project_path))
+env.abs_project_path = os.path.abspath(env.project_path)
+sys.path.append(env.abs_project_path)
 
 # default env configuration
 env.roledefs = {
@@ -28,13 +29,16 @@ env.deploy_user = 'catalog'
 env.deploy_group = 'catalog'
 env.database = 'default'
 env.deploy_parent_dir = '/opt/'
-env.git_url = 'https://github.com/comses/comses.git'
+env.git_url = 'https://github.com/comses/catalog.git'
 env.services = 'nginx memcached redis supervisord'
 # FIXME: use django conf INSTALLED_APPS to introspect instead, similar to
 # experiment_urls
 env.docs_path = os.path.join(env.project_path, 'docs')
 env.virtualenv_path = '%s/.virtualenvs/%s' % (os.getenv('HOME'), env.project_name)
 env.ignored_coverage = ('test', 'settings', 'migrations', 'fabfile', 'wsgi',)
+env.solr_conf_dir = '/usr/share/solr/conf'
+env.db_user = 'catalog'
+env.db_name = 'comses_catalog'
 env.branches = {
     'prod': {
         'hg': 'stable',
@@ -182,8 +186,30 @@ def prod():
 
 @roles('localhost')
 @task
+def setup_solr():
+    _virtualenv(local, 'python manage.py build_solr_schema > %(abs_project_path)s/schema.xml' % env)
+    sudo('cp %(abs_project_path)s/schema.xml %(solr_conf_dir)s/' % env)
+    restart_solr()
+
+@task
+def restart_solr():
+    # FIXME: for RHEL, systemctl restart tomcat6
+    sudo('service tomcat6 restart')
+
+@roles('localhost')
+@task
+def setup():
+    setup_postgres()
+    setup_solr()
+    _virtualenv(local, 'python manage.py makemigrations')
+    _virtualenv(local, 'python manage.py migrate')
+    _virtualenv(local, 'python manage.py zotero_import')
+
+
+@roles('localhost')
+@task
 def setup_postgres():
-    local("psql -c 'create role %(db_user)s CREATEDB;'" % env)
+    local("psql -c 'create role %(db_user)s CREATEDB;' -U postgres" % env)
     local("psql -c 'create database %(db_name)s;' -U %(db_user)s" % env)
 
 
