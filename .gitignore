@@ -4,3 +4,4 @@ catalog/settings/local.py
 .coverage
 htmlcov
 *.log
+schema.xml

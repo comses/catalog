@@ -7,8 +7,11 @@ https://docs.djangoproject.com/en/1.7/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.7/ref/settings/
 """
+from __future__ import print_function
+
 import os
 import logging
+import sys
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -177,13 +180,13 @@ if not is_accessible(LOG_DIRECTORY):
     try:
         os.makedirs(LOG_DIRECTORY)
     except OSError:
-        print "Unable to create absolute log directory at %s, setting to relative path logs instead" % LOG_DIRECTORY
+        print("Unable to create absolute log directory at %s, setting to relative path logs instead" % LOG_DIRECTORY, file=sys.stderr)
         LOG_DIRECTORY = 'logs'
         if not is_accessible(LOG_DIRECTORY):
             try:
                 os.makedirs(LOG_DIRECTORY)
             except OSError:
-                print "Couldn't create any log directory, startup will fail"
+                print("Couldn't create any log directory, startup will fail", file=sys.stderr)
 
 LOGGING = {
     'version': 1,

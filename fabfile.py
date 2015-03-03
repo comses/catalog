@@ -31,8 +31,6 @@ env.database = 'default'
 env.deploy_parent_dir = '/opt/'
 env.git_url = 'https://github.com/comses/catalog.git'
 env.services = 'nginx memcached redis supervisord'
-# FIXME: use django conf INSTALLED_APPS to introspect instead, similar to
-# experiment_urls
 env.docs_path = os.path.join(env.project_path, 'docs')
 env.virtualenv_path = '%s/.virtualenvs/%s' % (os.getenv('HOME'), env.project_name)
 env.ignored_coverage = ('test', 'settings', 'migrations', 'fabfile', 'wsgi',)
@@ -59,16 +57,6 @@ django.project(env.project_name)
 from django.conf import settings as catalog_settings
 
 
-"""
-this currently only works for sqlite3 development database.  do it by hand with
-postgres a few times to figure out what to automate.
-"""
-syncdb_commands = [
-    '%(python)s manage.py syncdb --noinput --database=%(database)s' % env,
-    '%(python)s manage.py migrate' % env,
-]
-
-
 @hosts('dev.commons.asu.edu')
 @task
 def docs(remote_path='/home/www/dev.commons.asu.edu/catalog/'):
@@ -88,7 +76,7 @@ def migrate():
 
 @task
 def clean_update():
-    local("hg pull --rebase && hg up -C")
+    local("git fetch --all && git reset --hard origin/master")
 
 
 @task
@@ -105,15 +93,6 @@ def psh():
 @task
 def shell():
     dj('shell_plus')
-
-
-@task
-def syncdb(**kwargs):
-    with cd(env.project_path):
-        if os.path.exists(catalog_settings.DATA_DIR):
-            shutil.rmtree(catalog_settings.DATA_DIR)
-        os.mkdir(catalog_settings.DATA_DIR)
-        _virtualenv(local, *syncdb_commands, **kwargs)
 
 
 def dj(command, **kwargs):
@@ -191,10 +170,12 @@ def setup_solr():
     sudo('cp %(abs_project_path)s/schema.xml %(solr_conf_dir)s/' % env)
     restart_solr()
 
+
 @task
 def restart_solr():
     # FIXME: for RHEL, systemctl restart tomcat6
     sudo('service tomcat6 restart')
+
 
 @roles('localhost')
 @task
@@ -204,13 +185,14 @@ def setup():
     _virtualenv(local, 'python manage.py makemigrations')
     _virtualenv(local, 'python manage.py migrate')
     _virtualenv(local, 'python manage.py zotero_import')
+    _virtualenv(local, 'python manage.py rebuild_index')
 
 
 @roles('localhost')
 @task
 def setup_postgres():
-    local("psql -c 'create role %(db_user)s CREATEDB;' -U postgres" % env)
-    local("psql -c 'create database %(db_name)s;' -U %(db_user)s" % env)
+    local("psql -c 'create user %(db_user)s;' -U postgres" % env)
+    local("psql -c 'create database %(db_name)s OWNER=%(db_user)s;' -U postgres" % env)
 
 
 def _restart_command(systemd=True):
