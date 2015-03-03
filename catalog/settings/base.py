@@ -125,9 +125,7 @@ DJANGO_APPS = (
 )
 
 THIRD_PARTY_APPS = (
-    'autocomplete_light',
 #    'raven.contrib.django.raven_compat',
-    'contact_form',
     'kronos',
     'bootstrap3',
     'haystack',
