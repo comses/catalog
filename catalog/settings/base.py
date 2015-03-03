@@ -13,12 +13,10 @@ import os
 import logging
 import sys
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = DEBUG
 
 USE_TZ = True
-
-SITE_URL = 'http://localhost:8000'
 
 # tweaking standard BASE_DIR because we're in the settings subdirectory.
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
@@ -34,15 +32,6 @@ MANAGERS = ADMINS
 
 DATA_DIR = 'data'
 
-HAYSTACK_CONNECTIONS = {
-    'default': {
-        'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
-        'URL': 'http://127.0.0.1:8983/solr'
-    },
-}
-
-HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -55,6 +44,16 @@ DATABASES = {
         'PASSWORD': '',
     }
 }
+
+# Haystack settings
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
+        'URL': 'http://127.0.0.1:8983/solr'
+    },
+}
+
+HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -138,14 +137,10 @@ CATALOG_APPS = ('catalog.core',)
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + CATALOG_APPS
 
-LOGIN_REDIRECT_URL = '/dashboard'
-
 # activation window
 ACCOUNT_ACTIVATION_DAYS = 30
 
-# use email as username for authentication
 AUTHENTICATION_BACKENDS = (
-#    "catalog.core.backends.EmailAuthenticationBackend",
     "django.contrib.auth.backends.ModelBackend",
 )
 
@@ -244,23 +239,6 @@ LOGGING = {
         },
     }
 }
-
-# Required if using CAS
-CAS_UNIVERSITY_NAME = "Arizona State University"
-CAS_UNIVERSITY_URL = "http://www.asu.edu"
-WEB_DIRECTORY_URL = "https://webapp4.asu.edu/directory/ws/search?asuriteId="
-
-# Required settings for CAS Library
-CAS_SERVER_URL = "https://weblogin.asu.edu/cas/"
-CAS_IGNORE_REFERER = True
-# CAS_LOGOUT_COMPLETELY = True
-# CAS_PROVIDE_URL_TO_LOGOUT = True
-CAS_REDIRECT_URL = "/cas/asu"
-CAS_AUTOCREATE_USERS = False
-CAS_RESPONSE_CALLBACKS = (
-    'catalog.core.views.get_cas_user',
-)
-CAS_CUSTOM_FORBIDDEN = 'cas_error'
 
 # reset in local.py to enable more verbose logging (e.g.,
 # DISABLED_TEST_LOGLEVEL = logging.NOTSET)
