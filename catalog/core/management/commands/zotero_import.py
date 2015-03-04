@@ -1,11 +1,12 @@
+from django.contrib.auth.models import User
+from django.core.management.base import BaseCommand, CommandError
+
+from catalog.core.models import (Creator, Publication, JournalArticle, Tag, Note, Platform, Sponsor, Journal)
+
 import requests
 from datetime import datetime
 import re
 
-from django.contrib.auth.models import User
-from django.core.management.base import BaseCommand, CommandError
-from catalog.core.models import (Publication, Creator, JournalArticle, Tag,
-    Note, Book, Platform, Sponsor, Journal, STATUS_CHOICES)
 
 first_cap_re = re.compile('(.)([A-Z][a-z]+)')
 all_cap_re = re.compile('([a-z0-9])([A-Z])')
@@ -46,9 +47,9 @@ class Command(BaseCommand):
 
             if key == 'codeurl':
                 if value != 'none':
-                    item.archived_url = re.search("(?P<url>https?://[^\s]+)", value).group("url")
-                    if item.archived_url[-1] == '>':
-                        item.archived_url = item.archived_url[:-1]
+                    item.code_archive_url = re.search("(?P<url>https?://[^\s]+)", value).group("url")
+                    if item.code_archive_url[-1] == '>':
+                        item.code_archive_url = item.code_archive_url[:-1]
             elif key == 'email':
                 if value != 'none':
                     item.contact_email = value
@@ -66,10 +67,10 @@ class Command(BaseCommand):
                 continue
             else:
                 if key:
-                    print "Tag with key: "+ key + " value: "+ value
-                    tag, created = Tag.objects.get_or_create(tag=t)
+                    print "Tag with key: "+ key + " value: "+ value + " was added as it is."
+                    tag, created = Tag.objects.get_or_create(value=t)
                 else:
-                    tag, created = Tag.objects.get_or_create(tag=value)
+                    tag, created = Tag.objects.get_or_create(value=value)
                 item.tags.add(tag)
         item.save()
         return item
@@ -91,7 +92,7 @@ class Command(BaseCommand):
                 except:
                     print "Date: " + item.date_published_text + " Could not be parsed"
 
-        item.date_accessed = data['accessDate'] or datetime.now().date()
+        item.date_accessed = data['accessDate'].strip() or datetime.now().date()
         item.archive = data['archive'].strip()
         item.archive_location = data['archiveLocation'].strip()
         item.library_catalog = data['libraryCatalog'].strip()
@@ -104,8 +105,12 @@ class Command(BaseCommand):
         item.added_by = self.get_user(meta)
         return item
 
-    def create_journal(self, data, meta):
-        item = JournalArticle()
+    def create_journal_article(self, data, meta):
+        try:
+            return JournalArticle.objects.get(zotero_key=data['key'])
+        except JournalArticle.DoesNotExist:
+            item = JournalArticle(zotero_key=data['key'])
+
         item = self.set_common_fields(item, data, meta)
         item.journal, created = Journal.objects.get_or_create(name=data['publicationTitle'].strip(),
                 defaults={'abbreviation': data['journalAbbreviation'].strip()})
@@ -124,21 +129,24 @@ class Command(BaseCommand):
 
         item = self.set_tags(data, item)
 
-        if item.archived_url:
-            response = requests.get(item.archived_url)
+        if item.code_archive_url:
+            response = requests.get(item.code_archive_url)
             if response.status_code == 200:
-                item.status = STATUS_CHOICES.COMPLETE
+                item.status = Publication.STATUS_CHOICES.COMPLETE
             else:
-                item.status = STATUS_CHOICES.INVALID_URL
+                item.status = Publication.STATUS_CHOICES.INVALID_URL
         else:
-            item.status = STATUS_CHOICES.INCOMPLETE
+            item.status = Publication.STATUS_CHOICES.INCOMPLETE
 
         item.save()
         return item
 
     def create_note(self, data, meta):
-        item = Note()
-        item.note = data['note'].strip()
+        try:
+            return Note.objects.get(zotero_key=data['key'])
+        except Note.DoesNotExist:
+            item = Note(zotero_key=data['key'])
+        item.text = data['note'].strip()
         item.date_added = data['dateAdded']
         item.date_modified = data['dateModified']
         item.added_by = self.get_user(meta)
@@ -146,36 +154,17 @@ class Command(BaseCommand):
         item = self.set_tags(data, item)
         return item
 
-    def create_book(self, data, meta):
-        item = Book()
-        item = self.set_common_fields(item, data, meta)
-        item.edition = data['edition'].strip()
-        item.num_of_pages = data['numPages'].strip()
-        item.num_of_volume = data['numberOfVolumes'].strip()
-        item.place = data['place'].strip()
-        item.publisher = data['publisher'].strip()
-        item.volume = data['volume'].strip()
-        item.series = data['series'].strip()
-        item.series_numner = data['seriesNumber'].strip()
-        item.added_by = self.get_user(meta)
-        item.save()
-        for c in self.get_creators(data):
-            item.creators.add(c)
-        item = self.set_tags(data, item)
-        return item
-
     def generate_entry(self, data):
         for item in data:
             if item['data']['itemType'] == 'journalArticle':
-                article = self.create_journal(item['data'], item['meta'])
+                article = self.create_journal_article(item['data'], item['meta'])
+
                 if note_map.has_key(item['data']['key']):
                     note = note_map[item['data']['key']]
                     note.publication = article
                     note.save()
                 else:
                     pub_map.update({item['data']['key']: article})
-            elif item['data']['itemType'] == 'book':
-                pub_map.update({item['data']['key']: self.create_book(item['data'], item['meta'])})
             elif item['data']['itemType'] == 'note':
                 note = self.create_note(item['data'], item['meta'])
                 if item['data'].has_key('parentItem'):
@@ -186,7 +175,8 @@ class Command(BaseCommand):
                         note_map.update({item['data']['parentItem']: note})
 
     def handle(self, *args, **options):
-        print "Starting to import data from Zotero. This may take a while."
+        print "Starting to import data from Zotero. Hang tight, this may take a while."
+
         start = 0
         while True:
             r = requests.get('https://api.zotero.org/groups/284000/items?v=3&limit=100&start='+ str(start))

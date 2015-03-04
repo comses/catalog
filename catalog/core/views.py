@@ -18,7 +18,7 @@ from rest_framework import status
 
 from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
 from .http import dumps
-from .models import Publication, STATUS_CHOICES, InvitationEmail
+from .models import Publication, InvitationEmail
 from .serializers import (PublicationSerializer, PaginatedPublicationSerializer, JournalArticleSerializer,
                           InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer)
 
@@ -201,7 +201,7 @@ class ArchivePublication(APIView):
         instance = self.get_object(token)
         serializer = ArchivePublicationSerializer(instance, data=request.data)
         if serializer.is_valid():
-            serializer.validated_data['status'] = STATUS_CHOICES.AUTHOR_UPDATED
+            serializer.validated_data['status'] = Publication.STATUS_CHOICES.AUTHOR_UPDATED
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

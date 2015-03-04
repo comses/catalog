@@ -150,4 +150,4 @@ class InvitationSerializer(serializers.Serializer):
 class ArchivePublicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publication
-        fields = ('title', 'archived_url', 'author_comments')
+        fields = ('title', 'code_archive_url', 'author_comments')

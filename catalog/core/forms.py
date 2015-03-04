@@ -3,7 +3,7 @@ from django.forms import widgets, ValidationError
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Publication, JournalArticle, Tag, Sponsor, STATUS_CHOICES
+from .models import Publication, JournalArticle, Tag, Sponsor
 
 from haystack.forms import SearchForm
 from model_utils import Choices
@@ -55,7 +55,7 @@ class JournalArticleDetailForm(forms.ModelForm):
 
 class CustomSearchForm(SearchForm):
 
-    STATUS_CHOICES = tuple([("", "Any"), ] + list(STATUS_CHOICES))
+    STATUS_CHOICES = tuple([("", "Any"), ] + list(Publication.STATUS_CHOICES))
 
     publication_start_date = forms.DateField(required=False)
     publication_end_date = forms.DateField(required=False)

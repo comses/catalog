@@ -74,6 +74,7 @@ class Note(models.Model):
     text = models.TextField()
     date_added = models.DateTimeField()
     date_modified = models.DateTimeField()
+    zotero_key = models.CharField(max_length=64, unique=True)
 
     tags = models.ManyToManyField(Tag)
     publication = models.ForeignKey('Publication', null=True, blank=True)
@@ -131,15 +132,15 @@ class Publication(models.Model):
     rights = models.CharField(max_length=255, blank=True)
     extra = models.TextField(blank=True)
     published_language = models.CharField(max_length=255, default='English')
-    date_added = models.DateTimeField(auto_now_add=True)
-    date_modified = models.DateTimeField(auto_now=True)
+    date_added = models.DateTimeField()
+    date_modified = models.DateTimeField()
     status = models.CharField(choices=STATUS_CHOICES, max_length=32)
     creators = models.ManyToManyField(Creator)
 
 # custom incoming tags set by zotero data entry to mark the code archive url, contact author's email, the ABM platform
 # used, research sponsors (funding agencies, etc.), documentation, and other research keyword tags
     code_archive_url = models.URLField(null=True, blank=True)
-    contact_email = models.EmailField(null=True, blank=True)
+    contact_email = models.EmailField(blank=True)
     platforms = models.ManyToManyField(Platform, null=True, blank=True)
     sponsors = models.ManyToManyField(Sponsor, null=True, blank=True)
     model_documentation = models.ForeignKey(ModelDocumentation, null=True, blank=True)
