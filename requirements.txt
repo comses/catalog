@@ -15,6 +15,7 @@ ecdsa==0.13
 lxml==3.4.2
 paramiko==1.15.2
 psycopg2==2.6
+python-coveralls==2.5.0
 pysolr==3.3.0
 raven==5.2.0
 requests==2.5.3
