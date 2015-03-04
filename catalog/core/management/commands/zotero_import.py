@@ -186,6 +186,7 @@ class Command(BaseCommand):
                         note_map.update({item['data']['parentItem']: note})
 
     def handle(self, *args, **options):
+        print "Starting to import data from Zotero. This may take a while."
         start = 0
         while True:
             r = requests.get('https://api.zotero.org/groups/284000/items?v=3&limit=100&start='+ str(start))
@@ -194,3 +195,5 @@ class Command(BaseCommand):
                 break
             start += items
             self.generate_entry(r.json())
+
+        print "Data was successfully imported from Zotero."
