@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
+from django.http import Http404
 from django.shortcuts import redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators import cache, csrf
@@ -15,9 +16,9 @@ from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from json import dumps
 
 from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
-from .http import dumps
 from .models import Publication, InvitationEmail
 from .serializers import (PublicationSerializer, PaginatedPublicationSerializer, JournalArticleSerializer,
                           InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer)
@@ -91,14 +92,14 @@ class PublicationList(LoginRequiredMixin, APIView):
 
         serializer = PaginatedPublicationSerializer(publications)
         return Response({ 'json': dumps(serializer.data) }, template_name="publications.html")
-
+"""
     def post(self, request, format=None):
         serializer = PublicationSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+"""
 
 class PublicationDetail(LoginRequiredMixin, APIView):
     """
@@ -106,8 +107,14 @@ class PublicationDetail(LoginRequiredMixin, APIView):
     """
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
 
+    def get_object(self, pk):
+        try:
+            return Publication.objects.get_subclass(id=pk)
+        except Publication.DoesNotExist:
+            raise Http404("Publication does not exist")
+
     def get(self, request, pk, format=None):
-        publication = Publication.objects.get_subclass(id=pk)
+        publication = self.get_object(pk)
         # FIXME: make this part more rest friendly
         if request.accepted_renderer.format == 'html':
             form = JournalArticleDetailForm(instance=publication)

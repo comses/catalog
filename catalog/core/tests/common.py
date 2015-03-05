@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.test.client import Client
+from django.utils.http import urlencode
 
 
 class BaseTest(TestCase):
@@ -23,6 +24,18 @@ class BaseTest(TestCase):
         if query_parameters is not None:
             return '%s?%s' % (reversed_url, urlencode(query_parameters))
         return reversed_url
+
+    def without_login_and_with_login_test(self, url, before_status=302, after_status=200):
+        response = self.get(url)
+        self.assertEqual(before_status, response.status_code)
+
+        if before_status is not 200:
+            self.assertTrue(self.login_url in response['Location'])
+
+        self.login()
+
+        response = self.get(url)
+        self.assertEqual(after_status, response.status_code)
 
     def get(self, url, *args, **kwargs):
         if ':' in url:

@@ -1,10 +1,12 @@
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 
+from datetime import datetime
+from optparse import make_option
+
 from catalog.core.models import (Creator, Publication, JournalArticle, Tag, Note, Platform, Sponsor, Journal)
 
 import requests
-from datetime import datetime
 import re
 
 
@@ -16,6 +18,14 @@ note_map = {}
 
 class Command(BaseCommand):
     help = 'Imports data from zotero'
+
+    option_list = BaseCommand.option_list + (
+        make_option('--test',
+            action='store_false',
+            dest='test',
+            default=False,
+            help='used by test cases'),
+        )
 
     def convert(self, name):
         s1 = first_cap_re.sub(r'\1_\2', name)
@@ -174,16 +184,31 @@ class Command(BaseCommand):
                     else:
                         note_map.update({item['data']['parentItem']: note})
 
+    def make_request(self, url, retry):
+        if retry:
+            try:
+                r = requests.get(url)
+                return r.json()
+            except:
+                return self.make_request(url, retry-1)
+        else:
+            print "Zotero is down or there's a Network Issue"
+            return list()
+
     def handle(self, *args, **options):
         print "Starting to import data from Zotero. Hang tight, this may take a while."
 
-        start = 0
-        while True:
-            r = requests.get('https://api.zotero.org/groups/284000/items?v=3&limit=100&start='+ str(start))
-            items = len(r.json())
-            if items == 0:
-                break
-            start += items
-            self.generate_entry(r.json())
+        if options['test']:
+            json_data = self.make_request('https://api.zotero.org/groups/284000/items?v=3&limit=10&start=0', 5)
+            self.generate_entry(json_data)
+        else:
+            start = 0
+            while True:
+                json_data = self.make_request('https://api.zotero.org/groups/284000/items?v=3&limit=100&start='+ str(start), 5)
+                items = len(json_data)
+                if items == 0:
+                    break
+                start += items
+                self.generate_entry(json_data)
 
-        print "Data was successfully imported from Zotero."
+        print "Import from Zotero is finished."
