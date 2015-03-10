@@ -4,6 +4,9 @@ from catalog.core.models import Publication
 
 from .common import BaseTest
 
+import json
+import time
+
 
 class AuthTest(BaseTest):
 
@@ -62,8 +65,6 @@ class PublicationDetailView(BaseTest):
         url = self.reverse('publication_detail', kwargs={'pk': 999999})
         self.without_login_and_with_login_test(url, after_status=404)
 
-        # test json data api
-        # FIXME: consider moving it to test_api.py
         self.logout()
         url = self.reverse('publication_detail', query_parameters={'format':'json'}, kwargs={'pk': Publication.objects.all()[0].pk})
         self.without_login_and_with_login_test(url)
@@ -103,6 +104,54 @@ class SearchViewTest(BaseTest):
 class ContactViewTest(BaseTest):
     def test_contact_view(self):
         self.without_login_and_with_login_test(self.reverse('contact_us'), before_status=200)
+
+    def test_contact_info_submit_without_timestamp_and_security_hash(self):
+        response = self.post(self.reverse('contact_us', query_parameters={'format':'json'}), {'name':'John Watson', 'email':'john@watson.com', 'message': 'Sherlock want to use this application.'})
+        self.assertTrue(400, response.status_code)
+
+    def test_contact_info_submit_with_invalid_timestamp(self):
+        url = self.reverse('contact_us', query_parameters={'format':'json'})
+        response = self.get(url)
+        json_data = json.loads(response.data['json'])
+        security_hash = json_data['security_hash']
+        timestamp = float(json_data['timestamp']) + 1
+
+        response = self.post(url, {'name':'John Watson', 'email':'john@watson.com', 'message': 'Sherlock want to use this application.', 'timestamp': timestamp, 'security_hash': security_hash, 'contact_number': ''})
+        self.assertTrue(400, response.status_code)
+
+    def test_contact_info_submit_with_valid_timestamp_and_invalid_security_hash(self):
+        url = self.reverse('contact_us', query_parameters={'format':'json'})
+        response = self.get(url)
+        json_data = json.loads(response.data['json'])
+        security_hash = json_data['security_hash'] + 'fake'
+        timestamp = json_data['timestamp']
+        time.sleep(5)
+
+        response = self.post(url, {'name':'John Watson', 'email':'john@watson.com', 'message': 'Sherlock want to use this application.', 'timestamp': timestamp, 'security_hash': security_hash, 'contact_number': ''})
+        self.assertTrue(400, response.status_code)
+
+    def test_contact_info_submit_with_honeypot_field(self):
+        url = self.reverse('contact_us', query_parameters={'format':'json'})
+        response = self.get(url)
+        json_data = json.loads(response.data['json'])
+        security_hash = json_data['security_hash']
+        timestamp = json_data['timestamp']
+
+        time.sleep(5)
+        response = self.post(url, {'name':'John Watson', 'email':'john@watson.com', 'message': 'Sherlock want to use this application.', 'timestamp': timestamp, 'security_hash': security_hash, 'contact_number': 'bot alert'})
+        self.assertTrue(400, response.status_code)
+
+    def test_contact_info_submit_with_all_valid_fields(self):
+        url = self.reverse('contact_us', query_parameters={'format':'json'})
+        response = self.get(url)
+        json_data = json.loads(response.data['json'])
+        security_hash = json_data['security_hash']
+        timestamp = json_data['timestamp']
+        time.sleep(5)
+
+        response = self.post(url, {'name':'John Watson', 'email':'john@watson.com', 'message': 'Sherlock want to use this application.', 'timestamp': timestamp, 'security_hash': security_hash, 'contact_number': ''})
+        self.assertTrue(200, response.status_code)
+
 
 
 class EmailPreviewTest(BaseTest):

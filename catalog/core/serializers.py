@@ -71,9 +71,8 @@ class ContactUsSerializer(serializers.Serializer):
 
     def validate_timestamp(self, value):
         difference = float(time.time()) - float(value)
-        print difference
         if difference > (2 * 60 * 60) or difference < 5:
-            raise forms.ValidationError("Timestamp check failed")
+            raise serializers.ValidationError("Timestamp check failed")
         return value
 
     def validate(self, data):
