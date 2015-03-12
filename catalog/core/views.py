@@ -23,7 +23,6 @@ from .models import Publication, InvitationEmail
 from .serializers import (PublicationSerializer, PaginatedPublicationSerializer, JournalArticleSerializer,
                           InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer)
 
-
 import time
 import markdown
 
@@ -50,7 +49,7 @@ class LoginView(FormView):
 
     def get_success_url(self):
         next_url = self.request.GET.get('next', '')
-        # if no next_url specified, redirect to index (dashboard page).
+        # if no next_url specified, redirect to dashboard page
         return next_url if next_url else reverse('dashboard')
 
 
@@ -132,7 +131,6 @@ class EmailPreview(LoginRequiredMixin, APIView):
     def get(self, request, format=None):
         serializer = InvitationSerializer(data=request.GET)
         if serializer.is_valid():
-            # FIXME: Try to push below code to its serializer class
             message = serializer.validated_data['invitation_text']
             ie = InvitationEmail(self.request)
             plaintext_content = ie.get_plaintext_content(message, "valid:token")
@@ -169,15 +167,12 @@ class ContactUsView(APIView):
         info = (timestamp, settings.SECRET_KEY)
         security_hash = sha1("".join(info)).hexdigest()
 
-        data = {
-            'contact_number': '',
-            'name': '',
-            'timestamp': timestamp,
-            'security_hash': security_hash,
-            'message': '',
-            'email': ''
-        }
-        return Response({'json': dumps(data)}, template_name='contact_us.html')
+        data = {'contact_number': '', 'name': '', 'timestamp': timestamp,
+                'security_hash': security_hash, 'message': '', 'email': ''}
+
+        serializer = ContactUsSerializer(data)
+
+        return Response({'json': dumps(serializer.data)}, template_name='contact_us.html')
 
     def post(self, request, format=None):
         serializer = ContactUsSerializer(data=request.data)
@@ -200,16 +195,13 @@ class ArchivePublication(APIView):
         return get_object_or_404(Publication, pk=pk)
 
     def get(self, request, token, format=None):
-        instance = self.get_object(token)
-        serializer = ArchivePublicationSerializer(instance)
+        serializer = ArchivePublicationSerializer(self.get_object(token))
         return Response({'json': dumps(serializer.data)}, template_name='archive_publication_form.html')
 
     def post(self, request, token, format=None):
-        instance = self.get_object(token)
-        serializer = ArchivePublicationSerializer(instance, data=request.data)
+        serializer = ArchivePublicationSerializer(self.get_object(token), data=request.data)
         if serializer.is_valid():
             serializer.validated_data['status'] = Publication.STATUS_CHOICES.AUTHOR_UPDATED
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
