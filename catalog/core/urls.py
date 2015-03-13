@@ -5,7 +5,7 @@ from django.views.generic import RedirectView
 
 from .views import (IndexView, LoginView, LogoutView, DashboardView, PublicationDetail,
                     PublicationList, EmailPreview, ContactAuthor, ArchivePublication, CustomSearchView,
-                    ContactUsView)
+                    ContactUsView, UserProfileView)
 
 from .forms import CustomSearchForm
 
@@ -17,6 +17,7 @@ urlpatterns = format_suffix_patterns([
     url(r'^publications/invite/$', ContactAuthor.as_view(), name='send_invites'),
     url(r'^publications/archive/(?P<token>[\w:-]+)/$', ArchivePublication.as_view(), name='publication_archive'),
     url(r'^contact/$', ContactUsView.as_view(), name='contact_us'),
+    url(r'^accounts/profile/$', UserProfileView.as_view(), name='user_profile'),
 ])
 
 urlpatterns += [

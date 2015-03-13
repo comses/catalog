@@ -4,6 +4,7 @@
 {% url 'logout' as logout %}
 {% url 'index' as index %}
 {% url 'dashboard' as dashboard %}
+{% url 'user_profile' as profile %}
 {% url 'publications' as publications %}
 {% url 'haystack_search' as search %}
 {% url 'report_issues' as issues_url %}
@@ -59,8 +60,7 @@
                                 </a> 
                                 <!-- Dropdown menu -->
                                 <ul class="dropdown-menu">
-                                    <li><a href="#"><i class="fa fa-user"></i> Profile</a></li>
-                                    <li><a href="#"><i class="fa fa-cogs"></i> Settings</a></li>
+                                    <li><a href="{{ profile }}"><i class="fa fa-user"></i> Profile</a></li>
                                     <li><a href="{{ logout }}"><i class="fa fa-sign-out"></i> Logout</a></li>
                                 </ul>
                             </li>

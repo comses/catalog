@@ -12,15 +12,14 @@ from hashlib import sha1
 import time
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserProfileSerializer(serializers.ModelSerializer):
     """
     Serializes user querysets.
     """
-    publications = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'publications')
+        fields = ('id', 'first_name', 'last_name', 'username', 'email')
 
 
 class PublicationSerializer(serializers.ModelSerializer):

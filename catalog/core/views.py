@@ -21,7 +21,7 @@ from json import dumps
 from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
 from .models import Publication, InvitationEmail
 from .serializers import (PublicationSerializer, PaginatedPublicationSerializer, JournalArticleSerializer,
-                          InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer)
+                          InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer, UserProfileSerializer)
 
 import time
 import markdown
@@ -67,6 +67,24 @@ class IndexView(TemplateView):
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
+
+
+class UserProfileView(LoginRequiredMixin, APIView):
+    """
+    Retrieve or Update of current logged in User
+    """
+    renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
+
+    def get(self, request, format=None):
+        serializer = UserProfileSerializer(instance=request.user)
+        return Response({'json': dumps(serializer.data)}, template_name="accounts/profile.html")
+
+    def post(self, request, format=None):
+        serializer = UserProfileSerializer(instance=request.user, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PublicationList(LoginRequiredMixin, APIView):
