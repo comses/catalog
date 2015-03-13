@@ -168,6 +168,7 @@
                                 self.currentStep(self.stepModels()[self.currentIndex() + 1]);
                             },
                             error: function(result) {
+                                humane.log("Something went wrong. Please try again", {timeout: 5000});
                                 console.log(result.responseJSON);
                             }
                         }).always(function() {

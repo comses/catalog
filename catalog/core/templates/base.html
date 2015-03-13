@@ -11,7 +11,7 @@
 
 <!doctype html>
 <html class="no-js" lang="">
-{% with JQUERY_VERSION="1.11.1" KNOCKOUT_VERSION="3.3.0" KNOCKOUT_MAPPING_VERSION="2.4.1" BOOTSTRAP_VERSION="3.3.1" FONTAWESOME_VERSION="4.2.0" RAVENJS_VERSION="1.1.16" %} 
+{% with JQUERY_VERSION="1.11.1" KNOCKOUT_VERSION="3.3.0" KNOCKOUT_MAPPING_VERSION="2.4.1" BOOTSTRAP_VERSION="3.3.1" FONTAWESOME_VERSION="4.2.0" RAVENJS_VERSION="1.1.16" HUMANE_VERSION="3.0.6" %} 
     <head>
     {% block head %}
         <meta charset="utf-8">
@@ -21,6 +21,7 @@
 
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VERSION}}/css/bootstrap.min.css"> 
         <link rel='stylesheet' href="//maxcdn.bootstrapcdn.com/font-awesome/{{FONTAWESOME_VERSION}}/css/font-awesome.min.css">
+        <link rel='stylesheet' href="//cdnjs.cloudflare.com/ajax/libs/humane-js/{{HUMANE_VERSION}}/themes/jackedup.min.css">
         <link rel="stylesheet" href="{% static 'css/style.css' %}" media="screen" />
 
         <script src="//ajax.googleapis.com/ajax/libs/jquery/{{JQUERY_VERSION}}/jquery.min.js"></script>
@@ -89,6 +90,7 @@
         <script src='//cdnjs.cloudflare.com/ajax/libs/knockout/{{KNOCKOUT_VERSION}}/knockout-min.js'></script>
         <script src='//cdnjs.cloudflare.com/ajax/libs/knockout.mapping/{{KNOCKOUT_MAPPING_VERSION}}/knockout.mapping.min.js'></script>
         <script src="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VERSION}}/js/bootstrap.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/humane-js/{{HUMANE_VERSION}}/humane.min.js"></script>
         <script src="//cdn.ravenjs.com/{{RAVENJS_VERSION}}/jquery,native/raven.min.js"></script>
         <script type="text/javascript" src="{{STATIC_URL}}js/csrf.js"></script>
  

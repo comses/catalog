@@ -52,7 +52,6 @@
                 ko.mapping.fromJS(data, {}, self);
 
                 self.saveProfile = function(data) {
-                    console.log(ko.toJSON(data));
                     $.ajax({
                         type: "POST",
                         url: "{% url 'user_profile' %}",
@@ -60,15 +59,15 @@
                         data: ko.toJSON(data),
                         dataType:"json",
                         success: function(result){
-                            console.log("Profile saved Successfully")
+                            humane.log("Profile saved Successfully")
                         },
                         error: function(result) {
+                            humane.log(["Can't save the profile. Please fix your errors", result.responseJSON], {timeout: 7500})
                             console.log(result.responseJSON);
                         }
                     }); 
                 }
             }
-            console.log(viewModelJson)
             ko.applyBindings(new UserProfile(viewModelJson));
         });
     </script>
