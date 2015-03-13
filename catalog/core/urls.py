@@ -11,11 +11,11 @@ from .forms import CustomSearchForm
 
 # API endpoints
 urlpatterns = format_suffix_patterns([
-    url(r'^publications/$', PublicationList.as_view(), name='publications'),
-    url(r'^publications/(?P<pk>\d+)/$', PublicationDetail.as_view(), name='publication_detail'),
-    url(r'^publications/email-preview/$', EmailPreview.as_view(), name='invite_email_preview'),
-    url(r'^publications/invite/$', ContactAuthor.as_view(), name='send_invites'),
-    url(r'^publications/archive/(?P<token>[\w:-]+)/$', ArchivePublication.as_view(), name='publication_archive'),
+    url(r'^publication/$', PublicationList.as_view(), name='publications'),
+    url(r'^publication/(?P<pk>\d+)/$', PublicationDetail.as_view(), name='publication_detail'),
+    url(r'^publication/email-preview/$', EmailPreview.as_view(), name='invite_email_preview'),
+    url(r'^publication/invite/$', ContactAuthor.as_view(), name='send_invites'),
+    url(r'^publication/archive/(?P<token>[\w:-]+)/$', ArchivePublication.as_view(), name='publication_archive'),
     url(r'^contact/$', ContactUsView.as_view(), name='contact_us'),
     url(r'^accounts/profile/$', UserProfileView.as_view(), name='user_profile'),
 ])
