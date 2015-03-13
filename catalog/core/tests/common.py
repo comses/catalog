@@ -6,7 +6,7 @@ from django.utils.http import urlencode
 
 class BaseTest(TestCase):
     def setUp(self):
-        user = User.objects.create_user('temporary', 'temporary@gmail.com', 'temporary')
+        self.user = User.objects.create_user('temporary', 'temporary@gmail.com', 'temporary')
 
     @property
     def login_url(self):

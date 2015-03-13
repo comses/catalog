@@ -24,7 +24,8 @@ class AuthTest(BaseTest):
         self.assertTrue(self.reverse('dashboard') in response['Location'])
 
     def test_login_with_inactive_user(self):
-        User.objects.filter(username='temporary').update(is_active=False)
+        self.user.is_active=False
+        self.user.save()
         response = self.post(self.login_url, {'username':'temporary', 'password':'temporary'})
         self.assertTrue(200, response.status_code)
 
@@ -32,6 +33,30 @@ class AuthTest(BaseTest):
         response = self.get(self.reverse('logout'))
         self.assertTrue(302, response.status_code)
 
+
+class ProfileViewTest(BaseTest):
+    def test_profile_view(self):
+        self.without_login_and_with_login_test(self.reverse('user_profile'))
+
+    def test_profile_update(self):
+        url = self.reverse('user_profile', query_parameters={'format':'json'})
+        self.login()
+        old_email = self.user.email
+        response = self.post(url, {'first_name': 'Test', 'last_name': 'Test', 'email': 'temporary@gmail.com', 'username': 'temporary'})
+        self.assertTrue(200, response.status_code)
+        user = User.objects.get(username="temporary")
+        # check for updated values
+        self.assertTrue(user.first_name, 'Test')
+        self.assertTrue(user.last_name, 'Test')
+        # check for unupdated values
+        self.assertTrue(user.email, old_email)
+
+    def test_profile_invalid_update(self):
+        url = self.reverse('user_profile', query_parameters={'format':'json'})
+        self.login()
+        old_email = self.user.email
+        response = self.post(url, {'first_name': 'Test', 'last_name': 'Test'})
+        self.assertTrue(400, response.status_code)
 
 class IndexViewTest(BaseTest):
     def test_index_view(self):
@@ -151,7 +176,6 @@ class ContactViewTest(BaseTest):
 
         response = self.post(url, {'name':'John Watson', 'email':'john@watson.com', 'message': 'Sherlock want to use this application.', 'timestamp': timestamp, 'security_hash': security_hash, 'contact_number': ''})
         self.assertTrue(200, response.status_code)
-
 
 
 class EmailPreviewTest(BaseTest):
