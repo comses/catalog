@@ -1,11 +1,10 @@
-from fabric.api import local, run, sudo, cd, env, lcd, execute, hosts, roles, task
+from fabric.api import local, sudo, cd, env, lcd, execute, hosts, roles, task
 from fabric.context_managers import prefix
 from fabric.contrib.console import confirm
 from fabric.contrib import django
 from fabric.contrib.project import rsync_project
 import sys
 import os
-import shutil
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,8 +12,7 @@ logger = logging.getLogger(__name__)
 # default to current working directory
 env.project_path = os.path.dirname(__file__)
 # needed to push catalog.settings onto the path.
-env.abs_project_path = os.path.abspath(env.project_path)
-sys.path.append(env.abs_project_path)
+sys.path.append(os.path.abspath(env.project_path))
 
 # default env configuration
 env.roledefs = {
@@ -39,11 +37,9 @@ env.db_user = 'catalog'
 env.db_name = 'comses_catalog'
 env.branches = {
     'prod': {
-        'hg': 'stable',
         'git': 'master'
     },
     'staging': {
-        'hg': 'default',
         'git': 'develop',
     }
 }
@@ -66,7 +62,7 @@ def docs(remote_path='/home/www/dev.commons.asu.edu/catalog/'):
     execute(coverage)
     rsync_project(local_dir='htmlcov/', remote_dir=os.path.join(remote_path, 'coverage'), delete=True)
     with cd(remote_path):
-        run('find . -type d -exec chmod a+rx {} \; && chmod -R a+r .')
+        sudo('find . -type d -exec chmod a+rx {} \; && chmod -R a+r .')
 
 
 @task
@@ -80,18 +76,7 @@ def clean_update():
 
 
 @task
-def cu():
-    execute(clean_update)
-    execute(migrate)
-
-
-@task
-def psh():
-    execute(shell)
-
-
-@task
-def shell():
+def sh():
     dj('shell_plus')
 
 
@@ -105,9 +90,9 @@ def dj(command, **kwargs):
 
 def _virtualenv(executor, *commands, **kwargs):
     """ source the virtualenv before executing this command """
-    env.command = ' && '.join(commands)
+    command = ' && '.join(commands)
     with prefix('. %(virtualenv_path)s/bin/activate' % env):
-        executor('%(command)s' % env, **kwargs)
+        executor(command, **kwargs)
 
 
 @task
@@ -134,11 +119,6 @@ def test(name=None, coverage=False):
         ignored = ['*{0}*'.format(ignored_pkg) for ignored_pkg in env.ignored_coverage]
         env.python = "coverage run --source='.' --omit=" + ','.join(ignored)
     local('%(python)s manage.py test %(apps)s' % env)
-
-
-@task
-def ssl(ip='127.0.0.1', port=8443):
-    dj('runsslserver {ip}:{port}'.format(ip=ip, port=port), capture=False)
 
 
 @task
@@ -238,8 +218,11 @@ def deploy(vcs_branch_dict):
                 'chmod -R g+rw logs/',
                 user=env.deploy_user, pty=True)
             env.static_root = catalog_settings.STATIC_ROOT
-            _virtualenv(run, '%(python)s manage.py collectstatic' % env)
-            _virtualenv(run, '%(python)s manage.py installtasks' % env)
+            if confirm("Update pip dependencies?"):
+                _virtualenv(sudo, 'pip install -Ur requirements.txt', user=env.deploy_user)
+            if confirm("Run database migrations?"):
+                _virtualenv(sudo, '%(python)s manage.py migrate' % env, user=env.deploy_user)
+            _virtualenv(sudo, '%(python)s manage.py collectstatic' % env)
             sudo_chain(
                 'chmod -R ug+rw .',
                 'find %(static_root)s %(virtualenv_path)s -type d -exec chmod a+x {} \;' % env,

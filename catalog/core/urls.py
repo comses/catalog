@@ -1,5 +1,5 @@
 from rest_framework.urlpatterns import format_suffix_patterns
-from django.conf.urls import patterns, url, include
+from django.conf.urls import patterns, url
 from django.contrib.auth.decorators import login_required
 from django.views.generic import RedirectView
 
