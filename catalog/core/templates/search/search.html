@@ -50,7 +50,7 @@
                 <tbody>
                     {% for row in page.object_list %}
                         <tr class="{% cycle "odd" "even" %}">
-                            <td><a href="/publications/{{ row.pk }}">{{ row.title }}</td>
+                            <td><a href="{% url 'publication_detail' row.pk %}">{{ row.title }}</td>
                             <td>{{ row.pub_date }}</td>
                         </tr>
                     {% empty %}
