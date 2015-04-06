@@ -21,11 +21,20 @@ class Command(BaseCommand):
 
     option_list = BaseCommand.option_list + (
         make_option('--test',
-            action='store_false',
+            action='store',
             dest='test',
             default=False,
-            help='used by test cases'),
+            help='used for test cases only'),
         )
+
+    option_list = option_list + (
+        make_option('--group',
+            action='store',
+            dest='group_id',
+            default='284000',
+            help='zotero group id'),
+        )
+
 
     def convert(self, name):
         s1 = first_cap_re.sub(r'\1_\2', name)
@@ -196,15 +205,16 @@ class Command(BaseCommand):
             return list()
 
     def handle(self, *args, **options):
-        print "Starting to import data from Zotero. Hang tight, this may take a while."
+        zotero_api_url = 'https://api.zotero.org/groups/'+ options['group_id'] + '/items?v=3'
 
+        print "Starting to import data from Zotero. Hang tight, this may take a while."
         if options['test']:
-            json_data = self.make_request('https://api.zotero.org/groups/284000/items?v=3&limit=10&start=0', 5)
+            json_data = self.make_request(zotero_api_url + '&limit=10&start=0', 5)
             self.generate_entry(json_data)
         else:
             start = 0
             while True:
-                json_data = self.make_request('https://api.zotero.org/groups/284000/items?v=3&limit=100&start='+ str(start), 5)
+                json_data = self.make_request(zotero_api_url + '&limit=100&start='+ str(start), 5)
                 items = len(json_data)
                 if items == 0:
                     break
