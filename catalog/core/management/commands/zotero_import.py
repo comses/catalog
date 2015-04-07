@@ -35,8 +35,12 @@ class Command(BaseCommand):
             dest='group_id',
             default='284000',
             help='zotero group id'),
+        make_option('--collection',
+            action='store',
+            dest='collection_id',
+            default=False,
+            help='used to fetch a particular collection in the group')
         )
-
 
     def convert(self, name):
         s1 = first_cap_re.sub(r'\1_\2', name)
@@ -223,6 +227,8 @@ class Command(BaseCommand):
         print "Starting to import data from Zotero. Hang tight, this may take a while."
         if options['test']:
             json_data = zot.top(limit=5)
+        elif options['collection_id']:
+            json_data = zot.everything(zot.collection_items(options['collection_id']))
         else:
             json_data = zot.all_top()
 
