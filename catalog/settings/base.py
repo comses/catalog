@@ -80,6 +80,10 @@ SECRET_KEY = '2km^iq&48&6uv*x$ew@56d0#w9zqth@)_4tby(85+ac2wf4r-u'
 # Salt used to generate token (SALT can remain public unlike SECRET_KEY)
 SALT = '48&6uv*x'
 
+# Zotero API Key
+ZOTERO_API_KEY = None
+
+
 TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.auth.context_processors.auth',
     "django.core.context_processors.debug",

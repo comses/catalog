@@ -139,7 +139,7 @@ class Publication(models.Model):
 
 # custom incoming tags set by zotero data entry to mark the code archive url, contact author's email, the ABM platform
 # used, research sponsors (funding agencies, etc.), documentation, and other research keyword tags
-    code_archive_url = models.URLField(null=True, blank=True)
+    code_archive_url = models.URLField(max_length=255, null=True, blank=True)
     contact_email = models.EmailField(blank=True)
     platforms = models.ManyToManyField(Platform, null=True, blank=True)
     sponsors = models.ManyToManyField(Sponsor, null=True, blank=True)

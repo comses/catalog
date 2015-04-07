@@ -1,10 +1,12 @@
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
 
 from datetime import datetime
 from optparse import make_option
+from pyzotero import zotero
 
-from catalog.core.models import (Creator, Publication, JournalArticle, Tag, Note, Platform, Sponsor, Journal)
+from catalog.core.models import (Creator, Publication, JournalArticle, Tag, Note, Platform, Sponsor, Journal, ModelDocumentation)
 
 import requests
 import re
@@ -58,7 +60,7 @@ class Command(BaseCommand):
         for t in data['tags']:
             values = t['tag'].strip().split(': ')
             if len(values) == 2:
-                key = values[0].strip()
+                key = values[0].strip().lower()
                 value = values[1].strip()
             else:
                 key = ''
@@ -66,14 +68,17 @@ class Command(BaseCommand):
 
             if key == 'codeurl':
                 if value != 'none':
-                    item.code_archive_url = re.search("(?P<url>https?://[^\s]+)", value).group("url")
-                    if item.code_archive_url[-1] == '>':
-                        item.code_archive_url = item.code_archive_url[:-1]
-            elif key == 'email':
+                    try:
+                        item.code_archive_url = re.search("(?P<url>https?://[^\s]+)", value).group("url")
+                        if item.code_archive_url[-1] == '>':
+                            item.code_archive_url = item.code_archive_url[:-1]
+                    except:
+                        print "URL: " + value + " could not parsed"
+            elif key == 'email' or key == 'e-mail':
                 if value != 'none':
                     item.contact_email = value
             elif key == 'docs':
-                item.model_docs = value
+                item.model_documentation, created = ModelDocumentation.objects.get_or_create(value=value)
             elif key == 'platform':
                 if value != 'unknown' and value != 'none':
                     platform, created = Platform.objects.get_or_create(name=value)
@@ -91,8 +96,31 @@ class Command(BaseCommand):
                 else:
                     tag, created = Tag.objects.get_or_create(value=value)
                 item.tags.add(tag)
-        item.save()
+        try:
+            item.save()
+        except Exception as e:
+            print "Exception "+ str(e) + " in saving tags: " + str(item) + str(item.title)
         return item
+
+    def parse_published_date(self, date):
+        try:
+            return datetime.strptime(date, '%b %Y')
+        except:
+            try:
+                return datetime.strptime(date, '%B %Y')
+            except:
+                try:
+                    return datetime.strptime(date, '%b %d %Y')
+                except:
+                    try:
+                        return datetime.strptime(date, '%Y')
+                    except:
+                        year = re.findall('\\b\\d+\\b', date)
+                        if year:
+                            return datetime(int(year[-1]), 1, 1)
+                        else:
+                            print "Date: " + item.date_published_text + " Could not be parsed"
+                            return None
 
     def set_common_fields(self, item, data, meta):
         item.title = data['title'].strip()
@@ -100,17 +128,7 @@ class Command(BaseCommand):
         item.short_title = data['shortTitle'].strip()
         item.url = data['url'].strip()
         item.date_published_text = data['date'].strip()
-        try:
-            item.date_published = datetime.strptime(data['date'].strip(), '%b %Y')
-        except:
-            try:
-                item.date_published = datetime.strptime(data['date'].strip(), '%B %Y')
-            except:
-                try:
-                    item.date_published = datetime.strptime(data['date'].strip(), '%b %d %Y')
-                except:
-                    print "Date: " + item.date_published_text + " Could not be parsed"
-
+        item.date_published = self.parse_published_date(data['date'].strip())
         item.date_accessed = data['accessDate'].strip() or datetime.now().date()
         item.archive = data['archive'].strip()
         item.archive_location = data['archiveLocation'].strip()
@@ -149,11 +167,15 @@ class Command(BaseCommand):
         item = self.set_tags(data, item)
 
         if item.code_archive_url:
-            response = requests.get(item.code_archive_url)
-            if response.status_code == 200:
-                item.status = Publication.STATUS_CHOICES.COMPLETE
-            else:
-                item.status = Publication.STATUS_CHOICES.INVALID_URL
+            try:
+                response = requests.get(item.code_archive_url)
+                if response.status_code == 200:
+                    item.status = Publication.STATUS_CHOICES.COMPLETE
+                else:
+                    item.status = Publication.STATUS_CHOICES.INVALID_URL
+            except Exception as e:
+                print "Error verifying code archive url" + str(e)
+                item.status = Publication.STATUS_CHOICES.INCOMPLETE
         else:
             item.status = Publication.STATUS_CHOICES.INCOMPLETE
 
@@ -193,32 +215,17 @@ class Command(BaseCommand):
                     else:
                         note_map.update({item['data']['parentItem']: note})
 
-    def make_request(self, url, retry):
-        if retry:
-            try:
-                r = requests.get(url)
-                return r.json()
-            except:
-                return self.make_request(url, retry-1)
-        else:
-            print "Zotero is down or there's a Network Issue"
-            return list()
-
     def handle(self, *args, **options):
-        zotero_api_url = 'https://api.zotero.org/groups/'+ options['group_id'] + '/items?v=3'
+
+        if settings.ZOTERO_API_KEY:
+            zot = zotero.Zotero(options['group_id'], "group", settings.ZOTERO_API_KEY)
 
         print "Starting to import data from Zotero. Hang tight, this may take a while."
         if options['test']:
-            json_data = self.make_request(zotero_api_url + '&limit=10&start=0', 5)
-            self.generate_entry(json_data)
+            json_data = zot.top(limit=5)
         else:
-            start = 0
-            while True:
-                json_data = self.make_request(zotero_api_url + '&limit=100&start='+ str(start), 5)
-                items = len(json_data)
-                if items == 0:
-                    break
-                start += items
-                self.generate_entry(json_data)
+            json_data = zot.all_top()
 
+        print "Number of Publications to import: " + str(len(json_data))
+        self.generate_entry(json_data)
         print "Import from Zotero is finished."
