@@ -77,7 +77,7 @@ class PublicationsViewTest(BaseTest):
         self.login()
         url = self.reverse('publications')
         response = self.get(url + "?page=-1")
-        self.assertEqual(200, response.status_code)
+        self.assertEqual(404, response.status_code)
 
 
 class PublicationDetailView(BaseTest):
