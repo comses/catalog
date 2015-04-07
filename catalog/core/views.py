@@ -20,7 +20,7 @@ from json import dumps
 
 from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
 from .models import Publication, InvitationEmail
-from .serializers import (PublicationSerializer, PaginatedPublicationSerializer, JournalArticleSerializer,
+from .serializers import (PublicationSerializer, CustomPagination, JournalArticleSerializer,
                           InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer, UserProfileSerializer)
 
 import time
@@ -95,20 +95,11 @@ class PublicationList(LoginRequiredMixin, APIView):
 
     def get(self, request, format=None):
         publication_list = Publication.objects.all()
-
-        paginator = Paginator(publication_list, 10) # Show 10 contacts per page
-        page = request.QUERY_PARAMS.get('page')
-        try:
-            publications = paginator.page(page)
-        except PageNotAnInteger:
-            # If page is not an integer, deliver first page.
-            publications = paginator.page(1)
-        except EmptyPage:
-            # If page is out of range (e.g. 9999), deliver last page of results.
-            publications = paginator.page(paginator.num_pages)
-
-        serializer = PaginatedPublicationSerializer(publications)
-        return Response({ 'json': dumps(serializer.data) }, template_name="publications.html")
+        paginator = CustomPagination()
+        result_page = paginator.paginate_queryset(publication_list, request)
+        serializer = PublicationSerializer(result_page, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+        return Response({ 'json': dumps(response) }, template_name="publications.html")
 """
     def post(self, request, format=None):
         serializer = PublicationSerializer(data=request.data)

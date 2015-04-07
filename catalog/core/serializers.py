@@ -5,6 +5,8 @@ from django.core.mail import send_mass_mail, send_mail
 from django.db.models import F
 
 from rest_framework import serializers, pagination
+from rest_framework.compat import OrderedDict
+
 from .models import Tag, Sponsor, Platform, Creator, Publication, JournalArticle, InvitationEmail
 
 from hashlib import sha1
@@ -31,26 +33,21 @@ class PublicationSerializer(serializers.ModelSerializer):
         fields = ('id', 'title', 'date_published')
 
 
-class PaginatedPublicationSerializer(pagination.PaginationSerializer):
+class CustomPagination(pagination.PageNumberPagination):
     """
     Serializes page objects of user querysets.
     """
-    start_index = serializers.SerializerMethodField()
-    end_index = serializers.SerializerMethodField()
-    num_pages = serializers.ReadOnlyField(source='paginator.num_pages')
-    current_page = serializers.SerializerMethodField()
-
-    class Meta:
-        object_serializer_class = PublicationSerializer
-
-    def get_start_index(self, page):
-        return page.start_index()
-
-    def get_end_index(self, page):
-        return page.end_index()
-
-    def get_current_page(self, page):
-        return page.number
+    def get_paginated_response(self, data):
+        return OrderedDict([
+            ('start_index', self.page.start_index()),
+            ('end_index', self.page.end_index()),
+            ('num_pages', self.page.paginator.num_pages),
+            ('current_page', self.page.number),
+            ('count', self.page.paginator.count),
+            ('next', self.get_next_link()),
+            ('previous', self.get_previous_link()),
+            ('results', data)
+        ])
 
 
 class ContactUsSerializer(serializers.Serializer):
