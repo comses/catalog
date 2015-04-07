@@ -1,4 +1,4 @@
-from fabric.api import local, sudo, cd, env, lcd, execute, hosts, roles, task
+from fabric.api import local, sudo, cd, env, lcd, execute, hosts, roles, task, run
 from fabric.context_managers import prefix
 from fabric.contrib.console import confirm
 from fabric.contrib import django
@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 # default to current working directory
 env.project_path = os.path.dirname(__file__)
 # needed to push catalog.settings onto the path.
-sys.path.append(os.path.abspath(env.project_path))
+env.abs_project_path = os.path.abspath(env.project_path)
+sys.path.append(env.abs_project_path)
 
 # default env configuration
 env.roledefs = {
@@ -32,21 +33,11 @@ env.services = 'nginx memcached redis supervisord'
 env.docs_path = os.path.join(env.project_path, 'docs')
 env.virtualenv_path = '%s/.virtualenvs/%s' % (os.getenv('HOME'), env.project_name)
 env.ignored_coverage = ('test', 'settings', 'migrations', 'fabfile', 'wsgi',)
-env.solr_conf_dir = '/usr/share/solr/conf'
+env.solr_conf_dir = '/etc/solr/conf'
 env.db_user = 'catalog'
 env.db_name = 'comses_catalog'
-env.branches = {
-    'prod': {
-        'git': 'master'
-    },
-    'staging': {
-        'git': 'develop',
-    }
-}
 env.vcs = 'git'
-env.vcs_commands = {
-    'git': 'export GIT_WORK_TREE=%(deploy_dir)s && git checkout -f %(branch)s && git pull',
-}
+env.vcs_command = 'export GIT_WORK_TREE=%(deploy_dir)s && git checkout -f %(branch)s && git pull'
 
 # django integration for access to settings, etc.
 django.project(env.project_name)
@@ -134,13 +125,13 @@ def dev():
 @roles('staging')
 @task
 def staging():
-    execute(deploy, env.branches['staging'])
+    execute(deploy, 'develop')
 
 
 @roles('prod')
 @task
 def prod():
-    execute(deploy, env.branches['prod'])
+    execute(deploy, 'master')
 
 
 @roles('localhost')
@@ -148,7 +139,8 @@ def prod():
 def setup_solr():
     _virtualenv(local, 'python manage.py build_solr_schema > %(abs_project_path)s/schema.xml' % env)
     sudo('cp %(abs_project_path)s/schema.xml %(solr_conf_dir)s/' % env)
-    restart_solr()
+    execute(restart_solr)
+    execute(rebuild_index)
 
 
 @task
@@ -164,7 +156,17 @@ def setup():
     setup_solr()
     _virtualenv(local, 'python manage.py makemigrations')
     _virtualenv(local, 'python manage.py migrate')
+    execute(rebuild_index)
+    execute(zotero_import)
+
+@task
+def zotero_import():
     _virtualenv(local, 'python manage.py zotero_import')
+
+
+@roles('localhost')
+@task
+def rebuild_index():
     _virtualenv(local, 'python manage.py rebuild_index')
 
 
@@ -204,13 +206,11 @@ def sudo_chain(*commands, **kwargs):
     sudo(' && '.join(commands), **kwargs)
 
 
-def deploy(vcs_branch_dict):
+def deploy(branch):
     """ deploy to an already setup environment """
     env.deploy_dir = env.deploy_parent_dir + env.project_name
-    vcs = env.vcs
-    env.branch = vcs_branch_dict[vcs]
-    env.vcs_command = env.vcs_commands[vcs] % env
-    if confirm("Deploying '%(branch)s' branch to host %(host)s : \n\r %(vcs_command)s\nContinue? " % env):
+    env.branch = branch
+    if confirm("Deploying '%(branch)s' branch to host %(host)s : \n\r%(vcs_command)s\nContinue? " % env):
         with cd(env.deploy_dir):
             sudo_chain(
                 env.vcs_command,

@@ -5,3 +5,4 @@ catalog/settings/local.py
 htmlcov
 *.log
 schema.xml
+tags

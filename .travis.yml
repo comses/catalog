@@ -8,7 +8,7 @@ services:
     - memcached
     - redis
 before_script:
-    - curl -sSL https://raw.githubusercontent.com/moliware/travis-solr/master/travis-solr.sh | SOLR_VERSION=3.6.2 bash
+    - curl -sSL https://raw.githubusercontent.com/moliware/travis-solr/master/travis-solr.sh | SOLR_VERSION=4.10.3 bash
     - psql -c 'create user catalog CREATEDB;' -U postgres
     - psql -c 'create database comses_catalog' -U catalog -d template1
     - cp catalog/settings/local.py.example catalog/settings/local.py

@@ -12,15 +12,15 @@
 
 <!doctype html>
 <html class="no-js" lang="">
-{% with JQUERY_VERSION="1.11.1" KNOCKOUT_VERSION="3.3.0" KNOCKOUT_MAPPING_VERSION="2.4.1" BOOTSTRAP_VERSION="3.3.1" FONTAWESOME_VERSION="4.2.0" RAVENJS_VERSION="1.1.16" HUMANE_VERSION="3.0.6" %} 
+{% with JQUERY_VERSION="1.11.1" KNOCKOUT_VERSION="3.3.0" KNOCKOUT_MAPPING_VERSION="2.4.1" BOOTSTRAP_VERSION="3.3.4" FONTAWESOME_VERSION="4.2.0" RAVENJS_VERSION="1.1.16" HUMANE_VERSION="3.0.6" %} 
     <head>
     {% block head %}
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <title>{% block title %}Comses Catalog {% endblock title %}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VERSION}}/css/bootstrap.min.css"> 
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootswatch/{{BOOTSTRAP_VERSION}}/cerulean/bootstrap.min.css"> 
+        <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VERSION}}/css/bootstrap.min.css"> -->
         <link rel='stylesheet' href="//maxcdn.bootstrapcdn.com/font-awesome/{{FONTAWESOME_VERSION}}/css/font-awesome.min.css">
         <link rel='stylesheet' href="//cdnjs.cloudflare.com/ajax/libs/humane-js/{{HUMANE_VERSION}}/themes/jackedup.min.css">
         <link rel="stylesheet" href="{% static 'css/style.css' %}" media="screen" />
@@ -34,7 +34,7 @@
             <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
         {% block header %}
-            <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+            <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
                 <div class="container">
                     <div class="navbar-header">
                         <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
@@ -84,6 +84,33 @@
 
         <footer id="footer">
             {% block footer %}
+            <div class='container'>
+                {% block footerlinks %}
+                <ul class='nav-footer list-inline hidden-xs'>
+                    <li><a href='http://csid.asu.edu'>Center for Behavior, Institutions, and the Environment</a></li>
+                    <li><a href='http://www.comses.net'>Network for Computational Modeling in the Socio-ecological Sciences</a></li>
+                    <li><a href='http://www.azregents.edu/'>&copy; 2011-{% now "Y" %} Arizona Board of Regents</a></li>
+                    <li>build: {{ TAG }}</li>
+                </ul>
+                <a style='margin-top: 15px;' class='visible-xs pull-right' href='{{home}}'><img class='logo' src='{% static "images/vcweb-logo.png" %}' width='30' height='23' alt='vcweb logo'/></a>
+                <ul style='margin-top: 5px;' class='nav-footer list-inline visible-xs'>
+                    <li><a href='http://csid.asu.edu'>Center for the Study of Institutional Diversity</a>
+                    <li><a href='http://shesc.asu.edu'>School of Human Evolution &amp; Social Change</a>
+                    <li><a href='http://www.azregents.edu/'>&copy; 2011-{% now "Y" %} Arizona Board of Regents</a>
+                </ul>
+                {% endblock footerlinks %}
+            </div>
+            <div class="modal fade" id="bugModal" tabindex="-1" role="dialog" aria-labelledby="bugModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                            <h4 class="modal-title" id='bugModalLabel'>Report Bug</h4>
+                        </div>
+                        <div class="modal-body"></div>
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal-dialog -->
+            </div><!-- /.modal -->
             {% endblock footer %}
         </footer>
 
@@ -106,6 +133,6 @@
         </script>
         {% block javascript %}
         {% endblock javascript %}
-    </body>
+        </body>
 {% endwith %}
 </html>

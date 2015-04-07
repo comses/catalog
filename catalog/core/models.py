@@ -141,10 +141,10 @@ class Publication(models.Model):
 # used, research sponsors (funding agencies, etc.), documentation, and other research keyword tags
     code_archive_url = models.URLField(max_length=255, null=True, blank=True)
     contact_email = models.EmailField(blank=True)
-    platforms = models.ManyToManyField(Platform, null=True, blank=True)
-    sponsors = models.ManyToManyField(Sponsor, null=True, blank=True)
+    platforms = models.ManyToManyField(Platform, blank=True)
+    sponsors = models.ManyToManyField(Sponsor, blank=True)
     model_documentation = models.ForeignKey(ModelDocumentation, null=True, blank=True)
-    tags = models.ManyToManyField(Tag, null=True, blank=True)
+    tags = models.ManyToManyField(Tag, blank=True)
     added_by = models.ForeignKey(User)
 
 # custom fields used by catalog internally
