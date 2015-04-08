@@ -10,7 +10,12 @@ services:
 before_script:
     - sudo apt-get -y install solr-tomcat
     - cp catalog/settings/local.py.example catalog/settings/local.py
-    - fab setup
+    - fab setup_postgres
+    - python manage.py makemigrations
+    - python manage.py migrate
+    - python manage.py build_solr_schema > /etc/solr/conf/schema.xml
+    - service tomcat6 restart
+    - python manage.py rebuild_index
 install: "pip install -r requirements.txt"
 script: fab coverage
 after_success:
