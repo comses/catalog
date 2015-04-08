@@ -220,21 +220,17 @@ class Command(BaseCommand):
                         note_map.update({item['data']['parentItem']: note})
 
     def handle(self, *args, **options):
-
-        if settings.ZOTERO_API_KEY:
-            zot = zotero.Zotero(options['group_id'], "group", settings.ZOTERO_API_KEY)
+        zot = zotero.Zotero(options['group_id'], "group", settings.ZOTERO_API_KEY)
+        if options['test']:
+            json_data = zot.top(limit=5)
+        else:
+            zot.add_parameters(limit=100)
             print "Starting to import data from Zotero. Hang tight, this may take a while."
-            if options['test']:
-                json_data = zot.top(limit=5)
-            elif options['collection_id']:
-                zot.add_parameters(limit=100)
+            if options['collection_id']:
                 json_data = zot.everything(zot.collection_items(options['collection_id']))
             else:
-                zot.add_parameters(limit=100)
                 json_data = zot.all_top()
 
-            print "Number of Publications to import: " + str(len(json_data))
-            self.generate_entry(json_data)
-            print "Import from Zotero is finished."
-        else:
-            print "No API key provided. Check your local settings file. Exiting."
+        print "Number of Publications to import: " + str(len(json_data))
+        self.generate_entry(json_data)
+        print "Import from Zotero is finished."

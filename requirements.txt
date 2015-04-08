@@ -16,7 +16,7 @@ paramiko==1.15.2
 psycopg2==2.6
 python-coveralls==2.5.0
 pysolr==3.3.0
-pyzotero==1.1.5
+pyzotero==1.1.6
 raven==5.2.0
 requests==2.5.3
 six==1.9.0
