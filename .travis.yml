@@ -8,14 +8,14 @@ services:
     - memcached
     - redis
 before_script:
-    - sudo apt-get -y install solr-tomcat
+    - curl -sSL https://raw.githubusercontent.com/tgpatel/travis-solr/add_support_for_5.0.0/travis-solr.sh | SOLR_VERSION=5.0.0 SOLR_PORT=8080 bash
     - cp catalog/settings/local.py.example catalog/settings/local.py
     - fab setup_postgres
     - python manage.py makemigrations
     - python manage.py migrate
     - python manage.py build_solr_schema > ./schema.xml
-    - sudo cp ./schema.xml /etc/solr/conf/schema.xml
-    - service tomcat6 restart
+    - sudo cp ./schema.xml ./solr-5.0.0/example/solr/conf/schema.xml
+    - ./solr-5.0.0/bin/solr restart -p 8080
     - python manage.py rebuild_index
 install: "pip install -r requirements.txt"
 script: fab coverage
