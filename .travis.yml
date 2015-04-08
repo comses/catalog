@@ -8,7 +8,7 @@ services:
     - memcached
     - redis
 before_script:
-    - curl -sSL https://raw.githubusercontent.com/tgpatel/travis-solr/add_support_for_5.0.0/travis-solr.sh | SOLR_VERSION=5.0.0 bash
+    - sudo apt-get -y install solr-tomcat
     - cp catalog/settings/local.py.example catalog/settings/local.py
     - fab setup
 install: "pip install -r requirements.txt"
