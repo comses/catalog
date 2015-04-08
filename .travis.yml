@@ -9,10 +9,8 @@ services:
     - redis
 before_script:
     - curl -sSL https://raw.githubusercontent.com/tgpatel/travis-solr/add_support_for_5.0.0/travis-solr.sh | SOLR_VERSION=5.0.0 bash
-    - psql -c 'create user catalog CREATEDB;' -U postgres
-    - psql -c 'create database comses_catalog' -U catalog -d template1
     - cp catalog/settings/local.py.example catalog/settings/local.py
-    - python manage.py makemigrations
+    - fab setup
 install: "pip install -r requirements.txt"
 script: fab coverage
 after_success:
