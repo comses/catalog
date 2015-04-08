@@ -13,7 +13,8 @@ before_script:
     - fab setup_postgres
     - python manage.py makemigrations
     - python manage.py migrate
-    - python manage.py build_solr_schema > /etc/solr/conf/schema.xml
+    - python manage.py build_solr_schema > ./schema.xml
+    - sudo cp ./schema.xml /etc/solr/conf/schema.xml
     - service tomcat6 restart
     - python manage.py rebuild_index
 install: "pip install -r requirements.txt"
