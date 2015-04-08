@@ -1,12 +1,11 @@
 from django import forms
-from django.forms import widgets, ValidationError
+from django.forms import widgets
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Publication, JournalArticle, Tag, Sponsor
+from .models import Publication, JournalArticle, Sponsor
 
 from haystack.forms import SearchForm
-from model_utils import Choices
 
 
 class LoginForm(forms.Form):

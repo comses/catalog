@@ -55,7 +55,6 @@ class LoginView(FormView):
 class LogoutView(TemplateView):
 
     def get(self, request, *args, **kwargs):
-        user = request.user
         logout(request)
         return redirect('login')
 

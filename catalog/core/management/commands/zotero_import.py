@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
 from datetime import datetime
 from optparse import make_option
@@ -123,7 +123,7 @@ class Command(BaseCommand):
                         if year:
                             return datetime(int(year[-1]), 1, 1)
                         else:
-                            print "Date: " + item.date_published_text + " Could not be parsed"
+                            print "Date: " + date + " Could not be parsed"
                             return None
 
     def set_common_fields(self, item, data, meta):
@@ -204,7 +204,7 @@ class Command(BaseCommand):
             if item['data']['itemType'] == 'journalArticle':
                 article = self.create_journal_article(item['data'], item['meta'])
 
-                if note_map.has_key(item['data']['key']):
+                if item['data']['key'] in note_map:
                     note = note_map[item['data']['key']]
                     note.publication = article
                     note.save()
@@ -212,8 +212,8 @@ class Command(BaseCommand):
                     pub_map.update({item['data']['key']: article})
             elif item['data']['itemType'] == 'note':
                 note = self.create_note(item['data'], item['meta'])
-                if item['data'].has_key('parentItem'):
-                    if pub_map.has_key(item['data']['parentItem']):
+                if 'parentItem' in item['data']:
+                    if item['data']['parentItem'] in pub_map:
                         note.publication = pub_map[item['data']['parentItem']]
                         note.save()
                     else:
