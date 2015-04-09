@@ -74,9 +74,6 @@ USE_I18N = False
 # trailing slash.  Default is '/static/admin/'
 # ADMIN_MEDIA_PREFIX = '/static/admin/'
 
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = '2km^iq&48&6uv*x$ew@56d0#w9zqth@)_4tby(85+ac2wf4r-u'
-
 # Salt used to generate token (SALT can remain public unlike SECRET_KEY)
 SALT = '48&6uv*x'
 

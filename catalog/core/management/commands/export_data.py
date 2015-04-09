@@ -5,6 +5,10 @@ from catalog.core.models import Publication
 
 import unicodecsv as csv
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class Command(BaseCommand):
     help = 'Exports data to a csv file'
@@ -23,7 +27,7 @@ class Command(BaseCommand):
         for attr in attributes:
             c.append(str(attr))
         if len(c) != max_value:
-            c.append(" "* (max_value-len(c)))
+            c.append(" " * (max_value-len(c)))
         return c
 
     def handle(self, *args, **options):
@@ -39,7 +43,8 @@ class Command(BaseCommand):
             writer = csv.writer(csvfile, delimiter=',')
             writer.writerow(header)
             for pub in publications:
-                row = [pub.date_published or pub.date_published_text, pub.title, pub.code_archive_url, str(pub.model_documentation), str(pub.creators.all()[0])]
+                row = [pub.date_published or pub.date_published_text, pub.title, pub.code_archive_url,
+                       str(pub.model_documentation), str(pub.creators.all()[0])]
                 row.extend(self.get_attribute_values(pub.platforms.all(), max_platforms))
                 row.extend(self.get_attribute_values(pub.sponsors.all(), max_sponsors))
                 writer.writerow(row)
