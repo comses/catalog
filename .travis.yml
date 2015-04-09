@@ -9,13 +9,13 @@ services:
     - redis
 before_script:
     - sudo apt-get install tomcat6
-    - curl -sSL https://raw.githubusercontent.com/moliware/travis-solr/master/travis-solr.sh | SOLR_VERSION=4.10.3 SOLR_PORT=8080 DEBUG=true bash
+    - curl -sSL https://raw.githubusercontent.com/moliware/travis-solr/master/travis-solr.sh | SOLR_VERSION=4.10.3 bash
     - cp catalog/settings/local.py.example catalog/settings/local.py
     - fab setup_postgres
     - fab initialize_database_schema
     - python manage.py build_solr_schema > ./schema.xml
     - cp ./schema.xml ./solr-4.10.3/example/solr/collection1/conf/schema.xml
-    - curl http://localhost:8080/solr/admin/cores?action=RELOAD&core=core0
+    - curl http://localhost:8983/solr/admin/cores?action=RELOAD&core=core0
     - python manage.py rebuild_index
 install: "pip install -r requirements.txt"
 script: fab coverage
