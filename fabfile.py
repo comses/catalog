@@ -145,19 +145,30 @@ def setup_solr():
 
 @task
 def restart_solr():
-    # FIXME: for RHEL, systemctl restart tomcat6
+    # FIXME: for RHEL, systemctl restart solr or service solr restart, need to switch on os type?
     sudo('service tomcat6 restart')
 
 
 @roles('localhost')
 @task
 def setup():
-    setup_postgres()
-    setup_solr()
-    _virtualenv(local, 'python manage.py makemigrations')
-    _virtualenv(local, 'python manage.py migrate')
+    execute(setup_postgres)
+    execute(setup_solr)
+    execute(initialize_database_schema)
     execute(rebuild_index)
     execute(zotero_import)
+
+
+@task
+def init_db():
+    execute(initialize_database_schema)
+
+
+@task
+def initialize_database_schema():
+    _virtualenv(local, 'python manage.py makemigrations')
+    _virtualenv(local, 'python manage.py migrate')
+
 
 @task
 def zotero_import():
