@@ -3,7 +3,7 @@ from django.forms import widgets
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Publication, JournalArticle, Sponsor
+from .models import Publication, JournalArticle
 
 from haystack.forms import SearchForm
 

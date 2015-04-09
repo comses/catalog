@@ -8,6 +8,7 @@ services:
     - memcached
     - redis
 before_script:
+    - sudo apt-get install tomcat6
     - curl -sSL https://raw.githubusercontent.com/tgpatel/travis-solr/add_support_for_5.0.0/travis-solr.sh | SOLR_VERSION=4.10.3 SOLR_PORT=8080 bash
     - cp catalog/settings/local.py.example catalog/settings/local.py
     - fab setup_postgres

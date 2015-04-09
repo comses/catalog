@@ -69,43 +69,48 @@ class Command(BaseCommand):
             creators.append(creator)
         return creators
 
+    def get_key_value(self, tag):
+        values = tag.split(': ')
+        if len(values) == 2:
+            return values[0].strip().lower(), values[1].strip()
+        else:
+            return '', values[0].strip()
+
     def set_tags(self, data, item):
         for t in data['tags']:
-            values = t['tag'].strip().split(': ')
-            if len(values) == 2:
-                key = values[0].strip().lower()
-                value = values[1].strip()
-            else:
-                key = ''
-                value = values[0].strip()
+            key, value = self.get_key_value(t['tag'].strip())
 
-            if key == 'codeurl':
-                if value != 'none':
-                    try:
-                        item.code_archive_url = re.search("(?P<url>https?://[^\s]+)", value).group("url")
-                        if item.code_archive_url[-1] == '>':
-                            item.code_archive_url = item.code_archive_url[:-1]
-                    except:
-                        print "URL: " + value + " could not parsed"
-                elif key == 'email' or key == 'e-mail':
-                    if value != 'none':
-                        item.contact_email = value
-                    elif key == 'docs':
-                        item.model_documentation, created = ModelDocumentation.objects.get_or_create(value=value)
-                    elif key == 'platform':
-                        if value != 'unknown' and value != 'none':
-                            platform, created = Platform.objects.get_or_create(name=value)
-                    item.platforms.add(platform)
-                elif key == 'sponsor' or key == 'sponse':
-                    if value != 'none':
-                        sponsor, created = Sponsor.objects.get_or_create(name=value)
-                    item.sponsors.add(sponsor)
-                elif key == 'author':
-                    continue
-                else:
-                    if key:
-                        logger.debug("Tag [%s :: %s] was added as is.", key, value)
-                    tag, created = Tag.objects.get_or_create(value=t)
+            sliced_key = key[:3]
+            # match author or unknown or none
+            if value == 'unknown' or value == 'none' or sliced_key == 'aut':
+                continue
+
+            # match for codeurl
+            if sliced_key == 'cod':
+                try:
+                    item.code_archive_url = re.search("(?P<url>https?://[^\s]+)", value).group("url")
+                    if item.code_archive_url[-1] == '>':
+                        item.code_archive_url = item.code_archive_url[:-1]
+                except Exception as e:
+                    print "URL: " + value + " could not parsed."
+                    logger.exception(e)
+            # match for email
+            elif sliced_key == 'ema' or sliced_key == 'e-m':
+                item.contact_email = value
+            # match for docs
+            elif sliced_key == 'doc':
+                item.model_documentation, created = ModelDocumentation.objects.get_or_create(value=value)
+            # match for platform
+            elif sliced_key == 'pla':
+                platform, created = Platform.objects.get_or_create(name=value)
+                item.platforms.add(platform)
+            # match for sponsor
+            elif sliced_key == 'spo':
+                sponsor, created = Sponsor.objects.get_or_create(name=value)
+                item.sponsors.add(sponsor)
+            elif key:
+                logger.debug("Tag [%s :: %s] was added as is.", key, value)
+                tag, created = Tag.objects.get_or_create(value=t['tag'].strip())
             else:
                 tag, created = Tag.objects.get_or_create(value=value)
                 item.tags.add(tag)
@@ -119,16 +124,16 @@ class Command(BaseCommand):
     def parse_published_date(self, date):
         try:
             return datetime.strptime(date, '%b %Y')
-        except:
+        except ValueError:
             try:
                 return datetime.strptime(date, '%B %Y')
-            except:
+            except ValueError:
                 try:
                     return datetime.strptime(date, '%b %d %Y')
-                except:
+                except ValueError:
                     try:
                         return datetime.strptime(date, '%Y')
-                    except:
+                    except ValueError:
                         year = re.findall('\\b\\d+\\b', date)
                         if year:
                             return datetime(int(year[-1]), 1, 1)
@@ -181,7 +186,10 @@ class Command(BaseCommand):
 
         item = self.set_tags(data, item)
 
-        if item.code_archive_url:
+        # if code_archive_url was added check for validity and set appropriate status
+        if not item.code_archive_url:
+            item.status = Publication.STATUS_CHOICES.INCOMPLETE
+        else:
             try:
                 response = requests.get(item.code_archive_url)
                 if response.status_code == 200:
@@ -190,8 +198,6 @@ class Command(BaseCommand):
                     item.status = Publication.STATUS_CHOICES.INVALID_URL
             except Exception as e:
                 print "Error verifying code archive url" + str(e)
-                item.status = Publication.STATUS_CHOICES.INCOMPLETE
-            else:
                 item.status = Publication.STATUS_CHOICES.INCOMPLETE
 
         item.save()
@@ -223,6 +229,7 @@ class Command(BaseCommand):
                     pub_map.update({item['data']['key']: article})
             elif item['data']['itemType'] == 'note':
                 note = self.create_note(item['data'], item['meta'])
+
                 if 'parentItem' in item['data']:
                     if item['data']['parentItem'] in pub_map:
                         note.publication = pub_map[item['data']['parentItem']]
