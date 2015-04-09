@@ -188,17 +188,17 @@ class Command(BaseCommand):
 
         # if code_archive_url was added check for validity and set appropriate status
         if not item.code_archive_url:
-            item.status = Publication.STATUS_CHOICES.INCOMPLETE
+            item.status = Publication.Status.INCOMPLETE
         else:
             try:
                 response = requests.get(item.code_archive_url)
                 if response.status_code == 200:
-                    item.status = Publication.STATUS_CHOICES.COMPLETE
+                    item.status = Publication.Status.COMPLETE
                 else:
-                    item.status = Publication.STATUS_CHOICES.INVALID_URL
+                    item.status = Publication.Status.INVALID_URL
             except Exception as e:
                 print "Error verifying code archive url" + str(e)
-                item.status = Publication.STATUS_CHOICES.INCOMPLETE
+                item.status = Publication.Status.INCOMPLETE
 
         item.save()
         return item

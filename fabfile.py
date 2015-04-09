@@ -166,19 +166,19 @@ def init_db():
 
 @task
 def initialize_database_schema():
-    _virtualenv(local, 'python manage.py makemigrations')
-    _virtualenv(local, 'python manage.py migrate')
+    local('python manage.py makemigrations')
+    local('python manage.py migrate')
 
 
 @task
 def zotero_import():
-    _virtualenv(local, 'python manage.py zotero_import')
+    local('python manage.py zotero_import')
 
 
 @roles('localhost')
 @task
 def rebuild_index():
-    _virtualenv(local, 'python manage.py rebuild_index')
+    local('python manage.py rebuild_index')
 
 
 @roles('localhost')

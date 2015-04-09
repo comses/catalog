@@ -49,7 +49,7 @@ class JournalArticleDetailForm(forms.ModelForm):
 
 class CustomSearchForm(SearchForm):
 
-    STATUS_CHOICES = tuple([("", "Any"), ] + list(Publication.STATUS_CHOICES))
+    STATUS_CHOICES = tuple([("", "Any"), ] + list(Publication.Status))
 
     publication_start_date = forms.DateField(required=False)
     publication_end_date = forms.DateField(required=False)
