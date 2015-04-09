@@ -4,7 +4,6 @@ from django.db.models import Count
 from catalog.core.models import Publication
 
 import unicodecsv as csv
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,25 +26,26 @@ class Command(BaseCommand):
         for attr in attributes:
             c.append(str(attr))
         if len(c) != max_value:
-            c.append(" " * (max_value-len(c)))
+            c.extend([""] * (max_value-len(c)))
         return c
 
     def handle(self, *args, **options):
-        header = ["Publication Date", "Title", "Code Url", "Docs", "Primary Author"]
+        logger.debug("Starting to export data. Hang tight, this may take a while.")
+        header = ["Publication Year", "Publication Title", "Journal Title", "Primary Author", "Code Url", "Docs"]
         max_platforms = self.find_max('platforms')
         max_sponsors = self.find_max('sponsors')
-
         header.extend(self.get_attribute_headers("Platform", max_platforms))
         header.extend(self.get_attribute_headers("Sponsor", max_sponsors))
-        publications = Publication.objects.all().prefetch_related('creators', 'sponsors', 'platforms')
+        publications = Publication.objects.all().prefetch_related('sponsors', 'platforms').select_subclasses()
 
-        with open('data.csv', 'wb') as csvfile:
+        filename = 'data.csv'
+        with open(filename, 'wb') as csvfile:
             writer = csv.writer(csvfile, delimiter=',')
             writer.writerow(header)
             for pub in publications:
-                row = [pub.date_published or pub.date_published_text, pub.title, pub.code_archive_url,
-                       str(pub.model_documentation), str(pub.creators.all()[0])]
+                row = [pub.date_published.year or pub.date_published_text, pub.title, str(pub.journal),
+                        str(pub.creators.all()[0]), pub.code_archive_url, str(pub.model_documentation)]
                 row.extend(self.get_attribute_values(pub.platforms.all(), max_platforms))
                 row.extend(self.get_attribute_values(pub.sponsors.all(), max_sponsors))
                 writer.writerow(row)
-
+        logger.debug("Data export completed.");
