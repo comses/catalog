@@ -3,6 +3,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.core.urlresolvers import reverse
+from django.db.models import Count, F
 from django.http import Http404
 from django.shortcuts import redirect, get_object_or_404
 from django.utils.decorators import method_decorator
@@ -16,6 +17,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from json import dumps
+from datetime import datetime, timedelta
 
 from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
 from .models import Publication, InvitationEmail
@@ -59,12 +61,21 @@ class LogoutView(TemplateView):
         return redirect('login')
 
 
-class IndexView(TemplateView):
-    template_name = 'index.html'
-
-
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(DashboardView, self).get_context_data(**kwargs)
+        pub_count = Publication.objects.all().values('status').annotate(total=Count('status')).order_by('-total')
+        context['status'] = {}
+        total = 0
+        for item in pub_count:
+            total += item['total']
+            context['status'][item['status']] = item['total']
+        context['status']['TOTAL'] = total
+        last_week_datetime = datetime.now() - timedelta(days=7)
+        context['recently_updated'] = Publication.objects.select_subclasses().exclude(date_modified=F('date_added')).filter(date_modified__gte=last_week_datetime).order_by('-date_modified')
+        return context
 
 
 class UserProfileView(LoginRequiredMixin, APIView):

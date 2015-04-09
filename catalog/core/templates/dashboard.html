@@ -2,6 +2,79 @@
 
 {% block content %}
     <div class="row">
-        "Hello"
+        <div class="col-md-2">
+           <div class="panel panel-success">
+              <div class="panel-heading">
+                <h3 class="panel-title text-center" id="panel-title"><a href="/search/?q=&publication_start_date=&publication_end_date=&status=">Total</a></h3>
+              </div>
+              <div class="panel-body">
+                <h1 class="text-center">{{status.TOTAL|default:"0"}}</h1>
+              </div>
+            </div> 
+        </div> 
+        <div class="col-md-2">
+           <div class="panel panel-success">
+              <div class="panel-heading">
+                <h3 class="panel-title text-center" id="panel-title"><a href="/search/?status=COMPLETE">Complete</a></h3>
+              </div>
+              <div class="panel-body">
+                <h1 class="text-center">{{status.COMPLETE|default:"0"}}</h1>
+              </div>
+            </div> 
+        </div> 
+        <div class="col-md-2">
+           <div class="panel panel-success">
+              <div class="panel-heading">
+                <h3 class="panel-title text-center" id="panel-title"><a href="/search/?status=INCOMPLETE">Incomplete</a></h3>
+              </div>
+              <div class="panel-body">
+                <h1 class="text-center">{{status.INCOMPLETE|default:"0"}}</h1>
+              </div>
+            </div> 
+        </div>
+        <div class="col-md-2">
+           <div class="panel panel-success">
+              <div class="panel-heading">
+                  <h3 class="panel-title text-center" id="panel-title"><a href="/search/?status=AUTHOR_UPDATED">Author Updated</a></h3>
+              </div>
+              <div class="panel-body">
+                <h1 class="text-center">{{status.AUTHOR_UPDATED|default:"0"}}</h1>
+              </div>
+            </div> 
+        </div>
+        <div class="col-md-2">
+           <div class="panel panel-success">
+              <div class="panel-heading">
+                <h3 class="panel-title text-center" id="panel-title"><a href="/search/?status=INVALID_URL">Invalid Url</a></h3>
+              </div>
+              <div class="panel-body">
+                <h1 class="text-center">{{status.INVALID_URL|default:"0"}}</h1>
+              </div>
+            </div> 
+        </div>
     </div>
+    <div class="row"> 
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title" id="panel-title">Recently Updated Publications</h3>
+            </div>
+            <div class="panel-body">
+                {% if recently_updated|length > 0 %}
+                <table class="table">
+                    <thead><tr><th>Sr.No</th><th>Date Modified</th><th>Publication Title</th></thead>
+                    <tbody>
+                    {% for pub in recently_updated %}
+                        <tr><td>{{forloop.counter}}</td><td>{{ pub.date_modified }}</td><td>{{ pub.title }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                    None recently updated publications found
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock content %}

@@ -146,3 +146,10 @@ class ArchivePublicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publication
         fields = ('title', 'code_archive_url', 'author_comments')
+
+    def validate(self, data):
+        url = data['code_archive_url']
+        if not url:
+            raise serializers.ValidationError("Please provide code archive url.")
+        return data
+

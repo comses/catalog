@@ -54,7 +54,7 @@
                             $('.widget-content').html("Your work has been archived successfully. Thanks.")
                         },
                         error: function(result) {
-                            humane.log("Something went wrong. Please try again", {timeout: 5000});
+                            humane.log("Please enter code archive url and try again!!", {timeout: 5000});
                             console.log(result.responseJSON);
                         }
                     });
