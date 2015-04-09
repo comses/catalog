@@ -72,9 +72,11 @@ class ModelDocumentation(models.Model):
 
 class Note(models.Model):
     text = models.TextField()
-    date_added = models.DateTimeField()
-    date_modified = models.DateTimeField()
+    date_added = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
     zotero_key = models.CharField(max_length=64, unique=True)
+    zotero_date_added = models.DateTimeField()
+    zotero_date_modified = models.DateTimeField()
 
     tags = models.ManyToManyField(Tag)
     publication = models.ForeignKey('Publication', null=True, blank=True)
@@ -109,11 +111,12 @@ class Sponsor(models.Model):
 
 
 class Publication(models.Model):
-    STATUS_CHOICES = Choices(
-        ('INCOMPLETE', _('Archive URL not present')),
-        ('AUTHOR_UPDATED', _('Archive URL updated by Author')),
-        ('INVALID_URL', _('Invalid Archive URL')),
-        ('COMPLETE', _('Archived')),
+    Status = Choices(
+        ('UNTAGGED', _('Publication has not been curated or tagged yet')),
+        ('INCOMPLETE', _('Curator has finished processing publication with no archive URL')),
+        ('INVALID_URL', _('Curator has finished processing publication with invalid archive URL')),
+        ('AUTHOR_UPDATED', _('Archive URL updated by author, needs curator review')),
+        ('COMPLETE', _('Archive URL has been reviewed and verified')),
     )
     objects = InheritanceManager()
 
@@ -132,9 +135,13 @@ class Publication(models.Model):
     rights = models.CharField(max_length=255, blank=True)
     extra = models.TextField(blank=True)
     published_language = models.CharField(max_length=255, default='English')
-    date_added = models.DateTimeField()
-    date_modified = models.DateTimeField()
-    status = models.CharField(choices=STATUS_CHOICES, max_length=32)
+    date_added = models.DateTimeField(auto_now_add=True,
+                                      help_text=_('Date this publication was imported into this system'))
+    date_modified = models.DateTimeField(auto_now=True,
+                                         help_text=_('Date this publication was last modified on this system'))
+    zotero_date_added = models.DateTimeField(help_text=_('incoming date added field from zotero'))
+    zotero_date_modified = models.DateTimeField(help_text=_('incoming date modified field from zotero'))
+    status = models.CharField(choices=Status, max_length=32, default=Status.UNTAGGED)
     creators = models.ManyToManyField(Creator)
 
 # custom incoming tags set by zotero data entry to mark the code archive url, contact author's email, the ABM platform
@@ -145,11 +152,16 @@ class Publication(models.Model):
     sponsors = models.ManyToManyField(Sponsor, blank=True)
     model_documentation = models.ForeignKey(ModelDocumentation, null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
-    added_by = models.ForeignKey(User)
+    added_by = models.ForeignKey(User, related_name='added_publication_set')
 
 # custom fields used by catalog internally
     author_comments = models.TextField(blank=True)
     email_sent_count = models.PositiveIntegerField(default=0)
+    assigned_curator = models.ForeignKey(User,
+                                         null=True,
+                                         blank=True,
+                                         help_text=_("Currently assigned curator"),
+                                         related_name='assigned_publication_set')
 
     def __unicode__(self):
         return u'{0}'.format(self.title)
@@ -175,6 +187,16 @@ class JournalArticle(Publication):
     series_text = models.CharField(max_length=255, blank=True)
     doi = models.CharField(max_length=255, blank=True)
 
+
+class PublicationAuditLog(models.Model):
+    Action = Choices(('AUTHOR_EDIT', _('Author edit')),
+                     ('SYSTEM_LOG', _('System log')),
+                     ('CURATOR_EDIT', _('Curator edit')))
+    date_added = models.DateTimeField(auto_now_add=True)
+    action = models.CharField(max_length=32, choices=Action, default=Action.SYSTEM_LOG)
+    publication = models.ForeignKey(Publication)
+    message = models.TextField(blank=True)
+    creator = models.ForeignKey(User, null=True, blank=True, help_text=_('The user who initiated this action, if any.'))
 
 """
 class Book(Publication):

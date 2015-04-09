@@ -156,8 +156,8 @@ class Command(BaseCommand):
         item.rights = data['rights'].strip()
         item.extra = data['extra'].strip()
         item.published_language = data['language'].strip()
-        item.date_added = data['dateAdded']
-        item.date_modified = data['dateModified']
+        item.zotero_date_added = data['dateAdded']
+        item.zotero_date_modified = data['dateModified']
         item.added_by = self.get_user(meta['createdByUser'])
         return item
 
@@ -209,8 +209,8 @@ class Command(BaseCommand):
         except Note.DoesNotExist:
             item = Note(zotero_key=data['key'])
         item.text = data['note'].strip()
-        item.date_added = data['dateAdded']
-        item.date_modified = data['dateModified']
+        item.zotero_date_added = data['dateAdded']
+        item.zotero_date_modified = data['dateModified']
         item.added_by = self.get_user(meta['createdByUser'])
         item.save()
         item = self.set_tags(data, item)
