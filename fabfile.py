@@ -140,7 +140,6 @@ def setup_solr():
     _virtualenv(local, 'python manage.py build_solr_schema > %(abs_project_path)s/schema.xml' % env)
     sudo('cp %(abs_project_path)s/schema.xml %(solr_conf_dir)s/' % env)
     execute(restart_solr)
-    execute(rebuild_index)
 
 
 @task
@@ -155,9 +154,8 @@ def setup():
     execute(setup_postgres)
     execute(setup_solr)
     execute(initialize_database_schema)
-    execute(rebuild_index)
     execute(zotero_import)
-
+    execute(rebuild_index)
 
 @task
 def init_db():
