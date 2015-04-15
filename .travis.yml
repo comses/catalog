@@ -15,6 +15,7 @@ before_script:
     - fab initialize_database_schema
     - python manage.py build_solr_schema > ./schema.xml
     - cp ./schema.xml ./solr-4.10.3/example/solr/collection1/conf/schema.xml
+    - sudo service tomcat6 restart
     - curl http://localhost:8983/solr/admin/cores?action=RELOAD&core=core0
     - yes | python manage.py rebuild_index
 install: "pip install -r requirements.txt"
