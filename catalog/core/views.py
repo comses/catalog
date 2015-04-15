@@ -3,7 +3,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.core.urlresolvers import reverse
-from django.db.models import Count, F
+from django.db.models import Count
 from django.http import Http404
 from django.shortcuts import redirect, get_object_or_404
 from django.utils.decorators import method_decorator
@@ -74,7 +74,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context['status'][item['status']] = item['total']
         context['status']['TOTAL'] = total
         last_week_datetime = datetime.now() - timedelta(days=7)
-        context['recently_updated'] = Publication.objects.select_subclasses().exclude(date_modified=F('date_added')).filter(date_modified__gte=last_week_datetime).order_by('-date_modified')
+        context['recently_author_updated'] = Publication.objects.select_subclasses().filter(status=Publication.Status.AUTHOR_UPDATED)
+        context['recently_updated'] = Publication.objects.select_subclasses().exclude(status=Publication.Status.AUTHOR_UPDATED).filter(date_modified__gte=last_week_datetime).order_by('-date_modified')[:10]
         return context
 
 
