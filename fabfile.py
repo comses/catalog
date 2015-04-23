@@ -182,8 +182,8 @@ def rebuild_index():
 @roles('localhost')
 @task
 def setup_postgres():
-    local("psql -c 'create role %(db_user)s CREATEDB LOGIN;' -U postgres" % env)
-    local("psql -c 'create database %(db_name)s OWNER=%(db_user)s;' -U postgres" % env)
+    local("psql -c 'create user %(db_user)s CREATEDB' -U postgres" % env)
+    local("psql -c 'create database %(db_name)s OWNER=%(db_user)s' -U postgres" % env)
 
 
 def _restart_command(systemd=True):

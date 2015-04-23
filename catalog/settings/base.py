@@ -21,7 +21,7 @@ USE_TZ = True
 # tweaking standard BASE_DIR because we're in the settings subdirectory.
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
-DEFAULT_FROM_EMAIL = 'vcweb@asu.edu'
+DEFAULT_FROM_EMAIL = 'info@openabm.org'
 EMAIL_HOST = 'smtp.asu.edu'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 ALLOWED_HOSTS = ('.asu.edu', 'localhost',)
@@ -220,17 +220,17 @@ LOGGING = {
     'loggers': {
         'django.db.backends': {
             'level': 'ERROR',
-            'handlers': ['console'],
+            'handlers': ['catalog.file', 'console'],
             'propagate': False,
         },
         'raven': {
             'level': 'DEBUG',
-            'handlers': ['console'],
+            'handlers': ['catalog.file', 'console'],
             'propagate': False,
         },
         'sentry.errors': {
             'level': 'DEBUG',
-            'handlers': ['console'],
+            'handlers': ['catalog.file', 'console'],
             'propagate': False,
         },
         'catalog': {
