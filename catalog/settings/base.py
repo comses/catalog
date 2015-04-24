@@ -2,29 +2,30 @@
 Django settings for catalog project.
 
 For more information on this file, see
-https://docs.djangoproject.com/en/1.7/topics/settings/
+https://docs.djangoproject.com/en/1.8/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/1.7/ref/settings/
+https://docs.djangoproject.com/en/1.8/ref/settings/
 """
 from __future__ import print_function
 
 import os
 import logging
 import sys
+import raven
 
-DEBUG = False
-TEMPLATE_DEBUG = DEBUG
+DEBUG = True
 
-USE_TZ = True
 
 # tweaking standard BASE_DIR because we're in the settings subdirectory.
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
+# email configuration
 DEFAULT_FROM_EMAIL = 'info@openabm.org'
 EMAIL_HOST = 'smtp.asu.edu'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-ALLOWED_HOSTS = ('.asu.edu', 'localhost',)
+
+ALLOWED_HOSTS = ('.comses.net',)
 ADMINS = (
     ('Allen Lee', 'allen.lee@asu.edu'),
 )
@@ -49,7 +50,7 @@ DATABASES = {
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
-        'URL': 'http://127.0.0.1:8983/solr'
+        'URL': 'http://localhost:8983/solr/catalog_core0'
     },
 }
 
@@ -61,6 +62,7 @@ HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 # If running in a Windows environment this must be set to the same as your
 # system time zone.
 TIME_ZONE = 'America/Phoenix'
+USE_TZ = True
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
@@ -80,20 +82,29 @@ SALT = '48&6uv*x'
 # Zotero API Key
 ZOTERO_API_KEY = None
 
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+                'django.core.context_processors.static',
+                "django.core.context_processors.tz",
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'dealer.contrib.django.context_processor',
+            ],
+        },
+    },
+]
 
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth',
-    "django.core.context_processors.debug",
-    'django.core.context_processors.request',
-    'django.core.context_processors.static',
-    "django.core.context_processors.tz",
-    'django.contrib.messages.context_processors.messages',
-    'dealer.contrib.django.context_processor',
-)
 
 MIDDLEWARE_CLASSES = (
-#    'raven.contrib.django.raven_compat.middleware.Sentry404CatchMiddleware',
-#    'raven.contrib.django.raven_compat.middleware.SentryResponseErrorIdMiddleware',
+    # 'raven.contrib.django.raven_compat.middleware.Sentry404CatchMiddleware',
+    # 'raven.contrib.django.raven_compat.middleware.SentryResponseErrorIdMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -101,19 +112,14 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'dealer.contrib.django.Middleware',
 )
 
 ROOT_URLCONF = 'catalog.urls'
-
+WSGI_APPLICATION = 'catalog.wsgi.application'
 # cookie storage vs session storage of django messages
 # MESSAGE_STORAGE = 'django.contrib.messages.storage.cookie.CookieStorage'
 MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
-
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-)
 
 DJANGO_APPS = (
     'django.contrib.admin',
@@ -125,7 +131,7 @@ DJANGO_APPS = (
 )
 
 THIRD_PARTY_APPS = (
-#    'raven.contrib.django.raven_compat',
+    'raven.contrib.django.raven_compat',
     'kronos',
     'bootstrap3',
     'haystack',
@@ -145,10 +151,8 @@ AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
 )
 
-STATICFILES_FINDERS = (
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-)
+# static files configuration, see https://docs.djangoproject.com/en/1.8/ref/settings/#static-files
+
 STATIC_URL = '/static/'
 STATIC_ROOT = '/var/www/catalog/static/'
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'catalog', 'static').replace('\\', '/'),)
@@ -250,11 +254,16 @@ DISABLED_TEST_LOGLEVEL = logging.WARNING
 # revision reporting support using dealer
 DEALER_TYPE = 'git'
 DEALER_SILENT = True
-DEALER_BACKENDS = ('git', 'mercurial')
+DEALER_BACKENDS = ('git',)
 DEALER_PATH = BASE_DIR
 
 # DJANGO REST Framework's Pagination settings
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 15
+}
+
+RAVEN_CONFIG = {
+    'dsn': 'https://public:secret@vcsentry.asu.edu/2',
+    'release': raven.fetch_git_sha(BASE_DIR),
 }
