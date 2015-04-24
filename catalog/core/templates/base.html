@@ -17,7 +17,7 @@
     {% block head %}
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <title>{% block title %}Comses Catalog {% endblock title %}</title>
+        <title>{% block title %}CoMSES Catalog{% endblock title %}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootswatch/{{BOOTSTRAP_VERSION}}/cerulean/bootstrap.min.css"> 
         <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VERSION}}/css/bootstrap.min.css"> -->
@@ -43,7 +43,7 @@
                             <span class="icon-bar"></span>
                             <span class="icon-bar"></span>
                         </button>
-                        <a href="{{ index }}" class="navbar-brand">Catalog</a>
+                        <a href="{{ index }}" class="navbar-brand"><img width="163" height="37" src='{% static "images/comses-logo.png" %}' alt='CoMSES Network'></a>
                     </div>
                     <ul class='nav navbar-nav'>
                         {% if user.is_authenticated %}

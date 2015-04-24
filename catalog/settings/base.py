@@ -12,7 +12,6 @@ from __future__ import print_function
 import os
 import logging
 import sys
-import raven
 
 DEBUG = True
 
@@ -178,7 +177,7 @@ if not is_accessible(LOG_DIRECTORY):
     try:
         os.makedirs(LOG_DIRECTORY)
     except OSError:
-        print("Unable to create absolute log directory at %s, setting to relative path logs instead" % LOG_DIRECTORY, file=sys.stderr)
+        print("Unable to create log directory %s, setting to relative path logs" % LOG_DIRECTORY, file=sys.stderr)
         LOG_DIRECTORY = 'logs'
         if not is_accessible(LOG_DIRECTORY):
             try:
@@ -263,7 +262,8 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 15
 }
 
+# import raven
 RAVEN_CONFIG = {
     'dsn': 'https://public:secret@vcsentry.asu.edu/2',
-    'release': raven.fetch_git_sha(BASE_DIR),
+    # 'release': raven.fetch_git_sha(BASE_DIR),
 }

@@ -178,6 +178,10 @@ def zotero_import():
 def rebuild_index():
     local('python manage.py rebuild_index')
 
+@task
+def ri():
+    execute(rebuild_index)
+
 
 @roles('localhost')
 @task
