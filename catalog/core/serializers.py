@@ -7,7 +7,7 @@ from django.db.models import F
 from rest_framework import serializers, pagination
 from rest_framework.compat import OrderedDict
 
-from .models import Tag, Sponsor, Platform, Creator, Publication, JournalArticle, InvitationEmail
+from .models import Tag, Sponsor, Platform, Creator, Publication, Journal, JournalArticle, InvitationEmail, ModelDocumentation
 
 from hashlib import sha1
 
@@ -92,11 +92,29 @@ class ContactUsSerializer(serializers.Serializer):
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
+        extra_kwargs = {
+            "value": {
+                "validators": [],
+            },
+        }
+
+    def validate(self, data):
+        tag, created = Tag.objects.get_or_create(value=data['value'])
+        return tag
 
 
 class PlatformSerializer(serializers.ModelSerializer):
     class Meta:
         model = Platform
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
+
+    def validate(self, data):
+        platform, created = Platform.objects.get_or_create(name=data['name'])
+        return platform
 
 
 class CreatorSerializer(serializers.ModelSerializer):
@@ -107,19 +125,65 @@ class CreatorSerializer(serializers.ModelSerializer):
 class SponsorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sponsor
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
+
+    def validate(self, data):
+        sponsor, created = Sponsor.objects.get_or_create(name=data['name'])
+        return sponsor
+
+
+class ModelDocSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Journal
+        extra_kwargs = {
+            "value": {
+                "validators": [],
+            },
+        }
+
+    def validate(self, data):
+        model_doc, created = ModelDocumentation.objects.get_or_create(value=data['value'])
+        return model_doc
+
+
+class JournalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Journal
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
+
+    def validate(self, data):
+        journal, created = Journal.objects.get_or_create(name=data['name'])
+        return journal
 
 
 class JournalArticleSerializer(serializers.ModelSerializer):
     """
     Serializes journal article querysets
     """
-    tags = TagSerializer(many=True, read_only=True)
-    platforms = PlatformSerializer(many=True, read_only=True)
-    creators = CreatorSerializer(many=True, read_only=True)
-    sponsors = SponsorSerializer(many=True, read_only=True)
+    tags = TagSerializer(many=True)
+    platforms = PlatformSerializer(many=True)
+    sponsors = SponsorSerializer(many=True)
+    journal = JournalSerializer()
+    model_documentation = ModelDocSerializer()
 
     class Meta:
         model = JournalArticle
+        exclude = ('date_added', 'date_modified', 'zotero_date_added', 'zotero_date_modified', 'zotero_key', 'email_sent_count',
+                    'assigned_curator', 'creators', 'added_by', 'date_published_text', 'author_comments')
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 
 class InvitationSerializer(serializers.Serializer):

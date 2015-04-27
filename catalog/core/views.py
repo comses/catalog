@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators import cache, csrf
 from django.views.generic import FormView, TemplateView
 
+from haystack.query import SearchQuerySet
 from haystack.views import SearchView
 from hashlib import sha1
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
@@ -20,8 +21,8 @@ from json import dumps
 from datetime import datetime, timedelta
 
 from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
-from .models import Publication, InvitationEmail
-from .serializers import (PublicationSerializer, CustomPagination, JournalArticleSerializer,
+from .models import Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation
+from .serializers import (PublicationSerializer, CustomPagination, JournalArticleSerializer, PlatformSerializer,
                           InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer, UserProfileSerializer)
 
 import time
@@ -133,12 +134,16 @@ class PublicationDetail(LoginRequiredMixin, APIView):
 
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
-        # FIXME: make this part more rest friendly
-        if request.accepted_renderer.format == 'html':
-            form = JournalArticleDetailForm(instance=publication)
-            return Response({'form': form}, template_name='publication_detail.html')
         serializer = JournalArticleSerializer(publication)
-        return Response(serializer.data)
+        return Response({ 'json': dumps(serializer.data) }, template_name='publication_detail.html')
+
+    def put(self, request, pk):
+        publication = self.get_object(pk)
+        serializer = JournalArticleSerializer(publication, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class EmailPreview(LoginRequiredMixin, APIView):
@@ -156,6 +161,51 @@ class EmailPreview(LoginRequiredMixin, APIView):
             html_content = markdown.markdown(plaintext_content)
             return Response({'content': html_content})
         return Response({'content': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PlatformSearchView(LoginRequiredMixin, APIView):
+
+    renderer_classes = (JSONRenderer,)
+
+    def get(self, request, format=None):
+        sqs = SearchQuerySet().autocomplete(name=request.GET.get('q', '')).models(Platform)
+        data = [{"id": int(result.pk), "name": result.name} for result in sqs]
+        return Response(dumps(data))
+
+
+class SponsorSearchView(LoginRequiredMixin, APIView):
+    renderer_classes = (JSONRenderer,)
+
+    def get(self, request, format=None):
+        sqs = SearchQuerySet().autocomplete(name=request.GET.get('q', '')).models(Sponsor)
+        data = [{"id": int(result.pk), "name": result.name} for result in sqs]
+        return Response(dumps(data))
+
+
+class TagSearchView(LoginRequiredMixin, APIView):
+    renderer_classes = (JSONRenderer,)
+
+    def get(self, request, format=None):
+        sqs = SearchQuerySet().autocomplete(value=request.GET.get('q', '')).models(Tag)
+        data = [{"id": int(result.pk), "value": result.value} for result in sqs]
+        return Response(dumps(data))
+
+class ModelDocSearchView(LoginRequiredMixin, APIView):
+    renderer_classes = (JSONRenderer,)
+
+    def get(self, request, format=None):
+        sqs = SearchQuerySet().autocomplete(value=request.GET.get('q', '')).models(ModelDocumentation)
+        data = [{"id": int(result.pk), "value": result.value} for result in sqs]
+        return Response(dumps(data))
+
+
+class JournalSearchView(LoginRequiredMixin, APIView):
+    renderer_classes = (JSONRenderer,)
+
+    def get(self, request, format=None):
+        sqs = SearchQuerySet().autocomplete(name=request.GET.get('q', '')).models(Journal)
+        data = [{"id": int(result.pk), "name": result.name} for result in sqs]
+        return Response(dumps(data))
 
 
 class CustomSearchView(SearchView):

@@ -12,21 +12,22 @@
 
 <!doctype html>
 <html class="no-js" lang="">
-{% with JQUERY_VERSION="1.11.1" KNOCKOUT_VERSION="3.3.0" KNOCKOUT_MAPPING_VERSION="2.4.1" BOOTSTRAP_VERSION="3.3.4" FONTAWESOME_VERSION="4.2.0" RAVENJS_VERSION="1.1.16" HUMANE_VERSION="3.0.6" %} 
+{% with JQUERY_VER="1.11.1" KNOCKOUT_VER="3.3.0" KNOCKOUT_MAPPING_VER="2.4.1" BOOTSTRAP_VER="3.3.4" FONTAWESOME_VER="4.2.0" RAVENJS_VER="1.1.16" HUMANE_VER="3.0.6" SELECTIZE_VER="0.12.0"%} 
     <head>
     {% block head %}
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <title>{% block title %}CoMSES Catalog{% endblock title %}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootswatch/{{BOOTSTRAP_VERSION}}/cerulean/bootstrap.min.css"> 
-        <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VERSION}}/css/bootstrap.min.css"> -->
-        <link rel='stylesheet' href="//maxcdn.bootstrapcdn.com/font-awesome/{{FONTAWESOME_VERSION}}/css/font-awesome.min.css">
-        <link rel='stylesheet' href="//cdnjs.cloudflare.com/ajax/libs/humane-js/{{HUMANE_VERSION}}/themes/jackedup.min.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootswatch/{{BOOTSTRAP_VER}}/cerulean/bootstrap.min.css"> 
+        <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VER}}/css/bootstrap.min.css"> -->
+        <link rel='stylesheet' href="//maxcdn.bootstrapcdn.com/font-awesome/{{FONTAWESOME_VER}}/css/font-awesome.min.css">
+        <link rel='stylesheet' href="//cdnjs.cloudflare.com/ajax/libs/humane-js/{{HUMANE_VER}}/themes/jackedup.min.css">
+        <link rel='stylesheet' href="//cdnjs.cloudflare.com/ajax/libs/selectize.js/{{SELECTIZE_VER}}/css/selectize.bootstrap3.min.css">
         <link rel="stylesheet" href="{% static 'css/style.css' %}" media="screen" />
 
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/{{JQUERY_VERSION}}/jquery.min.js"></script>
-        <script>window.jQuery || document.write('<script src="js/vendor/jquery-{{JQUERY_VERSION}}.min.js"><\/script>')</script>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/{{JQUERY_VER}}/jquery.min.js"></script>
+        <script>window.jQuery || document.write('<script src="js/vendor/jquery-{{JQUERY_VER}}.min.js"><\/script>')</script>
     {% endblock head %}
     </head>
     <body>
@@ -109,12 +110,14 @@
         </footer>
 
         <!-- Latest compiled and minified JavaScript -->
-        <script src='//cdnjs.cloudflare.com/ajax/libs/knockout/{{KNOCKOUT_VERSION}}/knockout-min.js'></script>
-        <script src='//cdnjs.cloudflare.com/ajax/libs/knockout.mapping/{{KNOCKOUT_MAPPING_VERSION}}/knockout.mapping.min.js'></script>
-        <script src="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VERSION}}/js/bootstrap.min.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/humane-js/{{HUMANE_VERSION}}/humane.min.js"></script>
-        <script src="//cdn.ravenjs.com/{{RAVENJS_VERSION}}/jquery,native/raven.min.js"></script>
+        <script src='//cdnjs.cloudflare.com/ajax/libs/knockout/{{KNOCKOUT_VER}}/knockout-min.js'></script>
+        <script src='//cdnjs.cloudflare.com/ajax/libs/knockout.mapping/{{KNOCKOUT_MAPPING_VER}}/knockout.mapping.min.js'></script>
+        <script src="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VER}}/js/bootstrap.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/humane-js/{{HUMANE_VER}}/humane.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/selectize.js/{{SELECTIZE_VER}}/js/standalone/selectize.min.js"></script>
+        <script src="//cdn.ravenjs.com/{{RAVENJS_VER}}/jquery,native/raven.min.js"></script>
         <script type="text/javascript" src="{{STATIC_URL}}js/csrf.js"></script>
+        <script type="text/javascript" src="{{STATIC_URL}}js/ko_selectize.js"></script>
  
         <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
         <script>

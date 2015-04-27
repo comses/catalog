@@ -88,8 +88,8 @@ class Note(models.Model):
 class Platform(models.Model):
     """ model platform, e.g, NetLogo or RePast """
     name = models.CharField(max_length=255, unique=True)
-    url = models.URLField()
-    description = models.TextField()
+    url = models.URLField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
 
     def __unicode__(self):
         return u'{0}'.format(self.name)
@@ -103,8 +103,8 @@ class PlatformVersion(models.Model):
 class Sponsor(models.Model):
     """ funding agency sponsoring this research """
     name = models.CharField(max_length=255, unique=True)
-    url = models.URLField()
-    description = models.TextField()
+    url = models.URLField(null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
 
     def __unicode__(self):
         return u'{0}'.format(self.name)
@@ -168,7 +168,7 @@ class Publication(models.Model):
 
 
 class Journal(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     url = models.URLField(max_length=255, null=True, blank=True)
     abbreviation = models.CharField(max_length=255, blank=True)
 

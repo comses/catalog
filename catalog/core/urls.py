@@ -4,7 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic import RedirectView, TemplateView
 
 from .views import (LoginView, LogoutView, DashboardView, PublicationDetail, PublicationList, EmailPreview,
-                    ContactAuthor, ArchivePublication, CustomSearchView, ContactUsView, UserProfileView)
+                    ContactAuthor, ArchivePublication, CustomSearchView, ContactUsView, UserProfileView, PlatformSearchView,
+                    SponsorSearchView, TagSearchView, JournalSearchView, ModelDocSearchView)
 
 from .forms import CustomSearchForm
 
@@ -29,4 +30,9 @@ urlpatterns += [
 ]
 urlpatterns += [
     url(r'^search/$', login_required(CustomSearchView(form_class=CustomSearchForm)), name='haystack_search'),
+    url(r'^search/platform/$', PlatformSearchView.as_view(), name="platform-search"),
+    url(r'^search/sponsor/$', SponsorSearchView.as_view(), name="sponsor-search"),
+    url(r'^search/tag/$', TagSearchView.as_view(), name="tag-search"),
+    url(r'^search/journal/$', JournalSearchView.as_view(), name="journal-search"),
+    url(r'^search/modeldoc/$', ModelDocSearchView.as_view(), name="model-doc-search"),
 ]
