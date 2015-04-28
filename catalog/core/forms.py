@@ -55,16 +55,20 @@ class CustomSearchForm(SearchForm):
     publication_end_date = forms.DateField(required=False)
     contact_email = forms.BooleanField(required=False)
     status = forms.ChoiceField(choices=STATUS_CHOICES, required=False)
+    assigned_curator = forms.CharField(required=False)
 
     def no_query_found(self):
         return self.searchqueryset.all()
 
-    def search(self):
+    def search(self, user=None):
         # First, store the SearchQuerySet received from other processing.
         sqs = super(CustomSearchForm, self).search()
 
         if not self.is_valid():
-            return self.no_query_found()
+            if not user:
+                return self.no_query_found()
+            else:
+                return sqs.filter(assigned_curator=user.username, status=Publication.Status.UNTAGGED).order_by('-pub_date')
 
         criteria = dict()
         # Check to see if a start_date was chosen.
@@ -79,7 +83,12 @@ class CustomSearchForm(SearchForm):
         if self.cleaned_data['status']:
             criteria.update(status=self.cleaned_data['status'])
 
+        # Check to see if assigned_curator was selected.
+        if self.cleaned_data['assigned_curator']:
+            criteria.update(assigned_curator=self.cleaned_data['assigned_curator'])
+
         sqs = sqs.filter(**criteria)
+
         if self.cleaned_data['contact_email']:
             sqs = sqs.exclude(contact_email__exact='')
 

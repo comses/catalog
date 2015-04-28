@@ -75,6 +75,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context['status'][item['status']] = item['total']
         context['status']['TOTAL'] = total
         last_week_datetime = datetime.now() - timedelta(days=7)
+        context['untagged_publications_count'] = Publication.objects.filter(status=Publication.Status.UNTAGGED, assigned_curator=self.request.user).count()
         context['recently_author_updated'] = Publication.objects.select_subclasses().filter(status=Publication.Status.AUTHOR_UPDATED)
         context['recently_updated'] = Publication.objects.select_subclasses().exclude(status=Publication.Status.AUTHOR_UPDATED).filter(date_modified__gte=last_week_datetime).order_by('-date_modified')[:10]
         return context
@@ -146,6 +147,32 @@ class PublicationDetail(LoginRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class CuraterPublicationDetail(LoginRequiredMixin, APIView):
+    """
+    Retrieve, update or delete a publication instance.
+    """
+    renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
+
+    def get_object(self, pk):
+        try:
+            return Publication.objects.get_subclass(id=pk)
+        except Publication.DoesNotExist:
+            raise Http404("Publication does not exist")
+
+    def get(self, request, pk, format=None):
+        publication = self.get_object(pk)
+        serializer = JournalArticleSerializer(publication)
+        return Response({ 'json': dumps(serializer.data) }, template_name='curator_publication_detail.html')
+
+    def put(self, request, pk):
+        publication = self.get_object(pk)
+        serializer = JournalArticleSerializer(publication, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class EmailPreview(LoginRequiredMixin, APIView):
     """
     Preview the final email content
@@ -190,6 +217,7 @@ class TagSearchView(LoginRequiredMixin, APIView):
         data = [{"id": int(result.pk), "value": result.value} for result in sqs]
         return Response(dumps(data))
 
+
 class ModelDocSearchView(LoginRequiredMixin, APIView):
     renderer_classes = (JSONRenderer,)
 
@@ -210,6 +238,14 @@ class JournalSearchView(LoginRequiredMixin, APIView):
 
 class CustomSearchView(SearchView):
     template = 'search/search.html'
+
+
+class AssignedPubSearchView(SearchView):
+    template = 'search/search_assigned_publication.html'
+
+    def get_results(self):
+        print "hol;asasdasdlasdlasdasd"
+        return self.form.search(self.request.user)
 
 
 class ContactAuthor(LoginRequiredMixin, APIView):

@@ -5,7 +5,8 @@ from django.views.generic import RedirectView, TemplateView
 
 from .views import (LoginView, LogoutView, DashboardView, PublicationDetail, PublicationList, EmailPreview,
                     ContactAuthor, ArchivePublication, CustomSearchView, ContactUsView, UserProfileView, PlatformSearchView,
-                    SponsorSearchView, TagSearchView, JournalSearchView, ModelDocSearchView)
+                    SponsorSearchView, TagSearchView, JournalSearchView, ModelDocSearchView, CuraterPublicationDetail,
+                    AssignedPubSearchView,)
 
 from .forms import CustomSearchForm
 
@@ -13,6 +14,7 @@ from .forms import CustomSearchForm
 urlpatterns = format_suffix_patterns([
     url(r'^publication/$', PublicationList.as_view(), name='publications'),
     url(r'^publication/(?P<pk>\d+)/$', PublicationDetail.as_view(), name='publication_detail'),
+    url(r'^publication/(?P<pk>\d+)/curate/$', CuraterPublicationDetail.as_view(), name='curater_publication_detail'),
     url(r'^publication/email-preview/$', EmailPreview.as_view(), name='invite_email_preview'),
     url(r'^publication/invite/$', ContactAuthor.as_view(), name='send_invites'),
     url(r'^publication/archive/(?P<token>[\w:-]+)/$', ArchivePublication.as_view(), name='publication_archive'),
@@ -29,6 +31,7 @@ urlpatterns += [
         name='report_issues')
 ]
 urlpatterns += [
+    url(r'^workflow/$', login_required(AssignedPubSearchView(form_class=CustomSearchForm)), name='curator_workflow'),
     url(r'^search/$', login_required(CustomSearchView(form_class=CustomSearchForm)), name='haystack_search'),
     url(r'^search/platform/$', PlatformSearchView.as_view(), name="platform-search"),
     url(r'^search/sponsor/$', SponsorSearchView.as_view(), name="sponsor-search"),

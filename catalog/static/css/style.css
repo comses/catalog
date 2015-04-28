@@ -4,6 +4,7 @@ body {
     color: #333;
     background-color: #fff;
     background: #343434 url("../images/background.png") repeat;
+    padding-top: 40px;
 }
 #footer {
     margin-top: 10px;

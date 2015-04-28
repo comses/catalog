@@ -5,7 +5,7 @@
         <div class="col-md-2">
            <div class="panel panel-success">
               <div class="panel-heading">
-                <h3 class="panel-title text-center" id="panel-title"><a href="/search/?q=&publication_start_date=&publication_end_date=&status=">Total</a></h3>
+                <h3 class="panel-title text-center"><a href="/search/?q=&publication_start_date=&publication_end_date=&status=">Total</a></h3>
               </div>
               <div class="panel-body">
                 <h1 class="text-center">{{status.TOTAL|default:"0"}}</h1>
@@ -15,7 +15,7 @@
         <div class="col-md-2">
            <div class="panel panel-success">
               <div class="panel-heading">
-                <h3 class="panel-title text-center" id="panel-title"><a href="/search/?status=COMPLETE">Complete</a></h3>
+                <h3 class="panel-title text-center"><a href="/search/?status=COMPLETE">Complete</a></h3>
               </div>
               <div class="panel-body">
                 <h1 class="text-center">{{status.COMPLETE|default:"0"}}</h1>
@@ -23,19 +23,9 @@
             </div> 
         </div> 
         <div class="col-md-2">
-           <div class="panel panel-success">
+           <div class="panel panel-info">
               <div class="panel-heading">
-                <h3 class="panel-title text-center" id="panel-title"><a href="/search/?status=INCOMPLETE">Incomplete</a></h3>
-              </div>
-              <div class="panel-body">
-                <h1 class="text-center">{{status.INCOMPLETE|default:"0"}}</h1>
-              </div>
-            </div> 
-        </div>
-        <div class="col-md-2">
-           <div class="panel panel-success">
-              <div class="panel-heading">
-                  <h3 class="panel-title text-center" id="panel-title"><a href="/search/?status=AUTHOR_UPDATED">Author Updated</a></h3>
+                  <h3 class="panel-title text-center"><a href="/search/?status=AUTHOR_UPDATED">Author Updated</a></h3>
               </div>
               <div class="panel-body">
                 <h1 class="text-center">{{status.AUTHOR_UPDATED|default:"0"}}</h1>
@@ -43,21 +33,51 @@
             </div> 
         </div>
         <div class="col-md-2">
-           <div class="panel panel-success">
+           <div class="panel panel-warning">
               <div class="panel-heading">
-                <h3 class="panel-title text-center" id="panel-title"><a href="/search/?status=INVALID_URL">Invalid Url</a></h3>
+                <h3 class="panel-title text-center"><a href="/search/?status=NEEDS_AUTHOR_REVIEW">Needs Author Review</a></h3>
               </div>
               <div class="panel-body">
-                <h1 class="text-center">{{status.INVALID_URL|default:"0"}}</h1>
+                <h1 class="text-center">{{status.NEEDS_AUTHOR_REVIEW|default:"0"}}</h1>
               </div>
             </div> 
+        </div>
+        <div class="col-md-2">
+           <div class="panel panel-warning">
+              <div class="panel-heading">
+                <h3 class="panel-title text-center"><a href="/search/?status=UNTAGGED">Needs Review</a></h3>
+              </div>
+              <div class="panel-body">
+                <h1 class="text-center">{{status.UNTAGGED|default:"0"}}</h1>
+              </div>
+            </div> 
+        </div>
+        <div class="col-md-2">
+           <div class="panel panel-danger">
+              <div class="panel-heading">
+                <h3 class="panel-title text-center"><a href="/search/?status=FLAGGED">Flagged</a></h3>
+              </div>
+              <div class="panel-body">
+                <h1 class="text-center">{{status.FLAGGED|default:"0"}}</h1>
+              </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><a href="{% url 'curator_workflow' %}">Publications assigned to you for tagging: </a><span class="badge">{{untagged_publications_count}}</span>
+                    </h3>
+                </div>
+            </div>
         </div>
     </div>
     <div class="row"> 
         <div class="col-md-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title" id="panel-title">Recently Updated Publications</h3>
+                    <h3 class="panel-title">Recently Updated Publications</h3>
                 </div>
                 <div class="panel-body">
                     {% if recently_updated|length > 0 %}
@@ -83,7 +103,7 @@
         <div class="col-md-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title" id="panel-title">Recently Author Updated Publications</h3>
+                    <h3 class="panel-title">Recently Author Updated Publications</h3>
                 </div>
                 <div class="panel-body">
                     {% if recently_author_updated|length > 0 %}
