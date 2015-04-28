@@ -112,11 +112,11 @@ class Sponsor(models.Model):
 
 class Publication(models.Model):
     Status = Choices(
-        ('UNTAGGED', _('Publication has not been curated or tagged yet')),
-        ('INCOMPLETE', _('Curator has finished processing publication with no archive URL')),
-        ('INVALID_URL', _('Curator has finished processing publication with invalid archive URL')),
-        ('AUTHOR_UPDATED', _('Archive URL updated by author, needs curator review')),
-        ('COMPLETE', _('Archive URL has been reviewed and verified')),
+        ('UNTAGGED', _('Not reviewed')),
+        ('NEEDS_AUTHOR_REVIEW', _('Curator has reviewed publication, requires author intervention.')),
+        ('FLAGGED', _('Flagged for further internal review by CoMSES staff')),
+        ('AUTHOR_UPDATED', _('Updated by author, needs CoMSES review')),
+        ('COMPLETE', _('Reviewed and verified by CoMSES')),
     )
     objects = InheritanceManager()
 

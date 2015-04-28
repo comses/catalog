@@ -91,9 +91,8 @@ class Command(BaseCommand):
                     item.code_archive_url = re.search("(?P<url>https?://[^\s]+)", value).group("url")
                     if item.code_archive_url[-1] == '>':
                         item.code_archive_url = item.code_archive_url[:-1]
-                except Exception as e:
-                    print "URL: " + value + " could not parsed."
-                    logger.exception(e)
+                except Exception:
+                    logger.exception("URL %s could not be parsed", value)
             # match for email
             elif sliced_key == 'ema' or sliced_key == 'e-m':
                 item.contact_email = value
@@ -116,9 +115,8 @@ class Command(BaseCommand):
                 item.tags.add(tag)
         try:
             item.save()
-        except Exception as e:
-            logger.exception(e)
-            print "Exception " + str(e) + " in saving tags: " + str(item) + str(item.title)
+        except Exception:
+            logger.exception("Exception while saving tags %s %s", item, item.title)
         return item
 
     def parse_published_date(self, date):
@@ -138,7 +136,7 @@ class Command(BaseCommand):
                         if year:
                             return datetime(int(year[-1]), 1, 1)
                         else:
-                            print "Date: " + date + " Could not be parsed"
+                            logger.error("Could not parse date %s", date)
                             return None
 
     def set_common_fields(self, item, data, meta):
@@ -186,19 +184,20 @@ class Command(BaseCommand):
 
         item = self.set_tags(data, item)
 
-        # if code_archive_url was added check for validity and set appropriate status
+        # FIXME: we need to add a corner case to distinguish between Status.UNTAGGED and Status.NEEDS_AUTHOR_REVIEW
         if not item.code_archive_url:
-            item.status = Publication.Status.INCOMPLETE
+            item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
         else:
+            # if code_archive_url exists, check for validity and set appropriate status
             try:
                 response = requests.get(item.code_archive_url)
                 if response.status_code == 200:
                     item.status = Publication.Status.COMPLETE
                 else:
-                    item.status = Publication.Status.INVALID_URL
-            except Exception as e:
-                print "Error verifying code archive url" + str(e)
-                item.status = Publication.Status.INCOMPLETE
+                    item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
+            except Exception:
+                logger.exception("Error verifying code archive url %s", item.code_archive_url)
+                item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
 
         item.save()
         return item
@@ -243,12 +242,12 @@ class Command(BaseCommand):
             json_data = zot.top(limit=5)
         else:
             zot.add_parameters(limit=100)
-            print "Starting to import data from Zotero. Hang tight, this may take a while."
+            logger.info("Starting to import data from Zotero. Hang tight, this may take a while.")
             if options['collection_id']:
                 json_data = zot.everything(zot.collection_items(options['collection_id']))
             else:
                 json_data = zot.all_top()
 
-        print "Number of Publications to import: " + str(len(json_data))
+        logger.info("Number of Publications to import: %d", len(json_data))
         self.generate_entry(json_data)
-        print "Import from Zotero is finished."
+        logger.info("Zotero import completed.")
