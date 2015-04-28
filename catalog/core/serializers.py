@@ -138,7 +138,7 @@ class SponsorSerializer(serializers.ModelSerializer):
 
 class ModelDocSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Journal
+        model = ModelDocumentation
         extra_kwargs = {
             "value": {
                 "validators": [],
@@ -172,7 +172,7 @@ class JournalArticleSerializer(serializers.ModelSerializer):
     platforms = PlatformSerializer(many=True)
     sponsors = SponsorSerializer(many=True)
     journal = JournalSerializer()
-    model_documentation = ModelDocSerializer()
+    model_documentation = ModelDocSerializer(allow_null=True)
 
     class Meta:
         model = JournalArticle

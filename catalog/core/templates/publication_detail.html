@@ -157,7 +157,9 @@
 
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
- 
+        if(!viewModelJson.journal) viewModelJson.journal = {'name': null}
+        if(!viewModelJson.model_documentation) viewModelJson.model_documentation = {'value': null}
+        
         $(function(){
             var PublicationDetail = function(data) {
                 var self = this;
@@ -166,9 +168,9 @@
                 self.selected_tags = ko.observableArray(ko.utils.arrayMap(self.tags(), function(tag) { return tag.value(); }));
                 self.selected_platforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
                 self.selected_sponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));
-                self.journals = ko.observableArray([data.journal || "" ])
-                self.model_docs = ko.observableArray([data.model_docmentation || ""])
- 
+                self.journals = ko.observableArray([data.journal || ""]);
+                self.model_docs = ko.observableArray([data.model_documentation || ""]);
+
                 self.getPlatformList = function(query, callback) {
                     self.makeAsyncRequest(query, callback, '/search/platform/?q=');
                 };
@@ -194,24 +196,44 @@
                     };
 
                 self.savePublication = function(data, event) {
-                    self.platforms(ko.utils.arrayMap(data.selected_platforms(), function(platform) {
+                    var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
+                    data_clone.platforms(ko.utils.arrayMap(data.selected_platforms(), function(platform) {
                         return {'name': platform};
                     }));
-                    self.sponsors(ko.utils.arrayMap(data.selected_sponsors(), function(sponsor) {
+                    data_clone.sponsors(ko.utils.arrayMap(data.selected_sponsors(), function(sponsor) {
                         return {'name': sponsor};
                     }));
-                    self.tags(ko.utils.arrayMap(data.selected_tags(), function(tag) {
+                    data_clone.tags(ko.utils.arrayMap(data.selected_tags(), function(tag) {
                         return {'value': tag};
                     }));
+
+                    if(data_clone.journal.name() == undefined) {
+                        if(data.journals()[0].name) { 
+                            data_clone.journal.name = ko.observable(data.journals()[0].name);
+                        } else {
+                            data_clone.journal = null;
+                        }
+                    } else if(data_clone.journal.name() == "") {
+                        data_clone.journal = null
+                    }
+                    if(data_clone.model_documentation.value() == undefined) {
+                        if(data.model_docs()[0].value) {
+                            data_clone.model_documentation.value = ko.observable(data.model_docs()[0].value);
+                        } else {
+                            data_clone.model_documentation = null;
+                        }
+                    } else if(data_clone.model_documentation.value() == "") {
+                        data_clone.model_documentation = null;
+                    }
 
                     $.ajax({
                         type: "PUT",
                         url: window.location.pathname,
-                        data: ko.toJSON(data),
+                        data: ko.toJSON(data_clone),
                         dataType: "json",
                         contentType: "application/json; charset=utf-8",
                         success: function(result) {
-                            humane.log("Data save was success!!, {timeout: 5000}")
+                            humane.log("Data save was success!!", {timeout: 5000})
                         },
                         error: function(result) {
                             humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
