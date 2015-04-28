@@ -24,7 +24,7 @@ DEFAULT_FROM_EMAIL = 'info@openabm.org'
 EMAIL_HOST = 'smtp.asu.edu'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-ALLOWED_HOSTS = ('.comses.net',)
+ALLOWED_HOSTS = ('.comses.net', 'catalog.comses.net', '.openabm.org')
 ADMINS = (
     ('Allen Lee', 'allen.lee@asu.edu'),
 )
