@@ -182,23 +182,24 @@ class Command(BaseCommand):
         for c in self.get_creators(data):
             item.creators.add(c)
 
-        item = self.set_tags(data, item)
-
-        # FIXME: we need to add a corner case to distinguish between Status.UNTAGGED and Status.NEEDS_AUTHOR_REVIEW
-        if not item.code_archive_url:
-            item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
+        if not data['tags']:
+            # if publication has no zotero tags, mark it as untagged (i.e not reviewed)
+            item.status = Publication.Status.UNTAGGED
         else:
-            # if code_archive_url exists, check for validity and set appropriate status
-            try:
-                response = requests.get(item.code_archive_url)
-                if response.status_code == 200:
-                    item.status = Publication.Status.COMPLETE
-                else:
-                    item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
-            except Exception:
-                logger.exception("Error verifying code archive url %s", item.code_archive_url)
+            item = self.set_tags(data, item)
+            if not item.code_archive_url:
                 item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
-
+            else:
+                # if code_archive_url exists, check for validity and set appropriate status
+                try:
+                    response = requests.get(item.code_archive_url)
+                    if response.status_code == 200:
+                        item.status = Publication.Status.COMPLETE
+                    else:
+                        item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
+                except Exception:
+                    logger.exception("Error verifying code archive url %s", item.code_archive_url)
+                    item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
         item.save()
         return item
 
