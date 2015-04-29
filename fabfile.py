@@ -152,9 +152,9 @@ def restart_solr():
 @task
 def setup():
     execute(setup_postgres)
-    execute(setup_solr)
     execute(initialize_database_schema)
     execute(zotero_import)
+    execute(setup_solr)
     execute(rebuild_index)
 
 @task

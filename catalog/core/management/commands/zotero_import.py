@@ -208,13 +208,12 @@ class Command(BaseCommand):
             return Note.objects.get(zotero_key=data['key'])
         except Note.DoesNotExist:
             item = Note(zotero_key=data['key'])
-        item.text = data['note'].strip()
-        item.zotero_date_added = data['dateAdded']
-        item.zotero_date_modified = data['dateModified']
-        item.added_by = self.get_user(meta['createdByUser'])
-        item.save()
-        item = self.set_tags(data, item)
-        return item
+            item.text = data['note'].strip()
+            item.zotero_date_added = data['dateAdded']
+            item.zotero_date_modified = data['dateModified']
+            item.added_by = self.get_user(meta['createdByUser'])
+            item.save()
+            return item
 
     def generate_entry(self, data):
         for item in data:
@@ -247,7 +246,7 @@ class Command(BaseCommand):
             if options['collection_id']:
                 json_data = zot.everything(zot.collection_items(options['collection_id']))
             else:
-                json_data = zot.all_top()
+                json_data = zot.everything(zot.items())
 
         logger.info("Number of Publications to import: %d", len(json_data))
         self.generate_entry(json_data)
