@@ -12,6 +12,7 @@ from catalog.core.models import (Creator, Publication, JournalArticle, Tag, Note
 import logging
 import requests
 import re
+import lxml
 
 
 logger = logging.getLogger(__name__)
@@ -203,12 +204,16 @@ class Command(BaseCommand):
         item.save()
         return item
 
+    def get_raw_note(html_text):
+        document = lxml.html.document_fromstring(html_text)
+        return document.text_content()
+
     def create_note(self, data, meta):
         try:
             return Note.objects.get(zotero_key=data['key'])
         except Note.DoesNotExist:
             item = Note(zotero_key=data['key'])
-            item.text = data['note'].strip()
+            item.text = self.get_raw_note(data['note'].strip())
             item.zotero_date_added = data['dateAdded']
             item.zotero_date_modified = data['dateModified']
             item.added_by = self.get_user(meta['createdByUser'])
