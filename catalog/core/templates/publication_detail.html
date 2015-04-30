@@ -41,11 +41,11 @@
                 <div class="col-md-6">
                     <label class="control-label" for="id_status">Status</label>
                     <select class="form-control" id="id_status" name="status" data-bind="value: status">
-                        <option value="UNTAGGED">Publication has not been curated or tagged yet</option>
-                        <option value="INCOMPLETE">Curator has finished processing publication with no archive URL</option>
-                        <option value="INVALID_URL">Curator has finished processing publication with invalid archive URL</option>
-                        <option value="AUTHOR_UPDATED">Archive URL updated by author, needs curator review</option>
-                        <option value="COMPLETE">Archive URL has been reviewed and verified</option>
+                        <option value="UNTAGGED" selected="selected">Not reviewed</option>
+                        <option value="NEEDS_AUTHOR_REVIEW">Curator has reviewed publication, requires author intervention.</option>
+                        <option value="FLAGGED">Flagged for further internal review by CoMSES staff</option>
+                        <option value="AUTHOR_UPDATED">Updated by author, needs CoMSES review</option>
+                        <option value="COMPLETE">Reviewed and verified by CoMSES</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -172,28 +172,28 @@
                 self.model_docs = ko.observableArray([data.model_documentation || ""]);
 
                 self.getPlatformList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, '/search/platform/?q=');
+                    self.makeAsyncRequest(query, callback, "{% url 'platform_search' %}");
                 };
                 self.getSponsorList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, '/search/sponsor/?q=');
+                    self.makeAsyncRequest(query, callback, "{% url 'sponsor_search' %}");
                 };
                 self.getTagList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, '/search/tag/?q=');
+                    self.makeAsyncRequest(query, callback, "{% url 'tag_search' %}");
                 };
                 self.getJournalList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, '/search/journal/?q=');
+                    self.makeAsyncRequest(query, callback, "{% url 'journal_search' %}");
                 };
                 self.getModelDocList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, '/search/modeldoc/?q=');
+                    self.makeAsyncRequest(query, callback, "{% url 'model_doc_search' %}");
                 };
 
                 self.makeAsyncRequest = function(query, callback, url) {
                     if (!query.length) return callback();
-                    $.getJSON(url + encodeURIComponent(query))
+                    $.getJSON(url + "?q=" + encodeURIComponent(query))
                         .done(function(res) {
                             callback(JSON.parse(res).slice(0, 5));
                         }).fail(function() { callback(); });
-                    };
+                };
 
                 self.savePublication = function(data, event) {
                     var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));

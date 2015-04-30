@@ -7,7 +7,8 @@ from django.db.models import F
 from rest_framework import serializers, pagination
 from rest_framework.compat import OrderedDict
 
-from .models import Tag, Sponsor, Platform, Creator, Publication, Journal, JournalArticle, InvitationEmail, ModelDocumentation
+from .models import (Tag, Sponsor, Platform, Creator, Publication, Journal, JournalArticle, InvitationEmail, ModelDocumentation,
+                    Note,)
 
 from hashlib import sha1
 
@@ -164,6 +165,12 @@ class JournalSerializer(serializers.ModelSerializer):
         return journal
 
 
+class NoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Note
+        fields = ('id', 'text',  'publication')
+
+
 class JournalArticleSerializer(serializers.ModelSerializer):
     """
     Serializes journal article querysets
@@ -173,11 +180,13 @@ class JournalArticleSerializer(serializers.ModelSerializer):
     sponsors = SponsorSerializer(many=True)
     journal = JournalSerializer()
     model_documentation = ModelDocSerializer(allow_null=True)
+    notes = NoteSerializer(source='note_set', many=True, read_only=True)
+    creators = CreatorSerializer(many=True, read_only=True)
 
     class Meta:
         model = JournalArticle
         exclude = ('date_added', 'date_modified', 'zotero_date_added', 'zotero_date_modified', 'zotero_key', 'email_sent_count',
-                    'assigned_curator', 'creators', 'added_by', 'date_published_text', 'author_comments')
+                    'assigned_curator', 'added_by', 'date_published_text', 'author_comments')
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():

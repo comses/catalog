@@ -74,11 +74,10 @@ class Note(models.Model):
     text = models.TextField()
     date_added = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
-    zotero_key = models.CharField(max_length=64, unique=True)
-    zotero_date_added = models.DateTimeField()
-    zotero_date_modified = models.DateTimeField()
+    zotero_key = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    zotero_date_added = models.DateTimeField(null=True, blank=True)
+    zotero_date_modified = models.DateTimeField(null=True, blank=True)
 
-    tags = models.ManyToManyField(Tag)
     publication = models.ForeignKey('Publication', null=True, blank=True)
 
     def __unicode__(self):
@@ -123,7 +122,7 @@ class Publication(models.Model):
     title = models.TextField()
     abstract = models.TextField()
     short_title = models.CharField(max_length=255, blank=True)
-    zotero_key = models.CharField(max_length=64, unique=True)
+    zotero_key = models.CharField(max_length=64, unique=True, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
     date_published_text = models.CharField(max_length=32)
     date_published = models.DateField(null=True, blank=True)
@@ -139,8 +138,8 @@ class Publication(models.Model):
                                       help_text=_('Date this publication was imported into this system'))
     date_modified = models.DateTimeField(auto_now=True,
                                          help_text=_('Date this publication was last modified on this system'))
-    zotero_date_added = models.DateTimeField(help_text=_('incoming date added field from zotero'))
-    zotero_date_modified = models.DateTimeField(help_text=_('incoming date modified field from zotero'))
+    zotero_date_added = models.DateTimeField(help_text=_('incoming date added field from zotero'), null=True, blank=True)
+    zotero_date_modified = models.DateTimeField(help_text=_('incoming date modified field from zotero'), null=True, blank=True)
     status = models.CharField(choices=Status, max_length=32, default=Status.UNTAGGED)
     creators = models.ManyToManyField(Creator)
 

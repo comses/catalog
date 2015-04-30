@@ -51,8 +51,8 @@
                         {% if user.is_authenticated %}
                             <li class='{{ request|active_re:dashboard }}'><a href='{{ dashboard }}'><i class='fa fa-tachometer'></i> Dashboard</a></li>
                             <li class='{{ request|active_re:publications }}'><a href='{{ publications }}'><i class='fa fa-newspaper-o'></i> Publications</a></li>
-                            <li class='{{ request|active_re:search }}'><a href='{{ search }}'><i class='fa fa-search'></i> Search</a></li>
                             <li class='{{ request|active_re:curator_workflow }}'><a href='{{ curator_workflow }}'><i class='fa fa-suitcase'></i> Curator's WorkFlow</a></li>
+                            <li class='{{ request|active_re:search }}'><a href='{{ search }}'><i class='fa fa-search'></i> Search</a></li>
                         {% endif %}
                         <li class='{{ request|active_re:contact_us }}'><a href='{{ contact_us }}'><i class='fa fa-bell-o'></i> Contact us</a></li>
                         <li><a target='_blank' href='{{ issues_url }}'><i class='fa fa-bullhorn'></i> Report a bug</a></li>

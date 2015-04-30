@@ -6,7 +6,7 @@ from django.views.generic import RedirectView, TemplateView
 from .views import (LoginView, LogoutView, DashboardView, PublicationDetail, PublicationList, EmailPreview,
                     ContactAuthor, ArchivePublication, CustomSearchView, ContactUsView, UserProfileView, PlatformSearchView,
                     SponsorSearchView, TagSearchView, JournalSearchView, ModelDocSearchView, CuraterPublicationDetail,
-                    AssignedPubSearchView,)
+                    AssignedPubSearchView, NoteList, NoteDetail, )
 
 from .forms import CustomSearchForm
 
@@ -18,6 +18,8 @@ urlpatterns = format_suffix_patterns([
     url(r'^publication/email-preview/$', EmailPreview.as_view(), name='invite_email_preview'),
     url(r'^publication/invite/$', ContactAuthor.as_view(), name='send_invites'),
     url(r'^publication/archive/(?P<token>[\w:-]+)/$', ArchivePublication.as_view(), name='publication_archive'),
+    url(r'^note/$', NoteList.as_view(), name='notes'),
+    url(r'^note/(?P<pk>\d+)/$', NoteDetail.as_view(), name='note_detail'),
     url(r'^contact/$', ContactUsView.as_view(), name='contact_us'),
     url(r'^accounts/profile/$', UserProfileView.as_view(), name='user_profile'),
 ])
@@ -33,9 +35,9 @@ urlpatterns += [
 urlpatterns += [
     url(r'^workflow/$', login_required(AssignedPubSearchView(form_class=CustomSearchForm)), name='curator_workflow'),
     url(r'^search/$', login_required(CustomSearchView(form_class=CustomSearchForm)), name='haystack_search'),
-    url(r'^search/platform/$', PlatformSearchView.as_view(), name="platform-search"),
-    url(r'^search/sponsor/$', SponsorSearchView.as_view(), name="sponsor-search"),
-    url(r'^search/tag/$', TagSearchView.as_view(), name="tag-search"),
-    url(r'^search/journal/$', JournalSearchView.as_view(), name="journal-search"),
-    url(r'^search/modeldoc/$', ModelDocSearchView.as_view(), name="model-doc-search"),
+    url(r'^search/platform/$', PlatformSearchView.as_view(), name="platform_search"),
+    url(r'^search/sponsor/$', SponsorSearchView.as_view(), name="sponsor_search"),
+    url(r'^search/tag/$', TagSearchView.as_view(), name="tag_search"),
+    url(r'^search/journal/$', JournalSearchView.as_view(), name="journal_search"),
+    url(r'^search/modeldoc/$', ModelDocSearchView.as_view(), name="model_doc_search"),
 ]

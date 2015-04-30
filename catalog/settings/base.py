@@ -130,7 +130,7 @@ DJANGO_APPS = (
 )
 
 THIRD_PARTY_APPS = (
-    'raven.contrib.django.raven_compat',
+#    'raven.contrib.django.raven_compat',
     'kronos',
     'bootstrap3',
     'haystack',

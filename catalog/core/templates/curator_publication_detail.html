@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+{% load bootstrap3 %}
+
+{% block content %}
+    <div class="widget-wrapper">
+        <div class="widget-head">
+            <h4>Publication: <span data-bind="text: title"></span></h4>
+        </div>
+        <div class="widget-content clearfix">
+            <form method="post" role="form">
+                <div class="well clearfix">
+                    <div class="col-md-6">
+                        <legend class="scheduler-border">Publication Info</legend>
+                        <p><b>Journal: </b><span data-bind="text: journal.name"></span></p>
+                        <p><b>Date Published: </b><span data-bind="text: date_published"></span></p>
+                        <p><b>Creators: </b>
+                            <span data-bind="foreach: creators">
+                                <span data-bind="text: first_name"></span>
+                                <span data-bind="text: last_name"></span>, 
+                            </span>
+                        </p>
+                        <p><a data-bind="attr:{ href: '/publication/'+ id()}" target="_blank">Click here to view more detail</a></p>
+                    </div>
+                    <div class="col-md-6">
+                        <legend class="scheduler-border">Notes <button type="button" class="btn btn-xs btn-primary" data-bind="click: addNote"><i class="fa fa-plus-square"></i> Add Note </button></legend>
+                        <div data-bind="foreach: notes">
+                            <p>
+                                <span data-bind="text: text"></span>
+                                <a href='#' data-bind='click: $root.editNote'><i class="fa fa-edit"></i></a>
+                                <a href='#' data-bind='click: $root.removeNote'><i class="fa fa-times"></i></a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="control-label" for="id_model_documentation">Model documentation</label>
+                    <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: model_docs, value: model_documentation.value, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocList }"></select>
+                </div>
+                <div class="col-md-12">
+                    <label class="control-label" for="id_platforms">Platforms</label>
+                    <select multiple="multiple" class="form-control" id="id_platforms" name="platforms" data-bind="selectize: platforms, selectedOptions: selected_platforms, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}"></select>
+                </div>
+                <div class="col-md-12">
+                    <label class="control-label" for="id_sponsors">Sponsors</label>
+                    <select multiple="multiple" class="form-control" id="id_sponsors" name="sponsors" data-bind="selectize: sponsors, selectedOptions: selected_sponsors, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getSponsorList }"></select>
+                </div>
+                <div class="col-md-12">
+                    <label class="control-label" for="id_tags">Tags</label>
+                    <select multiple="multiple" class="form-control" id="id_tags" name="tags" data-bind="selectize: tags, selectedOptions: selected_tags, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getTagList }"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="control-label" for="id_code_archive_url">Code archive url</label>
+                    <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
+                </div>
+                <div class="col-md-3">
+                    <label class="control-label" for="id_contact_email">Contact email</label>
+                    <input class="form-control" id="id_contact_email" maxlength="75" name="contact_email" placeholder="Contact email" type="email" data-bind="value: contact_email">
+                </div>
+                <br />
+                <div class="col-md-6">
+                    <label class="control-label" for="id_status">Select Status</label>
+                    <div class="btn-group" data-toggle="buttons" id="id_status">
+                        <label class="btn btn-primary">
+                            <input type="radio" name="status" value="UNTAGGED" data-bind="bsChecked: status"> Mark as Incomplete
+                        </label>
+                        <label class="btn btn-success">
+                            <input type="radio" name="status" value="COMPLETE" data-bind="bsChecked: status"> Mark as Completed
+                        </label>
+                        <label class="btn btn-danger">
+                            <input type="radio" name="status" value="FLAGGED" data-bind="bsChecked: status"> Flag for Further Review
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="widget-foot clearfix">
+            <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
+        </div>
+    </div>
+    <div class="modal fade" data-bind="showModal: activateModal" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" data-bind="click:hideModal">&times;</button>
+                        <h4 class="modal-title">Edit Details and Click Save</h4>
+                    </div>
+                    <div class="modal-body" data-bind="with: modalData">
+                        <label class="control-label" for="id_abstract">Note</label>
+                        <textarea class="form-control" id="id_abstract" name="abstract" placeholder="Abstract" required="required" rows="4" data-bind="value: text"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bind="click: $root.saveNote">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+{% endblock content %}
+
+{% block javascript %}
+
+    <script type="text/javascript">
+        var viewModelJson = $.parseJSON("{{ json | escapejs }}");
+        console.log(viewModelJson);
+        if(!viewModelJson.journal) viewModelJson.journal = {'name': null}
+        if(!viewModelJson.model_documentation) viewModelJson.model_documentation = {'value': null}
+        
+        $(function(){
+            var PublicationDetail = function(data) {
+                var self = this;
+                ko.mapping.fromJS(data, {}, self);
+
+                self.activateModal = ko.observable(false);
+                self.modalData = ko.observable();
+                self.selectedNote = ko.observable();
+
+                self.hideModal = function() {
+                    self.modalData("");
+                    self.activateModal("");
+                };
+                self.addNote = function() {
+                    self.modalData({id: -1, text: "", publication: self.id()});
+                    self.activateModal(true);
+                }
+                self.editNote = function(data, event) {
+                    self.selectedNote(data);
+                    self.modalData(ko.toJS(data));
+                    self.activateModal(true);
+                }
+                self.removeNote = function() {
+                    var note = this;
+                    $.ajax({
+                        type: "DELETE",
+                        url: "/note/" + note.id() + "/",
+                        data: ko.toJSON(note),
+                        dataType: "json",
+                        contentType: "application/json; charset=utf-8",
+                        success: function(result) {
+                            humane.log("Data save was success!!", {timeout: 5000})
+                            self.notes.remove(note);
+                        },
+                        error: function(result) {
+                            humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
+                            console.log(result.responseJSON);
+                        }
+                    });
+                }
+                self.saveNote = function(data, event) { 
+                    if(self.modalData().id != -1) {
+                        $.ajax({
+                            type: "PUT",
+                            url: "/note/" + self.modalData().id + "/",
+                            data: ko.toJSON(self.selectedNote),
+                            dataType: "json",
+                            contentType: "application/json; charset=utf-8",
+                            success: function(result) {
+                                humane.log("Data save was success!!", {timeout: 5000})
+                                self.selectedNote().text(self.modalData().text);
+                            },
+                            error: function(result) {
+                                humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
+                                console.log(result.responseJSON);
+                            }
+                        });
+                    } else {
+                        $.ajax({
+                            type: "POST",
+                            url: "{% url 'notes'%}",
+                            data: ko.toJSON(self.modalData()),
+                            dataType: "json",
+                            contentType: "application/json; charset=utf-8",
+                            success: function(result) {
+                                humane.log("Data save was success!!", {timeout: 5000})
+                                self.notes.push(ko.mapping.fromJS(result));
+                            },
+                            error: function(result) {
+                                humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
+                                console.log(result.responseJSON);
+                            }
+                        });
+
+                    }
+                    self.hideModal();
+                }
+                self.selected_tags = ko.observableArray(ko.utils.arrayMap(self.tags(), function(tag) { return tag.value(); }));
+                self.selected_platforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
+                self.selected_sponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));
+                self.journals = ko.observableArray([data.journal || ""]);
+                self.model_docs = ko.observableArray([data.model_documentation || ""]);
+
+                self.getPlatformList = function(query, callback) {
+                    self.makeAsyncRequest(query, callback, "{% url 'platform_search' %}");
+                };
+                self.getSponsorList = function(query, callback) {
+                    self.makeAsyncRequest(query, callback, "{% url 'sponsor_search' %}");
+                };
+                self.getTagList = function(query, callback) {
+                    self.makeAsyncRequest(query, callback, "{% url 'tag_search' %}");
+                };
+                self.getJournalList = function(query, callback) {
+                    self.makeAsyncRequest(query, callback, "{% url 'journal_search' %}");
+                };
+                self.getModelDocList = function(query, callback) {
+                    self.makeAsyncRequest(query, callback, "{% url 'model_doc_search' %}");
+                };
+
+                self.makeAsyncRequest = function(query, callback, url) {
+                    if (!query.length) return callback();
+                    $.getJSON(url + "?q=" + encodeURIComponent(query))
+                        .done(function(res) {
+                            callback(JSON.parse(res).slice(0, 5));
+                        }).fail(function() { callback(); });
+                };
+
+                self.savePublication = function(data, event) {
+                    var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
+                    data_clone.platforms(ko.utils.arrayMap(data.selected_platforms(), function(platform) {
+                        return {'name': platform};
+                    }));
+                    data_clone.sponsors(ko.utils.arrayMap(data.selected_sponsors(), function(sponsor) {
+                        return {'name': sponsor};
+                    }));
+                    data_clone.tags(ko.utils.arrayMap(data.selected_tags(), function(tag) {
+                        return {'value': tag};
+                    }));
+
+                    if(data_clone.journal.name() == undefined) {
+                        if(data.journals()[0].name) { 
+                            data_clone.journal.name = ko.observable(data.journals()[0].name);
+                        } else {
+                            data_clone.journal = null;
+                        }
+                    } else if(data_clone.journal.name() == "") {
+                        data_clone.journal = null
+                    }
+                    if(data_clone.model_documentation.value() == undefined) {
+                        if(data.model_docs()[0].value) {
+                            data_clone.model_documentation.value = ko.observable(data.model_docs()[0].value);
+                        } else {
+                            data_clone.model_documentation = null;
+                        }
+                    } else if(data_clone.model_documentation.value() == "") {
+                        data_clone.model_documentation = null;
+                    }
+
+                    $.ajax({
+                        type: "PUT",
+                        url: window.location.pathname,
+                        data: ko.toJSON(data_clone),
+                        dataType: "json",
+                        contentType: "application/json; charset=utf-8",
+                        success: function(result) {
+                            window.location.replace("/workflow/");
+                            humane.log("Data save was success!!", {timeout: 5000})
+                        },
+                        error: function(result) {
+                            humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
+                            console.log(result.responseJSON);
+                        }
+                    });
+                };
+            };
+            
+            ko.bindingHandlers.showModal = {
+                update: function (element, valueAccessor) {
+                    var value = valueAccessor();
+                    if (ko.utils.unwrapObservable(value)) {
+                        $(element).modal('show');
+                        // this is to focus input field inside dialog
+                        $("input", element).focus();
+                        $('.has-popover', element).popover({'trigger':'hover'});
+                    }
+                    else {
+                        $(element).modal('hide');
+                    }
+                }
+            };
+ 
+            ko.bindingHandlers.bsChecked = {
+                init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
+                    var value = valueAccessor();
+                    var newValueAccessor = function () {
+                        return {
+                            change: function () {
+                                value(element.value);
+                            }
+                        }
+                    };
+                    if ($(element).val() == ko.unwrap(valueAccessor())) {
+                       $(element).closest('.btn').button('toggle');
+                    }
+                    ko.bindingHandlers.event.init(element, newValueAccessor,allBindingsAccessor, viewModel, bindingContext);
+                },
+            }
+
+            ko.applyBindings(new PublicationDetail(viewModelJson));
+        });
+    </script>
+{% endblock javascript %}

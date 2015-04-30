@@ -21,9 +21,10 @@ from json import dumps
 from datetime import datetime, timedelta
 
 from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
-from .models import Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation
+from .models import Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation, Note
 from .serializers import (PublicationSerializer, CustomPagination, JournalArticleSerializer, PlatformSerializer,
-                          InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer, UserProfileSerializer)
+                          InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer, UserProfileSerializer,
+                          NoteSerializer, )
 
 import time
 import markdown
@@ -67,14 +68,16 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(DashboardView, self).get_context_data(**kwargs)
-        pub_count = Publication.objects.all().values('status').annotate(total=Count('status')).order_by('-total')
+        last_week_datetime = datetime.now() - timedelta(days=7)
         context['status'] = {}
+
+        pub_count = Publication.objects.all().values('status').annotate(total=Count('status')).order_by('-total')
         total = 0
         for item in pub_count:
             total += item['total']
             context['status'][item['status']] = item['total']
         context['status']['TOTAL'] = total
-        last_week_datetime = datetime.now() - timedelta(days=7)
+
         context['untagged_publications_count'] = Publication.objects.filter(status=Publication.Status.UNTAGGED, assigned_curator=self.request.user).count()
         context['recently_author_updated'] = Publication.objects.select_subclasses().filter(status=Publication.Status.AUTHOR_UPDATED)
         context['recently_updated'] = Publication.objects.select_subclasses().exclude(status=Publication.Status.AUTHOR_UPDATED).filter(date_modified__gte=last_week_datetime).order_by('-date_modified')[:10]
@@ -173,6 +176,55 @@ class CuraterPublicationDetail(LoginRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class NoteDetail(LoginRequiredMixin, APIView):
+    """
+    Retrieve, update or delete a note instance.
+    """
+    renderer_classes = (JSONRenderer, )
+
+    def get_object(self, pk):
+        try:
+            return Note.objects.get(id=pk)
+        except Note.DoesNotExist:
+            raise Http404("Note does not exist")
+
+    def get(self, request, pk, format=None):
+        note = self.get_object(pk)
+        serializer = NoteSerializer(note)
+        return Response({ 'json': dumps(serializer.data) })
+
+    def put(self, request, pk):
+        note = self.get_object(pk)
+        serializer = NoteSerializer(note, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+        serializer = self.get_object(pk)
+        serializer.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class NoteList(LoginRequiredMixin, APIView):
+    """
+    Get all the notes or create a note
+    """
+
+    def get(self, request, format=None):
+        note = Note.objects.all()
+        serializer = NoteSerializer(note, many=True)
+        return Response({ 'json': dumps(serializer.data) })
+
+    def post(self, request):
+        serializer = NoteSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class EmailPreview(LoginRequiredMixin, APIView):
     """
     Preview the final email content
@@ -244,7 +296,6 @@ class AssignedPubSearchView(SearchView):
     template = 'search/search_assigned_publication.html'
 
     def get_results(self):
-        print "hol;asasdasdlasdlasdasd"
         return self.form.search(self.request.user)
 
 

@@ -1,5 +1,5 @@
 from haystack import indexes
-from .models import Publication, Platform, Sponsor, Tag, Journal, ModelDocumentation
+from .models import JournalArticle, Platform, Sponsor, Tag, Journal, ModelDocumentation
 
 
 class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
@@ -11,11 +11,7 @@ class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     assigned_curator = indexes.CharField(model_attr='assigned_curator', null=True)
 
     def get_model(self):
-        return Publication
-
-    def index_queryset(self, using=None):
-        """Used when the entire index for model is updated."""
-        return self.get_model().objects.all()
+        return JournalArticle
 
 
 class PlatformIndex(indexes.SearchIndex, indexes.Indexable):
@@ -25,10 +21,6 @@ class PlatformIndex(indexes.SearchIndex, indexes.Indexable):
     def get_model(self):
         return Platform
 
-    def index_queryset(self, using=None):
-        """Used when the entire index for model is updated."""
-        return self.get_model().objects.all()
-
 
 class SponsorIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document=True)
@@ -36,10 +28,6 @@ class SponsorIndex(indexes.SearchIndex, indexes.Indexable):
 
     def get_model(self):
         return Sponsor
-
-    def index_queryset(self, using=None):
-        """Used when the entire index for model is updated."""
-        return self.get_model().objects.all()
 
 
 class TagIndex(indexes.SearchIndex, indexes.Indexable):
@@ -49,9 +37,6 @@ class TagIndex(indexes.SearchIndex, indexes.Indexable):
     def get_model(self):
         return Tag
 
-    def index_queryset(self, using=None):
-        """Used when the entire index for model is updated."""
-        return self.get_model().objects.all()
 
 class JournalIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document=True)
@@ -60,10 +45,6 @@ class JournalIndex(indexes.SearchIndex, indexes.Indexable):
     def get_model(self):
         return Journal
 
-    def index_queryset(self, using=None):
-        """Used when the entire index for model is updated."""
-        return self.get_model().objects.all()
-
 
 class ModelDocIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document=True)
@@ -71,8 +52,3 @@ class ModelDocIndex(indexes.SearchIndex, indexes.Indexable):
 
     def get_model(self):
         return ModelDocumentation
-
-    def index_queryset(self, using=None):
-        """Used when the entire index for model is updated."""
-        return self.get_model().objects.all()
-
