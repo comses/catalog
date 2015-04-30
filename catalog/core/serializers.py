@@ -8,7 +8,7 @@ from rest_framework import serializers, pagination
 from rest_framework.compat import OrderedDict
 
 from .models import (Tag, Sponsor, Platform, Creator, Publication, Journal, JournalArticle, InvitationEmail, ModelDocumentation,
-                    Note,)
+                     Note,)
 
 from hashlib import sha1
 
@@ -225,4 +225,3 @@ class ArchivePublicationSerializer(serializers.ModelSerializer):
         if not url:
             raise serializers.ValidationError("Please provide code archive url.")
         return data
-

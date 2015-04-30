@@ -130,7 +130,7 @@
                     var note = this;
                     $.ajax({
                         type: "DELETE",
-                        url: "/note/" + note.id() + "/",
+                        url: "/note/" + note.id(),
                         data: ko.toJSON(note),
                         dataType: "json",
                         contentType: "application/json; charset=utf-8",
@@ -148,7 +148,7 @@
                     if(self.modalData().id != -1) {
                         $.ajax({
                             type: "PUT",
-                            url: "/note/" + self.modalData().id + "/",
+                            url: "/note/" + self.modalData().id,
                             data: ko.toJSON(self.selectedNote),
                             dataType: "json",
                             contentType: "application/json; charset=utf-8",
@@ -177,7 +177,6 @@
                                 console.log(result.responseJSON);
                             }
                         });
-
                     }
                     self.hideModal();
                 }

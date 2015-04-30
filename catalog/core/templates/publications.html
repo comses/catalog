@@ -17,7 +17,7 @@
                 <tbody data-bind="foreach: results">
                     <tr>
                         <td>
-                            <a href="#" data-bind="attr:{href: id}, text: title"></a>
+                            <a href="#" data-bind="attr:{href: url()}, text: title"></a>
                         </td>
                         <td data-bind="text: date_published"></td>
                     </tr>
@@ -38,11 +38,14 @@
 {% block javascript %}
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
-
+        var publication_url = "{% url 'publications' %}"
         $(function(){
             var Publication =  function(data) {
                 var self = this;
                 ko.mapping.fromJS(data, {}, self);
+                self.url = function() {
+                    return publication_url + "/" + self.id();
+                }
             }
 
             var PagedPublicationGridModel = function(data) {

@@ -35,7 +35,7 @@
     </script>
 
     <script id="choicePubTmpl" type="text/html">
-        <form role="search" method="get" action="/search" class="form-horizontal">
+        <form role="search" method="get" action="{% url 'haystack_search' %}" class="form-horizontal">
             {% bootstrap_form form layout="horizontal" label_class="col-md-2" %}
             {% buttons layout='horizontal' label_class="col-md-2" %}
                 <button type="submit" class="btn btn-default">Search</button>
