@@ -97,10 +97,8 @@
 {% endblock content %}
 
 {% block javascript %}
-
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
-        console.log(viewModelJson);
         if(!viewModelJson.journal) viewModelJson.journal = {'name': null}
         if(!viewModelJson.model_documentation) viewModelJson.model_documentation = {'value': null}
         
@@ -128,57 +126,25 @@
                 }
                 self.removeNote = function() {
                     var note = this;
-                    $.ajax({
-                        type: "DELETE",
-                        url: "/note/" + note.id(),
-                        data: ko.toJSON(note),
-                        dataType: "json",
-                        contentType: "application/json; charset=utf-8",
-                        success: function(result) {
-                            humane.log("Data save was success!!", {timeout: 5000})
+                    self.makeRequest("DELETE", ko.toJSON(note), "/note/"+note.id())
+                        .done(function(result) {
                             self.notes.remove(note);
-                        },
-                        error: function(result) {
-                            humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
-                            console.log(result.responseJSON);
-                        }
-                    });
+                        });
                 }
                 self.saveNote = function(data, event) { 
                     if(self.modalData().id != -1) {
-                        $.ajax({
-                            type: "PUT",
-                            url: "/note/" + self.modalData().id,
-                            data: ko.toJSON(self.selectedNote),
-                            dataType: "json",
-                            contentType: "application/json; charset=utf-8",
-                            success: function(result) {
-                                humane.log("Data save was success!!", {timeout: 5000})
+                        self.makeRequest("PUT", ko.toJSON(self.selectedNote), "/note/"+self.modalData().id)
+                            .done(function(result) {
                                 self.selectedNote().text(self.modalData().text);
-                            },
-                            error: function(result) {
-                                humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
-                                console.log(result.responseJSON);
-                            }
-                        });
+                                self.hideModal();
+                            });
                     } else {
-                        $.ajax({
-                            type: "POST",
-                            url: "{% url 'notes'%}",
-                            data: ko.toJSON(self.modalData()),
-                            dataType: "json",
-                            contentType: "application/json; charset=utf-8",
-                            success: function(result) {
-                                humane.log("Data save was success!!", {timeout: 5000})
+                        self.makeRequest("POST", ko.toJSON(self.modalData()), "{% url 'notes'%}")
+                            .done(function(result) {
                                 self.notes.push(ko.mapping.fromJS(result));
-                            },
-                            error: function(result) {
-                                humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
-                                console.log(result.responseJSON);
-                            }
-                        });
+                                self.hideModal();
+                            });
                     }
-                    self.hideModal();
                 }
                 self.selected_tags = ko.observableArray(ko.utils.arrayMap(self.tags(), function(tag) { return tag.value(); }));
                 self.selected_platforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
@@ -209,6 +175,19 @@
                             callback(JSON.parse(res).slice(0, 5));
                         }).fail(function() { callback(); });
                 };
+
+                self.makeRequest = function(request_type, data, url) {
+                     return $.ajax({
+                        type: request_type,
+                        url: url,
+                        data: data,
+                        dataType: "json",
+                        contentType: "application/json; charset=utf-8"
+                    }).fail(function(result) {
+                        humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
+                        console.log(result.responseJSON);
+                    });
+                }
 
                 self.savePublication = function(data, event) {
                     var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
@@ -241,56 +220,13 @@
                         data_clone.model_documentation = null;
                     }
 
-                    $.ajax({
-                        type: "PUT",
-                        url: window.location.pathname,
-                        data: ko.toJSON(data_clone),
-                        dataType: "json",
-                        contentType: "application/json; charset=utf-8",
-                        success: function(result) {
-                            window.location.replace("/workflow/");
+                    self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname)
+                        .done(function(result) {
+                            window.location.replace("{% url 'curator_workflow' %}");
                             humane.log("Data save was success!!", {timeout: 5000})
-                        },
-                        error: function(result) {
-                            humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
-                            console.log(result.responseJSON);
-                        }
-                    });
+                        });
                 };
             };
-            
-            ko.bindingHandlers.showModal = {
-                update: function (element, valueAccessor) {
-                    var value = valueAccessor();
-                    if (ko.utils.unwrapObservable(value)) {
-                        $(element).modal('show');
-                        // this is to focus input field inside dialog
-                        $("input", element).focus();
-                        $('.has-popover', element).popover({'trigger':'hover'});
-                    }
-                    else {
-                        $(element).modal('hide');
-                    }
-                }
-            };
- 
-            ko.bindingHandlers.bsChecked = {
-                init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
-                    var value = valueAccessor();
-                    var newValueAccessor = function () {
-                        return {
-                            change: function () {
-                                value(element.value);
-                            }
-                        }
-                    };
-                    if ($(element).val() == ko.unwrap(valueAccessor())) {
-                       $(element).closest('.btn').button('toggle');
-                    }
-                    ko.bindingHandlers.event.init(element, newValueAccessor,allBindingsAccessor, viewModel, bindingContext);
-                },
-            }
-
             ko.applyBindings(new PublicationDetail(viewModelJson));
         });
     </script>

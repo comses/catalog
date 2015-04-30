@@ -119,3 +119,36 @@ ko.bindingHandlers.selectize = {
         }
     }
 }
+
+ko.bindingHandlers.showModal = {
+    update: function (element, valueAccessor) {
+        var value = valueAccessor();
+        if (ko.utils.unwrapObservable(value)) {
+            $(element).modal('show');
+            // this is to focus input field inside dialog
+            $("input", element).focus();
+            $('.has-popover', element).popover({'trigger':'hover'});
+        }
+        else {
+            $(element).modal('hide');
+        }
+    }
+};
+
+ko.bindingHandlers.bsChecked = {
+    init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
+        var value = valueAccessor();
+        var newValueAccessor = function () {
+            return {
+                change: function () {
+                    value(element.value);
+                }
+            }
+        };
+        if ($(element).val() == ko.unwrap(valueAccessor())) {
+           $(element).closest('.btn').button('toggle');
+        }
+        ko.bindingHandlers.event.init(element, newValueAccessor,allBindingsAccessor, viewModel, bindingContext);
+    },
+}
+
