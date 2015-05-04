@@ -93,7 +93,7 @@ class Command(BaseCommand):
                     if item.code_archive_url[-1] == '>':
                         item.code_archive_url = item.code_archive_url[:-1]
                 except Exception:
-                    logger.exception("URL %s could not be parsed", value)
+                    logger.exception("URL %s could not be parsed for publication_id %s", value, item.pk)
             # match for email
             elif sliced_key == 'ema' or sliced_key == 'e-m':
                 item.contact_email = value
@@ -109,7 +109,7 @@ class Command(BaseCommand):
                 sponsor, created = Sponsor.objects.get_or_create(name=value)
                 item.sponsors.add(sponsor)
             elif key:
-                logger.debug("Tag [%s :: %s] was added as is.", key, value)
+                logger.debug("Tag [%s :: %s] was added as is for publication_id %s", key, value, item.pk)
                 tag, created = Tag.objects.get_or_create(value=t['tag'].strip())
             else:
                 tag, created = Tag.objects.get_or_create(value=value)
@@ -117,7 +117,7 @@ class Command(BaseCommand):
         try:
             item.save()
         except Exception:
-            logger.exception("Exception while saving tags %s %s", item, item.title)
+            logger.exception("Exception while saving tags %s %s for publication_id %s", item, item.title, item.pk)
         return item
 
     def parse_published_date(self, date):
@@ -199,7 +199,7 @@ class Command(BaseCommand):
                     else:
                         item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
                 except Exception:
-                    logger.exception("Error verifying code archive url %s", item.code_archive_url)
+                    logger.exception("Error verifying code archive url for publication_id %s", item.code_archive_url, item.pk)
                     item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
         item.save()
         return item
