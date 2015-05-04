@@ -4,9 +4,9 @@
 {% block content %}
     <div class="widget-wrapper">
         <div class="widget-head">
-            <h4>Publications</h4>
+            <h3>Publications</h3>
         </div>
-        <div class="widget-content clearfix">
+        <div class="widget-content">
             <table class="table table-striped">
                 <thead>
                     <tr>
@@ -23,8 +23,6 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
-        <div class="widget-foot clearfix">
             <nav>
                 <ul class="pager">
                     <li class="previous" data-bind="css: {disabled: !canGoPrevious()}"><a href="#" data-bind="attr:{href: previous}"><span aria-hidden="true">&larr;</span> Previous Page</a></li>
@@ -32,13 +30,17 @@
                     <li class="next" data-bind="css: {disabled: !canGoNext()}"><a href="#" data-bind="attr:{href: next}">Next Page<span aria-hidden="true">&rarr;</span></a></li>
                 </ul>
             </nav>
+            <publication-detail></publication-detail>
         </div>
 {% endblock content %}
 
 {% block javascript %}
+    {% include "includes/publication_detail_form.html" %}
+
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
         var publication_url = "{% url 'publications' %}"
+
         $(function(){
             var Publication =  function(data) {
                 var self = this;
@@ -49,7 +51,6 @@
             }
 
             var PagedPublicationGridModel = function(data) {
-                var self = this;
                 var pubs_mapping = {
                     'results': {
                         create: function(options) {
@@ -69,6 +70,7 @@
                     return model.previous() ? true : false;
                 });
             };
+
             ko.applyBindings(new PagedPublicationGridModel(viewModelJson));
         });
     </script>
