@@ -115,14 +115,14 @@ class PublicationList(LoginRequiredMixin, APIView):
         serializer = PublicationSerializer(result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
         return Response({ 'json': dumps(response) }, template_name="publications.html")
-"""
+
     def post(self, request, format=None):
-        serializer = PublicationSerializer(data=request.data)
+        serializer = JournalArticleSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-"""
+
 
 class PublicationDetail(LoginRequiredMixin, APIView):
     """

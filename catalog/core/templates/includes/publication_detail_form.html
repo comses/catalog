@@ -195,7 +195,7 @@
                     }).fail(function() { callback(); });
             };
 
-            model.savePublication = function(data, event) {
+            model.gatherData = function(data) {
                 var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
                 data_clone.platforms(ko.utils.arrayMap(data.selected_platforms(), function(platform) {
                     return {'name': platform};
@@ -225,11 +225,21 @@
                 } else if(data_clone.model_documentation.value() == "") {
                     data_clone.model_documentation = null;
                 }
-
+                return data_clone
+            };
+            model.savePublication = function(data, event) {
+                var pub_data = model.gatherData(data);
+                if(pub_data.id){ 
+                    model.makeRequest("PUT", window.location.pathname, ko.toJSON(pub_data));
+                } else {
+                    model.makeRequest("POST", window.location.pathname, ko.toJSON(pub_data));
+                }
+            };
+            model.makeRequest = function(request_type, url, data) {
                 $.ajax({
-                    type: "PUT",
-                    url: window.location.pathname,
-                    data: ko.toJSON(data_clone),
+                    type: request_type,
+                    url: url,
+                    data: data,
                     dataType: "json",
                     contentType: "application/json; charset=utf-8",
                     success: function(result) {
@@ -241,7 +251,6 @@
                     }
                 });
             };
-
         },
         template: { element: 'publication_detail_form' }
     });

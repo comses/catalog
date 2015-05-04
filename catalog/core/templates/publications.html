@@ -2,40 +2,50 @@
 {% load bootstrap3 %}
 
 {% block content %}
-    <div class="widget-wrapper">
-        <div class="widget-head">
-            <h3>Publications</h3>
-        </div>
-        <div class="widget-content">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Date Published</th>
-                    </tr>
-                </thead>
-                <tbody data-bind="foreach: results">
-                    <tr>
-                        <td>
-                            <a href="#" data-bind="attr:{href: url()}, text: title"></a>
-                        </td>
-                        <td data-bind="text: date_published"></td>
-                    </tr>
-                </tbody>
-            </table>
-            <nav>
-                <ul class="pager">
-                    <li class="previous" data-bind="css: {disabled: !canGoPrevious()}"><a href="#" data-bind="attr:{href: previous}"><span aria-hidden="true">&larr;</span> Previous Page</a></li>
-                    <li data-bind="text: tableInfo"></li>
-                    <li class="next" data-bind="css: {disabled: !canGoNext()}"><a href="#" data-bind="attr:{href: next}">Next Page<span aria-hidden="true">&rarr;</span></a></li>
-                </ul>
-            </nav>
-            <publication-detail></publication-detail>
-        </div>
+    <div data-bind="template: { name: template_id() }"></div>
 {% endblock content %}
 
 {% block javascript %}
     {% include "includes/publication_detail_form.html" %}
+
+    <script type="text/html" id="all-publications">
+        <div class="widget-wrapper">
+            <div class="widget-head">
+                <h3>Publications
+                <button type="button" class="btn btn-xs btn-primary" data-bind="click: newPublication"><i class="fa fa-plus-square-o"></i> Create</button>
+                </h3>
+            </div>
+            <div class="widget-content">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Date Published</th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: results">
+                        <tr>
+                            <td>
+                                <a href="#" data-bind="attr:{href: url()}, text: title"></a>
+                            </td>
+                            <td data-bind="text: date_published"></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <nav>
+                    <ul class="pager">
+                        <li class="previous" data-bind="css: {disabled: !canGoPrevious()}"><a href="#" data-bind="attr:{href: previous}"><span aria-hidden="true">&larr;</span> Previous Page</a></li>
+                        <li data-bind="text: tableInfo"></li>
+                        <li class="next" data-bind="css: {disabled: !canGoNext()}"><a href="#" data-bind="attr:{href: next}">Next Page<span aria-hidden="true">&rarr;</span></a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </script>
+
+    <script type="text/html" id="publication-detail-form">
+        <publication-detail></publication-detail>
+    </script>
 
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
@@ -69,6 +79,10 @@
                 model.canGoPrevious = ko.dependentObservable(function() {
                     return model.previous() ? true : false;
                 });
+                model.template_id = ko.observable("all-publications");
+                model.newPublication = function() {
+                    model.template_id("publication-detail-form");
+                }
             };
 
             ko.applyBindings(new PagedPublicationGridModel(viewModelJson));
