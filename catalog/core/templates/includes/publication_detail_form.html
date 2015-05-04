@@ -9,7 +9,7 @@
             <form role="form">
                 <div class="col-md-12">
                     <label class="control-label" for="id_title">Title</label>
-                    <input type="text" class="form-control" id="id_title" name="title" placeholder="Title" required="required" rows="2" data-bind="value: title" />
+                    <input type="text" class="form-control" id="id_title" name="title" placeholder="Title" data-bind="value: title" />
                 </div>
                 <div class="col-md-6">
                     <label class="control-label" for="id_journal">Journal</label>
@@ -23,7 +23,7 @@
                     <label class="control-label" for="id_abstract">Abstract</label>
                     <textarea class="form-control" id="id_abstract" name="abstract" placeholder="Abstract" required="required" rows="4" data-bind="value: abstract"></textarea>
                 </div>
-               <div class="col-md-12">
+                <div class="col-md-12">
                     <label class="control-label" for="id_platforms">Platforms</label>
                     <select multiple="multiple" class="form-control" id="id_platforms" name="platforms" data-bind="selectize: platforms, selectedOptions: selected_platforms, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}"></select>
                 </div>

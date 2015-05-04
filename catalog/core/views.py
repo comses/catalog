@@ -20,11 +20,10 @@ from rest_framework import status
 from json import dumps
 from datetime import datetime, timedelta
 
-from .forms import LoginForm, JournalArticleDetailForm, CustomSearchForm
+from .forms import LoginForm, CustomSearchForm
 from .models import Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation, Note
-from .serializers import (PublicationSerializer, CustomPagination, JournalArticleSerializer, PlatformSerializer,
-                          InvitationSerializer, ArchivePublicationSerializer, ContactUsSerializer, UserProfileSerializer,
-                          NoteSerializer, )
+from .serializers import (PublicationSerializer, CustomPagination, JournalArticleSerializer, InvitationSerializer,
+                          ArchivePublicationSerializer, ContactUsSerializer, UserProfileSerializer, NoteSerializer, )
 
 import time
 import markdown
@@ -72,21 +71,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['status'] = {}
 
         pub_count = Publication.objects.all().values('status').annotate(total=Count('status')).order_by('-total')
-        total = 0
+        context['status']['TOTAL'] = 0
         for item in pub_count:
-            total += item['total']
+            context['status']['TOTAL'] += item['total']
             context['status'][item['status']] = item['total']
-        context['status']['TOTAL'] = total
 
-        context['untagged_publications_count'] = Publication.objects.filter(status=Publication.Status.UNTAGGED, assigned_curator=self.request.user).count()
+        context['untagged_publications_count'] = Publication.objects.filter(status=Publication.Status.UNTAGGED,
+                                                                            assigned_curator=self.request.user).count()
         context['recently_author_updated'] = Publication.objects.select_subclasses().filter(status=Publication.Status.AUTHOR_UPDATED)
-        context['recently_updated'] = Publication.objects.select_subclasses().exclude(status=Publication.Status.AUTHOR_UPDATED).filter(date_modified__gte=last_week_datetime).order_by('-date_modified')[:10]
+        pub_recently_updated = Publication.objects.select_subclasses().exclude(status=Publication.Status.AUTHOR_UPDATED)
+        context['recently_updated'] = pub_recently_updated.filter(date_modified__gte=last_week_datetime).order_by('-date_modified')[:10]
         return context
 
 
 class UserProfileView(LoginRequiredMixin, APIView):
     """
-    Retrieve or Update of current logged in User
+    Retrieve or Update User Profile of current logged in User
     """
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
 

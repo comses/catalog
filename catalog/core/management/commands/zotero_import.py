@@ -199,12 +199,12 @@ class Command(BaseCommand):
                     else:
                         item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
                 except Exception:
-                    logger.exception("Error verifying code archive url for publication_id %s", item.code_archive_url, item.pk)
+                    logger.exception("Error verifying code archive url %s for publication_id %s", item.code_archive_url, item.pk)
                     item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
         item.save()
         return item
 
-    def get_raw_note(html_text):
+    def get_raw_note(self, html_text):
         document = lxml.html.document_fromstring(html_text)
         return document.text_content()
 

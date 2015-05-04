@@ -3,7 +3,7 @@ from django.forms import widgets
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Publication, JournalArticle
+from .models import Publication
 
 from haystack.forms import SearchForm
 
@@ -27,24 +27,6 @@ class LoginForm(forms.Form):
             raise forms.ValidationError(
                 _("This user has been deactivated. Please contact us if this is in error."))
         return cleaned_data
-
-
-class PublicationDetailForm(forms.ModelForm):
-    class Meta:
-        model = Publication
-        exclude = ['date_added', 'date_modified']
-        widgets = {
-            'title': widgets.Textarea(attrs={'rows': 3}),
-        }
-
-
-class JournalArticleDetailForm(forms.ModelForm):
-    class Meta:
-        model = JournalArticle
-        exclude = ['date_added', 'date_modified', 'added_by', 'date_published_text']
-        widgets = {
-            'title': widgets.Textarea(attrs={'rows': 3}),
-        }
 
 
 class CustomSearchForm(SearchForm):
