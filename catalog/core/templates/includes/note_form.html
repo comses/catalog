@@ -1,0 +1,89 @@
+<script type="text/html" id="note_form">
+    <legend class="scheduler-border">Notes <button type="button" class="btn btn-xs btn-primary" data-bind="click: addNote"><i class="fa fa-plus-square"></i> Add Note </button></legend>
+    <div data-bind="foreach: notes">
+        <p>
+            <span data-bind="text: text"></span>
+            <a href='#' data-bind='click: editNote'><i class="fa fa-edit"></i></a>
+            <a href='#' data-bind='click: removeNote'><i class="fa fa-times"></i></a>
+        </p>
+    </div>
+    <div class="modal fade" data-bind="showModal: activateModal" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true" data-bind="click:hideModal">&times;</button>
+                    <h4 class="modal-title">Edit Details and Click Save</h4>
+                </div>
+                <div class="modal-body" data-bind="with: modalData">
+                    <label class="control-label">Note</label>
+                    <textarea class="form-control" rows="3" data-bind="value: text"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bind="click: saveNote">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script type="text/javascript">
+    ko.components.register('note-detail', {
+    viewModel: function(params) {
+        self.notes = params.notes;
+        self.pub_id = params.pub_id; 
+        self.activateModal = ko.observable(false);
+        self.modalData = ko.observable();
+        self.selectedNote = ko.observable();
+
+        self.hideModal = function() {
+            self.modalData("");
+            self.activateModal("");
+        };
+        self.addNote = function() {
+            self.modalData({id: -1, text: "", publication: self.pub_id()});
+            self.activateModal(true);
+        };
+        self.editNote = function(data, event) {
+            self.selectedNote(data);
+            self.modalData(ko.toJS(data));
+            self.activateModal(true);
+        };
+        self.removeNote = function() {
+            var note = this;
+            self.makeRequest("DELETE", ko.toJSON(note), "/note/"+note.id())
+                .done(function(result) {
+                    self.notes.remove(note);
+                });
+        };
+        self.saveNote = function(data, event) { 
+            if(self.modalData().id != -1) {
+                self.makeRequest("PUT", ko.toJSON(self.modalData()), "/note/"+self.modalData().id)
+                    .done(function(result) {
+                        self.selectedNote().text(self.modalData().text);
+                        self.hideModal();
+                    });
+            } else {
+                self.makeRequest("POST", ko.toJSON(self.modalData()), "{% url 'notes'%}")
+                    .done(function(result) {
+                        self.notes.push(ko.mapping.fromJS(result));
+                        self.hideModal();
+                    });
+            }
+        };
+        self.makeRequest = function(request_type, data, url) {
+             return $.ajax({
+                type: request_type,
+                url: url,
+                data: data,
+                dataType: "json",
+                contentType: "application/json; charset=utf-8"
+            }).fail(function(result) {
+                humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
+                console.log(result.responseJSON);
+            });
+        };
+    },
+    template: { element: 'note_form' }
+});
+
+</script>

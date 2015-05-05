@@ -22,14 +22,7 @@
                         <p><a data-bind="attr:{ href: '/publication/'+ id()}" target="_blank">Click here to view more detail</a></p>
                     </div>
                     <div class="col-md-6">
-                        <legend class="scheduler-border">Notes <button type="button" class="btn btn-xs btn-primary" data-bind="click: addNote"><i class="fa fa-plus-square"></i> Add Note </button></legend>
-                        <div data-bind="foreach: notes">
-                            <p>
-                                <span data-bind="text: text"></span>
-                                <a href='#' data-bind='click: $root.editNote'><i class="fa fa-edit"></i></a>
-                                <a href='#' data-bind='click: $root.removeNote'><i class="fa fa-times"></i></a>
-                            </p>
-                        </div>
+                        <note-detail params="notes: notes, pub_id: id"></note-detail> 
                     </div>
                 </div>
                 <div class="col-md-6">
@@ -77,26 +70,11 @@
             <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
         </div>
     </div>
-    <div class="modal fade" data-bind="showModal: activateModal" data-backdrop="static" data-keyboard="false">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" data-bind="click:hideModal">&times;</button>
-                        <h4 class="modal-title">Edit Details and Click Save</h4>
-                    </div>
-                    <div class="modal-body" data-bind="with: modalData">
-                        <label class="control-label" for="id_abstract">Note</label>
-                        <textarea class="form-control" id="id_abstract" name="abstract" placeholder="Abstract" required="required" rows="4" data-bind="value: text"></textarea>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" data-bind="click: $root.saveNote">Save</button>
-                    </div>
-                </div>
-            </div>
-        </div>
 {% endblock content %}
 
 {% block javascript %}
+    {% include "includes/note_form.html" %}
+
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
         if(!viewModelJson.journal) viewModelJson.journal = {'name': null}
@@ -107,45 +85,6 @@
                 var self = this;
                 ko.mapping.fromJS(data, {}, self);
 
-                self.activateModal = ko.observable(false);
-                self.modalData = ko.observable();
-                self.selectedNote = ko.observable();
-
-                self.hideModal = function() {
-                    self.modalData("");
-                    self.activateModal("");
-                };
-                self.addNote = function() {
-                    self.modalData({id: -1, text: "", publication: self.id()});
-                    self.activateModal(true);
-                }
-                self.editNote = function(data, event) {
-                    self.selectedNote(data);
-                    self.modalData(ko.toJS(data));
-                    self.activateModal(true);
-                }
-                self.removeNote = function() {
-                    var note = this;
-                    self.makeRequest("DELETE", ko.toJSON(note), "/note/"+note.id())
-                        .done(function(result) {
-                            self.notes.remove(note);
-                        });
-                }
-                self.saveNote = function(data, event) { 
-                    if(self.modalData().id != -1) {
-                        self.makeRequest("PUT", ko.toJSON(self.selectedNote), "/note/"+self.modalData().id)
-                            .done(function(result) {
-                                self.selectedNote().text(self.modalData().text);
-                                self.hideModal();
-                            });
-                    } else {
-                        self.makeRequest("POST", ko.toJSON(self.modalData()), "{% url 'notes'%}")
-                            .done(function(result) {
-                                self.notes.push(ko.mapping.fromJS(result));
-                                self.hideModal();
-                            });
-                    }
-                }
                 self.selected_tags = ko.observableArray(ko.utils.arrayMap(self.tags(), function(tag) { return tag.value(); }));
                 self.selected_platforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
                 self.selected_sponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));

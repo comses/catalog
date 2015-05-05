@@ -1,3 +1,5 @@
+{% include "includes/note_form.html" %}
+
 <script type="text/html" id="publication_detail_form">
     <div class="widget-wrapper">
         <div class="widget-head">
@@ -128,20 +130,9 @@
                 <div class="col-md-2">
                     <label class="control-label" for="id_doi">Doi</label><input class="form-control" id="id_doi" maxlength="255" name="doi" placeholder="Doi" type="text" data-bind="value: doi">
                 </div>
-                <!--div class="col-md-4">
-                    <label class="control-label" for="id_assigned_curator">Assigned curator</label>
-                    <select class="form-control" id="id_assigned_curator" name="assigned_curator" data-bind="selectize: assigned_curator"></select>
+                <div class="col-md-6">
+                    <note-detail params="notes: notes, pub_id: id"></note-detail>
                 </div>
-                <div class="col-md-12">
-                    <label class="control-label" for="id_author_comments">Author comments</label>
-                    <textarea class="form-control" id="id_author_comments" name="author_comments" placeholder="Author comments" rows="2" data-bind="value: author_comments"></textarea>
-                </div>
-                <div class="col-md-4">
-                    <label class="control-label" for="id_creators">Creators</label>
-                    <select multiple="multiple" class="form-control" id="id_creators" name="creators" required="required">
-                    <option value="1604">Patrick Taillandier (AUTHOR)</option>
-                    </select>
-                </div -->
             </form>
         </div>
         <div class="widget-foot clearfix">
@@ -149,7 +140,7 @@
         </div>
     </div>
 </script>
-<script type="text/javascript">
+<script type="text/javascript"> 
     ko.components.register('publication-detail', {
         viewModel: function(params) {
             var defaultData = {
@@ -194,7 +185,7 @@
                         callback(JSON.parse(res).slice(0, 5));
                     }).fail(function() { callback(); });
             };
-
+ 
             model.gatherData = function(data) {
                 var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
                 data_clone.platforms(ko.utils.arrayMap(data.selected_platforms(), function(platform) {
@@ -227,6 +218,7 @@
                 }
                 return data_clone
             };
+
             model.savePublication = function(data, event) {
                 var pub_data = model.gatherData(data);
                 if(pub_data.id){ 
@@ -235,6 +227,7 @@
                     model.makeRequest("POST", window.location.pathname, ko.toJSON(pub_data));
                 }
             };
+
             model.makeRequest = function(request_type, url, data) {
                 $.ajax({
                     type: request_type,
