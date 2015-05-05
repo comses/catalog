@@ -86,6 +86,11 @@ class CreatorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Creator
 
+    def validate(self, data):
+        creator, created = Creator.objects.get_or_create(first_name=data['first_name'],
+                                                         last_name=data['last_name'],
+                                                         creator_type=data['creator_type'])
+        return creator
 
 class SponsorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -145,7 +150,7 @@ class JournalArticleSerializer(serializers.ModelSerializer):
     journal = JournalSerializer()
     model_documentation = ModelDocSerializer(allow_null=True)
     notes = NoteSerializer(source='note_set', many=True, read_only=True)
-    creators = CreatorSerializer(many=True, read_only=True)
+    creators = CreatorSerializer(many=True)
 
     class Meta:
         model = JournalArticle

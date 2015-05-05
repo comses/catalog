@@ -7,14 +7,14 @@
             <a href='#' data-bind='click: removeNote'><i class="fa fa-times"></i></a>
         </p>
     </div>
-    <div class="modal fade" data-bind="showModal: activateModal" data-backdrop="static" data-keyboard="false">
+    <div class="modal fade" data-bind="showModal: activateNoteModal" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true" data-bind="click:hideModal">&times;</button>
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true" data-bind="click:hideNoteModal">&times;</button>
                     <h4 class="modal-title">Edit Details and Click Save</h4>
                 </div>
-                <div class="modal-body" data-bind="with: modalData">
+                <div class="modal-body" data-bind="with: modalNoteData">
                     <label class="control-label">Note</label>
                     <textarea class="form-control" rows="3" data-bind="value: text"></textarea>
                 </div>
@@ -31,22 +31,22 @@
     viewModel: function(params) {
         self.notes = params.notes;
         self.pub_id = params.pub_id; 
-        self.activateModal = ko.observable(false);
-        self.modalData = ko.observable();
+        self.activateNoteModal = ko.observable(false);
+        self.modalNoteData = ko.observable();
         self.selectedNote = ko.observable();
 
-        self.hideModal = function() {
-            self.modalData("");
-            self.activateModal("");
+        self.hideNoteModal = function() {
+            self.modalNoteData("");
+            self.activateNoteModal("");
         };
         self.addNote = function() {
-            self.modalData({id: -1, text: "", publication: self.pub_id()});
-            self.activateModal(true);
+            self.modalNoteData({id: -1, text: "", publication: self.pub_id()});
+            self.activateNoteModal(true);
         };
         self.editNote = function(data, event) {
             self.selectedNote(data);
-            self.modalData(ko.toJS(data));
-            self.activateModal(true);
+            self.modalNoteData(ko.toJS(data));
+            self.activateNoteModal(true);
         };
         self.removeNote = function() {
             var note = this;
@@ -56,17 +56,17 @@
                 });
         };
         self.saveNote = function(data, event) { 
-            if(self.modalData().id != -1) {
-                self.makeRequest("PUT", ko.toJSON(self.modalData()), "/note/"+self.modalData().id)
+            if(self.modalNoteData().id != -1) {
+                self.makeRequest("PUT", ko.toJSON(self.modalNoteData()), "/note/"+self.modalNoteData().id)
                     .done(function(result) {
-                        self.selectedNote().text(self.modalData().text);
-                        self.hideModal();
+                        self.selectedNote().text(self.modalNoteData().text);
+                        self.hideNoteModal();
                     });
             } else {
-                self.makeRequest("POST", ko.toJSON(self.modalData()), "{% url 'notes'%}")
+                self.makeRequest("POST", ko.toJSON(self.modalNoteData()), "{% url 'notes'%}")
                     .done(function(result) {
                         self.notes.push(ko.mapping.fromJS(result));
-                        self.hideModal();
+                        self.hideNoteModal();
                     });
             }
         };
