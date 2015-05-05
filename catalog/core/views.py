@@ -117,6 +117,8 @@ class PublicationList(LoginRequiredMixin, APIView):
         return Response({ 'json': dumps(response) }, template_name="publications.html")
 
     def post(self, request, format=None):
+        # adding current user to added_by field
+        request.data.update({'added_by': request.user.id})
         serializer = JournalArticleSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()

@@ -6,6 +6,7 @@ from django.db.models import F
 
 from rest_framework import serializers, pagination
 from rest_framework.compat import OrderedDict
+from rest_framework.utils import model_meta
 
 from .models import (Tag, Sponsor, Platform, Creator, Publication, Journal, JournalArticle, InvitationEmail, ModelDocumentation,
                      Note,)
@@ -155,13 +156,35 @@ class JournalArticleSerializer(serializers.ModelSerializer):
     class Meta:
         model = JournalArticle
         exclude = ('date_added', 'date_modified', 'zotero_date_added', 'zotero_date_modified', 'zotero_key', 'email_sent_count',
-                    'assigned_curator', 'added_by', 'date_published_text', 'author_comments')
+                    'assigned_curator', 'date_published_text', 'author_comments')
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+    def create(self, validated_data):
+        ModelClass = self.Meta.model
+
+        # Remove many-to-many relationships from validated_data.
+        # They are not valid arguments to the default `.create()` method,
+        # as they require that the instance has already been saved.
+        info = model_meta.get_field_info(ModelClass)
+        many_to_many = {}
+        for field_name, relation_info in info.relations.items():
+            if relation_info.to_many and (field_name in validated_data):
+                many_to_many[field_name] = validated_data.pop(field_name)
+
+        instance = ModelClass.objects.create(**validated_data)
+
+        # Save many-to-many relationships after the instance is created.
+        if many_to_many:
+            for field_name, value in many_to_many.items():
+                setattr(instance, field_name, value)
+
+        return instance
+
 
 ############################
 #    Custom Serializers    #

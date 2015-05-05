@@ -11,9 +11,11 @@
         <div class="widget-content clearfix">
             <form role="form">
                 <div class="well clearfix">
+                    <!-- ko if: id -->
                     <div class="col-md-6">
                         <note-detail params="notes: notes, pub_id: id"></note-detail>
                     </div>
+                    <!-- /ko -->
                     <div class="col-md-6">
                         <creator-detail params="creators: creators"></creator-detail>
                     </div>
@@ -146,14 +148,14 @@
         </div>
     </div>
 </script>
-<script type="text/javascript"> 
+<script type="text/javascript">
     ko.components.register('publication-detail', {
         viewModel: function(params) {
             var defaultData = {
-                title: '', abstract: '', status: '', short_title: '', url: '', date_published: '', date_accessed: '', archive: '', 
-                archive_location: '', library_catalog: '', call_number: '', rights: '', extra: '', published_language: '', 
+                id: null, title: '', abstract: '', status: '', short_title: '', url: '', date_published: '', date_accessed: '', 
+                archive: '', archive_location: '', library_catalog: '', call_number: '', rights: '', extra: '', published_language: '', 
                 code_archive_url: '', contact_email: '', pages: '', issn: '', volume: '', issue: '', series: '', series_title: '',
-                series_text: '', doi: '', tags: [], platforms: [], sponsors: [], journal: null, model_documentation: null
+                series_text: '', doi: '', tags: [], platforms: [], sponsors: [], notes:[], creators:[], journal: null, model_documentation: null
             }
             //use default data for any property not found in data
             var data = $.extend(defaultData, params.data);
@@ -227,7 +229,7 @@
 
             model.savePublication = function(data, event) {
                 var pub_data = model.gatherData(data);
-                if(pub_data.id){ 
+                if(pub_data.id()){ 
                     model.makeRequest("PUT", window.location.pathname, ko.toJSON(pub_data));
                 } else {
                     model.makeRequest("POST", window.location.pathname, ko.toJSON(pub_data));
