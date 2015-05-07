@@ -223,6 +223,8 @@ class NoteList(LoginRequiredMixin, APIView):
         return Response({'json': dumps(serializer.data)})
 
     def post(self, request):
+        # adding current user to added_by field
+        request.data.update({'added_by': request.user.id})
         serializer = NoteSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()

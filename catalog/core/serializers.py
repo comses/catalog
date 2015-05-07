@@ -140,7 +140,7 @@ class JournalSerializer(serializers.ModelSerializer):
 class NoteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Note
-        fields = ('id', 'text',  'publication')
+        fields = ('id', 'text',  'publication', 'added_by')
 
 
 class JournalArticleSerializer(serializers.ModelSerializer):
