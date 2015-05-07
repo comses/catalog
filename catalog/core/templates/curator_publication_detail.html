@@ -53,13 +53,16 @@
                 <div class="col-md-6">
                     <label class="control-label" for="id_status">Select Status</label>
                     <div class="btn-group" data-toggle="buttons" id="id_status">
-                        <label class="btn btn-primary">
-                            <input type="radio" name="status" value="UNTAGGED" data-bind="bsChecked: status"> Mark as Incomplete
+                        <label class="btn btn-warning btn-sm">
+                            <input type="radio" name="status" value="UNTAGGED" data-bind="bsChecked: status"> Incomplete
                         </label>
-                        <label class="btn btn-success">
-                            <input type="radio" name="status" value="COMPLETE" data-bind="bsChecked: status"> Mark as Completed
+                        <label class="btn btn-primary btn-sm">
+                            <input type="radio" name="status" value="NEEDS_AUTHOR_REVIEW" data-bind="bsChecked: status"> Requires Author Review 
                         </label>
-                        <label class="btn btn-danger">
+                        <label class="btn btn-success btn-sm">
+                            <input type="radio" name="status" value="COMPLETE" data-bind="bsChecked: status"> Complete
+                        </label>
+                        <label class="btn btn-danger btn-sm">
                             <input type="radio" name="status" value="FLAGGED" data-bind="bsChecked: status"> Flag for Further Review
                         </label>
                     </div>
