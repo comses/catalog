@@ -77,6 +77,7 @@ class Note(models.Model):
     zotero_key = models.CharField(max_length=64, unique=True, null=True, blank=True)
     zotero_date_added = models.DateTimeField(null=True, blank=True)
     zotero_date_modified = models.DateTimeField(null=True, blank=True)
+    added_by = models.ForeignKey(User, related_name='added_note_set')
 
     publication = models.ForeignKey('Publication', null=True, blank=True)
 
@@ -138,8 +139,8 @@ class Publication(models.Model):
                                       help_text=_('Date this publication was imported into this system'))
     date_modified = models.DateTimeField(auto_now=True,
                                          help_text=_('Date this publication was last modified on this system'))
-    zotero_date_added = models.DateTimeField(help_text=_('incoming date added field from zotero'), null=True, blank=True)
-    zotero_date_modified = models.DateTimeField(help_text=_('incoming date modified field from zotero'), null=True, blank=True)
+    zotero_date_added = models.DateTimeField(help_text=_('date added field from zotero'), null=True, blank=True)
+    zotero_date_modified = models.DateTimeField(help_text=_('date modified field from zotero'), null=True, blank=True)
     status = models.CharField(choices=Status, max_length=32, default=Status.UNTAGGED)
     creators = models.ManyToManyField(Creator)
 

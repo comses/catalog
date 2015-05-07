@@ -1,8 +1,8 @@
+from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
-
-from datetime import datetime
+from lxml import html
 from optparse import make_option
 from pyzotero import zotero
 
@@ -12,7 +12,6 @@ from catalog.core.models import (Creator, Publication, JournalArticle, Tag, Note
 import logging
 import requests
 import re
-import lxml
 
 
 logger = logging.getLogger(__name__)
@@ -199,26 +198,28 @@ class Command(BaseCommand):
                     else:
                         item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
                 except Exception:
-                    logger.exception("Error verifying code archive url %s for publication_id %s", item.code_archive_url, item.pk)
+                    logger.exception("Error verifying code archive url %s for publication_id %s",
+                                     item.code_archive_url, item.pk)
                     item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
         item.save()
         return item
 
     def get_raw_note(self, html_text):
-        document = lxml.html.document_fromstring(html_text)
-        return document.text_content()
+        if html_text:
+            return html.document_fromstring(html_text).text_content().strip()
+        return ''
 
     def create_note(self, data, meta):
         try:
             return Note.objects.get(zotero_key=data['key'])
         except Note.DoesNotExist:
-            item = Note(zotero_key=data['key'])
-            item.text = self.get_raw_note(data['note'].strip())
-            item.zotero_date_added = data['dateAdded']
-            item.zotero_date_modified = data['dateModified']
-            item.added_by = self.get_user(meta['createdByUser'])
-            item.save()
-            return item
+            note_text = self.get_raw_note(data['note'])
+            if note_text:
+                return Note.objects.create(zotero_key=data['key'],
+                                           text=note_text,
+                                           zotero_date_added=data['dateAdded'],
+                                           zotero_date_modified=data['dateModified'],
+                                           added_by=self.get_user(meta['createdByUser']))
 
     def generate_entry(self, data):
         for item in data:
@@ -233,13 +234,13 @@ class Command(BaseCommand):
                     pub_map.update({item['data']['key']: article})
             elif item['data']['itemType'] == 'note':
                 note = self.create_note(item['data'], item['meta'])
-
-                if 'parentItem' in item['data']:
-                    if item['data']['parentItem'] in pub_map:
-                        note.publication = pub_map[item['data']['parentItem']]
-                        note.save()
-                    else:
-                        note_map.update({item['data']['parentItem']: note})
+                if note:
+                    if 'parentItem' in item['data']:
+                        if item['data']['parentItem'] in pub_map:
+                            note.publication = pub_map[item['data']['parentItem']]
+                            note.save()
+                        else:
+                            note_map.update({item['data']['parentItem']: note})
 
     def handle(self, *args, **options):
         zot = zotero.Zotero(options['group_id'], "group", settings.ZOTERO_API_KEY)
