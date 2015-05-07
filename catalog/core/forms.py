@@ -3,7 +3,7 @@ from django.forms import widgets
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Publication
+from .models import Publication, JournalArticle
 
 from haystack.forms import SearchForm
 
@@ -44,7 +44,8 @@ class CustomSearchForm(SearchForm):
 
     def search(self, user=None):
         # First, store the SearchQuerySet received from other processing.
-        sqs = super(CustomSearchForm, self).search()
+        # NOTE: Keep on adding the publication subtypes to models below to show them in search
+        sqs = super(CustomSearchForm, self).search().models(JournalArticle)
 
         if not self.is_valid():
             if not user:
