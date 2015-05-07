@@ -78,9 +78,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         context['untagged_publications_count'] = Publication.objects.filter(status=Publication.Status.UNTAGGED,
                                                                             assigned_curator=self.request.user).count()
-        context['recently_author_updated'] = Publication.objects.select_subclasses().filter(status=Publication.Status.AUTHOR_UPDATED)
+        context['recently_author_updated'] = Publication.objects.select_subclasses().filter(
+            status=Publication.Status.AUTHOR_UPDATED)
         pub_recently_updated = Publication.objects.select_subclasses().exclude(status=Publication.Status.AUTHOR_UPDATED)
-        context['recently_updated'] = pub_recently_updated.filter(date_modified__gte=last_week_datetime).order_by('-date_modified')[:10]
+        context['recently_updated'] = pub_recently_updated.filter(
+            date_modified__gte=last_week_datetime).order_by('-date_modified')[:10]
         return context
 
 
@@ -114,7 +116,7 @@ class PublicationList(LoginRequiredMixin, APIView):
         result_page = paginator.paginate_queryset(publication_list, request)
         serializer = PublicationSerializer(result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
-        return Response({ 'json': dumps(response) }, template_name="publications.html")
+        return Response({'json': dumps(response)}, template_name="publications.html")
 
     def post(self, request, format=None):
         # adding current user to added_by field
@@ -141,7 +143,7 @@ class PublicationDetail(LoginRequiredMixin, APIView):
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
         serializer = JournalArticleSerializer(publication)
-        return Response({ 'json': dumps(serializer.data) }, template_name='publication_detail.html')
+        return Response({'json': dumps(serializer.data)}, template_name='publication_detail.html')
 
     def put(self, request, pk):
         publication = self.get_object(pk)
@@ -152,7 +154,7 @@ class PublicationDetail(LoginRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CuraterPublicationDetail(LoginRequiredMixin, APIView):
+class CuratorPublicationDetail(LoginRequiredMixin, APIView):
     """
     Retrieve, update or delete a publication instance.
     """
@@ -167,7 +169,7 @@ class CuraterPublicationDetail(LoginRequiredMixin, APIView):
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
         serializer = JournalArticleSerializer(publication)
-        return Response({ 'json': dumps(serializer.data) }, template_name='curator_publication_detail.html')
+        return Response({'json': dumps(serializer.data)}, template_name='curator_publication_detail.html')
 
     def put(self, request, pk):
         publication = self.get_object(pk)
@@ -193,7 +195,7 @@ class NoteDetail(LoginRequiredMixin, APIView):
     def get(self, request, pk, format=None):
         note = self.get_object(pk)
         serializer = NoteSerializer(note)
-        return Response({ 'json': dumps(serializer.data) })
+        return Response({'json': dumps(serializer.data)})
 
     def put(self, request, pk):
         note = self.get_object(pk)
@@ -213,11 +215,12 @@ class NoteList(LoginRequiredMixin, APIView):
     """
     Get all the notes or create a note
     """
+    renderer_classes = (JSONRenderer, )
 
     def get(self, request, format=None):
         note = Note.objects.all()
         serializer = NoteSerializer(note, many=True)
-        return Response({ 'json': dumps(serializer.data) })
+        return Response({'json': dumps(serializer.data)})
 
     def post(self, request):
         serializer = NoteSerializer(data=request.data)
@@ -303,7 +306,7 @@ class AssignedPubSearchView(SearchView):
 
 class ContactAuthor(LoginRequiredMixin, APIView):
     """
-    Send out invitations to authors to archive their work
+    Emails invitations to authors to archive their work
     """
     renderer_classes = (JSONRenderer, )
 

@@ -14,7 +14,7 @@
                 <tbody>
                     {% for row in page.object_list %}
                         <tr class="{% cycle "odd" "even" %}">
-                            <td><a href="{% url 'curater_publication_detail' row.pk %}">{{ row.title }}</td>
+                            <td><a href="{% url 'curator_publication_detail' row.pk %}">{{ row.title }}</td>
                             <td>{{ row.pub_date }}</td>
                         </tr>
                     {% empty %}
@@ -25,7 +25,7 @@
                 </tbody>
             </table>
         </div>
-        {% if page.has_previous or page.has_next and request.GET %}
+        {% if page.has_previous or page.has_next %}
         <div class="widget-foot clearfix">
             <div class="text-center">{% bootstrap_pagination page url=request.get_full_path %}</div>
         </div>

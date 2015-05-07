@@ -5,7 +5,7 @@ from django.views.generic import RedirectView, TemplateView
 
 from .views import (LoginView, LogoutView, DashboardView, PublicationDetail, PublicationList, EmailPreview,
                     ContactAuthor, ArchivePublication, CustomSearchView, ContactUsView, UserProfileView, PlatformSearchView,
-                    SponsorSearchView, TagSearchView, JournalSearchView, ModelDocSearchView, CuraterPublicationDetail,
+                    SponsorSearchView, TagSearchView, JournalSearchView, ModelDocSearchView, CuratorPublicationDetail,
                     AssignedPubSearchView, NoteList, NoteDetail, )
 
 from .forms import CustomSearchForm
@@ -14,7 +14,7 @@ from .forms import CustomSearchForm
 urlpatterns = format_suffix_patterns([
     url(r'^publication$', PublicationList.as_view(), name='publications'),
     url(r'^publication/(?P<pk>\d+)$', PublicationDetail.as_view(), name='publication_detail'),
-    url(r'^publication/(?P<pk>\d+)/curate$', CuraterPublicationDetail.as_view(), name='curater_publication_detail'),
+    url(r'^publication/(?P<pk>\d+)/curate$', CuratorPublicationDetail.as_view(), name='curator_publication_detail'),
     url(r'^publication/email-preview$', EmailPreview.as_view(), name='invite_email_preview'),
     url(r'^publication/invite$', ContactAuthor.as_view(), name='send_invites'),
     url(r'^publication/archive/(?P<token>[\w:-]+)$', ArchivePublication.as_view(), name='publication_archive'),

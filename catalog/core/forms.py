@@ -50,7 +50,7 @@ class CustomSearchForm(SearchForm):
             if not user:
                 return self.no_query_found()
             else:
-                return sqs.filter(assigned_curator=user.username, status=Publication.Status.UNTAGGED).order_by('-pub_date')
+                return sqs.filter(assigned_curator=user, status=Publication.Status.UNTAGGED).order_by('-pub_date')
 
         criteria = dict()
         # Check to see if a start_date was chosen.

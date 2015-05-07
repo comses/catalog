@@ -8,8 +8,8 @@ from rest_framework import serializers, pagination
 from rest_framework.compat import OrderedDict
 from rest_framework.utils import model_meta
 
-from .models import (Tag, Sponsor, Platform, Creator, Publication, Journal, JournalArticle, InvitationEmail, ModelDocumentation,
-                     Note,)
+from .models import (Tag, Sponsor, Platform, Creator, Publication, Journal, JournalArticle, InvitationEmail,
+                     ModelDocumentation, Note,)
 
 from hashlib import sha1
 
@@ -35,6 +35,7 @@ class CustomPagination(pagination.PageNumberPagination):
 ###########################
 #    Model Serializers    #
 ###########################
+
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """
@@ -92,6 +93,7 @@ class CreatorSerializer(serializers.ModelSerializer):
                                                          last_name=data['last_name'],
                                                          creator_type=data['creator_type'])
         return creator
+
 
 class SponsorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -155,9 +157,13 @@ class JournalArticleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JournalArticle
-        exclude = ('date_added', 'date_modified', 'zotero_date_added', 'zotero_date_modified', 'zotero_key', 'email_sent_count',
-                    'assigned_curator', 'date_published_text', 'author_comments')
+        exclude = ('date_added', 'date_modified', 'zotero_date_added', 'zotero_date_modified', 'zotero_key',
+                   'email_sent_count', 'assigned_curator', 'date_published_text', 'author_comments')
 
+    """
+    XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some
+    point.
+    """
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -226,7 +232,8 @@ class ContactUsSerializer(serializers.Serializer):
         email = self.validated_data['email']
         message = self.validated_data['message']
 
-        send_mail(from_email=email, message=message, subject="Some Subject", recipient_list=[settings.DEFAULT_FROM_EMAIL])
+        send_mail(from_email=email, message=message, subject="CoMSES Catalog Feedback",
+                  recipient_list=[settings.DEFAULT_FROM_EMAIL])
 
 
 class InvitationSerializer(serializers.Serializer):

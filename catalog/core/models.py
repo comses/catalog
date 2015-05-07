@@ -38,6 +38,14 @@ class InvitationEmail(object):
         return self.plaintext_template.render(self.get_context(message, token))
 
 
+class InvitationEmailTemplate(models.Model):
+    name = models.CharField(max_length=32)
+    text = models.TextField()
+    date_added = models.DateTimeField(auto_now_add=True)
+    last_modified = models.DateTimeField(auto_now=True)
+    added_by = models.ForeignKey(User)
+
+
 class Creator(models.Model):
     CREATOR_CHOICES = Choices(
         ('AUTHOR', _('author')),
