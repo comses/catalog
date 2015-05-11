@@ -4,7 +4,7 @@
 {% block content %}
     <div class="widget-wrapper">
         <div class="widget-head">
-            <h4>Publications Assigned to You</h4>
+            <h4>Assigned Publications</h4>
         </div>
         <div class="widget-content">
             <table class="table table-striped">
@@ -14,12 +14,12 @@
                 <tbody>
                     {% for row in page.object_list %}
                         <tr class="{% cycle "odd" "even" %}">
-                            <td><a href="{% url 'curator_publication_detail' row.pk %}">{{ row.title }}</td>
+                            <td><a href="{% url 'core:curator_publication_detail' row.pk %}">{{ row.title }}</td>
                             <td>{{ row.pub_date }}</td>
                         </tr>
                     {% empty %}
                         <tr class="{% cycle "odd" "even" %}">
-                            <td colspan="2">No untagged publications assigned to you needs review. Keep up the good work!!</td>
+                            <td colspan="2">No assigned publications.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

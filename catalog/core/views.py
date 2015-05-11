@@ -300,7 +300,7 @@ class CustomSearchView(SearchView):
 
 
 class AssignedPubSearchView(SearchView):
-    template = 'search/search_assigned_publication.html'
+    template = 'search/assigned_publications.html'
 
     def get_results(self):
         return self.form.search(self.request.user)

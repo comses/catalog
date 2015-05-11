@@ -51,9 +51,11 @@ class PublicationSerializer(serializers.ModelSerializer):
     """
     Serializes publication querysets.
     """
+    detail_url = serializers.CharField(source='get_absolute_url', read_only=True)
+
     class Meta:
         model = Publication
-        fields = ('id', 'title', 'date_published')
+        fields = ('id', 'title', 'date_published', 'detail_url',)
 
 
 class TagSerializer(serializers.ModelSerializer):

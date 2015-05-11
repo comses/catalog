@@ -26,7 +26,7 @@
                     <tbody data-bind="foreach: results">
                         <tr>
                             <td>
-                                <a href="#" data-bind="attr:{href: url()}, text: title"></a>
+                                <a data-bind="attr:{ href: detail_url() }, text: title"></a>
                             </td>
                             <td data-bind="text: date_published"></td>
                         </tr>
@@ -34,9 +34,9 @@
                 </table>
                 <nav>
                     <ul class="pager">
-                        <li class="previous" data-bind="css: {disabled: !canGoPrevious()}"><a href="#" data-bind="attr:{href: previous}"><span aria-hidden="true">&larr;</span> Previous Page</a></li>
+                        <li class="previous" data-bind="css: {disabled: !canGoPrevious()}"><a data-bind="attr:{href: previous}"><span aria-hidden="true">&larr;</span> Previous Page</a></li>
                         <li data-bind="text: tableInfo"></li>
-                        <li class="next" data-bind="css: {disabled: !canGoNext()}"><a href="#" data-bind="attr:{href: next}">Next Page<span aria-hidden="true">&rarr;</span></a></li>
+                        <li class="next" data-bind="css: {disabled: !canGoNext()}"><a data-bind="attr:{href: next}">Next Page<span aria-hidden="true">&rarr;</span></a></li>
                     </ul>
                 </nav>
             </div>
@@ -49,15 +49,11 @@
 
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
-        var publication_url = "{% url 'publications' %}"
 
         $(function(){
             var Publication =  function(data) {
                 var self = this;
                 ko.mapping.fromJS(data, {}, self);
-                self.url = function() {
-                    return publication_url + "/" + self.id();
-                }
             }
 
             var PagedPublicationGridModel = function(data) {

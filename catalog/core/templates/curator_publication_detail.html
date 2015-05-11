@@ -82,7 +82,6 @@
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
         if(!viewModelJson.journal) viewModelJson.journal = {'name': null}
         if(!viewModelJson.model_documentation) viewModelJson.model_documentation = {'value': null}
-        
         $(function(){
             var PublicationDetail = function(data) {
                 var self = this;
@@ -95,19 +94,19 @@
                 self.model_docs = ko.observableArray([data.model_documentation || ""]);
 
                 self.getPlatformList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, "{% url 'platform_search' %}");
+                    self.makeAsyncRequest(query, callback, "{% url 'core:platform_search' %}");
                 };
                 self.getSponsorList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, "{% url 'sponsor_search' %}");
+                    self.makeAsyncRequest(query, callback, "{% url 'core:sponsor_search' %}");
                 };
                 self.getTagList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, "{% url 'tag_search' %}");
+                    self.makeAsyncRequest(query, callback, "{% url 'core:tag_search' %}");
                 };
                 self.getJournalList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, "{% url 'journal_search' %}");
+                    self.makeAsyncRequest(query, callback, "{% url 'core:journal_search' %}");
                 };
                 self.getModelDocList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, "{% url 'model_doc_search' %}");
+                    self.makeAsyncRequest(query, callback, "{% url 'core:model_doc_search' %}");
                 };
 
                 self.makeAsyncRequest = function(query, callback, url) {
@@ -117,7 +116,7 @@
                             callback(JSON.parse(res).slice(0, 5));
                         }).fail(function() { callback(); });
                 };
-
+                {# FIXME: code duplication #}
                 self.makeRequest = function(request_type, data, url) {
                      return $.ajax({
                         type: request_type,
@@ -164,8 +163,8 @@
 
                     self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname)
                         .done(function(result) {
-                            window.location.replace("{% url 'curator_workflow' %}");
-                            humane.log("Data save was success!!", {timeout: 5000})
+                            window.location.replace("{% url 'core:curator_workflow' %}");
+                            humane.log("Data saved successfully.", {timeout: 5000})
                         });
                 };
             };

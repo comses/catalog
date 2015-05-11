@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site, RequestSite
+from django.core.urlresolvers import reverse
 from django.db import models
 from django.template import Context
 from django.template.loader import get_template
@@ -170,6 +171,9 @@ class Publication(models.Model):
                                          blank=True,
                                          help_text=_("Currently assigned curator"),
                                          related_name='assigned_publication_set')
+
+    def get_absolute_url(self):
+        return reverse('core:publication_detail', args=[self.pk])
 
     def __unicode__(self):
         return u'{0}'.format(self.title)

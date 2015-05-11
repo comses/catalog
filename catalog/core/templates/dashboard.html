@@ -5,27 +5,27 @@
         <div class="col-md-2">
             <div class="panel panel-success">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{% url 'haystack_search' %}?q=&publication_start_date=&publication_end_date=&status=">Total</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?q=&publication_start_date=&publication_end_date=&status=">All</a></h3>
                 </div>
                 <div class="panel-body">
                     <h1 class="text-center">{{status.TOTAL|default:"0"}}</h1>
                 </div>
-            </div> 
-        </div> 
+            </div>
+        </div>
         <div class="col-md-2">
             <div class="panel panel-success">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{% url 'haystack_search' %}?status=COMPLETE">Complete</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=COMPLETE">Complete</a></h3>
                 </div>
                 <div class="panel-body">
                     <h1 class="text-center">{{status.COMPLETE|default:"0"}}</h1>
                 </div>
-            </div> 
-        </div> 
+            </div>
+        </div>
         <div class="col-md-2">
             <div class="panel panel-info">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{% url 'haystack_search' %}?status=AUTHOR_UPDATED">Author Updated</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=AUTHOR_UPDATED">Author Updated</a></h3>
                 </div>
                 <div class="panel-body">
                     <h1 class="text-center">{{status.AUTHOR_UPDATED|default:"0"}}</h1>
@@ -35,7 +35,7 @@
         <div class="col-md-2">
             <div class="panel panel-warning">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{% url 'haystack_search' %}?status=NEEDS_AUTHOR_REVIEW">Needs Author Review</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=NEEDS_AUTHOR_REVIEW">Needs Author Review</a></h3>
                 </div>
                 <div class="panel-body">
                     <h1 class="text-center">{{status.NEEDS_AUTHOR_REVIEW|default:"0"}}</h1>
@@ -45,7 +45,7 @@
         <div class="col-md-2">
             <div class="panel panel-warning">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{% url 'haystack_search' %}?status=UNTAGGED">Needs Review</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=UNTAGGED">Needs Review</a></h3>
                 </div>
                 <div class="panel-body">
                     <h1 class="text-center">{{status.UNTAGGED|default:"0"}}</h1>
@@ -55,7 +55,7 @@
         <div class="col-md-2">
             <div class="panel panel-danger">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{% url 'haystack_search' %}?status=FLAGGED">Flagged</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=FLAGGED">Flagged</a></h3>
                 </div>
                 <div class="panel-body">
                     <h1 class="text-center">{{status.FLAGGED|default:"0"}}</h1>
@@ -67,7 +67,7 @@
         <div class="col-md-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title"><a href="{% url 'curator_workflow' %}">Publications assigned to you for tagging: </a><span class="badge">{{untagged_publications_count}}</span>
+                    <h3 class="panel-title"><a href="{{ curator_workflow_url }}">Publications assigned to you for tagging: </a><span class="badge">{{untagged_publications_count}}</span>
                     </h3>
                 </div>
             </div>
@@ -88,7 +88,7 @@
                             <tr>
                                 <td>{{forloop.counter}}</td>
                                 <td>{{ pub.date_modified }}</td>
-                                <td><a href="{% url 'publication_detail' pub.pk %}">{{ pub.title }}</a></td></tr>
+                                <td><a href="{% url 'core:publication_detail' pub.pk %}">{{ pub.title }}</a></td></tr>
                         {% endfor %}
                         </tbody>
                     </table>
@@ -114,7 +114,7 @@
                             <tr>
                                 <td>{{forloop.counter}}</td>
                                 <td>{{ pub.date_modified }}</td>
-                                <td><a href="{% url 'publication_detail' pub.pk %}">{{ pub.title }}</a></td></tr>
+                                <td><a href="{% url 'core:publication_detail' pub.pk %}">{{ pub.title }}</a></td></tr>
                         {% endfor %}
                         </tbody>
                     </table>

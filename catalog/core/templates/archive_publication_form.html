@@ -44,8 +44,7 @@
                 self.author_comments = ko.observable(data.author_comments);
  
                 self.saveInfo = function(data, event) {
-                    $.ajax({
-                        type: "POST",
+                    $.post({
                         url: window.location.pathname,
                         data: ko.toJSON(data),
                         dataType: "json",
@@ -54,7 +53,7 @@
                             $('.widget-content').html("Your work has been archived successfully. Thanks.")
                         },
                         error: function(result) {
-                            humane.log("Please enter code archive url and try again!!", {timeout: 5000});
+                            humane.log("Errors while saving code archive URL, please try again.", {timeout: 5000});
                             console.log(result.responseJSON);
                         }
                     });

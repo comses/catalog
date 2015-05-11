@@ -1,15 +1,15 @@
 {% load tags %}
 {% load static from staticfiles %}
-{% url 'login' as login %}
-{% url 'logout' as logout %}
-{% url 'index' as index %}
-{% url 'dashboard' as dashboard %}
-{% url 'user_profile' as profile %}
-{% url 'publications' as publications %}
-{% url 'haystack_search' as search %}
-{% url 'curator_workflow' as curator_workflow %}
-{% url 'contact_us' as contact_us %}
-{% url 'report_issues' as issues_url %}
+{% url 'core:login' as login_url %}
+{% url 'core:logout' as logout_url %}
+{% url 'core:index' as index_url %}
+{% url 'core:dashboard' as dashboard_url %}
+{% url 'core:user_profile' as profile_url %}
+{% url 'core:publications' as publications_url %}
+{% url 'core:haystack_search' as search_url %}
+{% url 'core:curator_workflow' as curator_workflow_url %}
+{% url 'core:contact_us' as contact_url %}
+{% url 'core:report_issues' as issues_url %}
 
 <!doctype html>
 <html class="no-js" lang="">
@@ -45,16 +45,16 @@
                             <span class="icon-bar"></span>
                             <span class="icon-bar"></span>
                         </button>
-                        <a href="{{ index }}" class="navbar-brand"><img width="163" height="37" src='{% static "images/comses-logo.png" %}' alt='CoMSES Network'></a>
+                        <a href="{{ index_url }}" class="navbar-brand"><img width="163" height="37" src='{% static "images/comses-logo.png" %}' alt='CoMSES Network'></a>
                     </div>
                     <ul class='nav navbar-nav'>
                         {% if user.is_authenticated %}
-                            <li class='{{ request|active_re:dashboard }}'><a href='{{ dashboard }}'><i class='fa fa-tachometer'></i> Dashboard</a></li>
-                            <li class='{{ request|active_re:publications }}'><a href='{{ publications }}'><i class='fa fa-newspaper-o'></i> Publications</a></li>
-                            <li class='{{ request|active_re:curator_workflow }}'><a href='{{ curator_workflow }}'><i class='fa fa-suitcase'></i> Curator's WorkFlow</a></li>
-                            <li class='{{ request|active_re:search }}'><a href='{{ search }}'><i class='fa fa-search'></i> Search</a></li>
+                            <li class='{{ request|active_re:dashboard_url }}'><a href='{{ dashboard_url }}'><i class='fa fa-tachometer'></i> Dashboard</a></li>
+                            <li class='{{ request|active_re:curator_workflow_url }}'><a href='{{ curator_workflow_url }}'><i class='fa fa-suitcase'></i> Untagged Publications</a></li>
+                            <li class='{{ request|active_re:publications_url }}'><a href='{{ publications_url }}'><i class='fa fa-newspaper-o'></i> All Publications</a></li>
+                            <li class='{{ request|active_re:search_url }}'><a href='{{ search_url }}'><i class='fa fa-search'></i> Search</a></li>
                         {% endif %}
-                        <li class='{{ request|active_re:contact_us }}'><a href='{{ contact_us }}'><i class='fa fa-bell-o'></i> Contact us</a></li>
+                        <li class='{{ request|active_re:contact_url }}'><a href='{{ contact_url }}'><i class='fa fa-bell-o'></i> Contact us</a></li>
                         <li><a target='_blank' href='{{ issues_url }}'><i class='fa fa-bullhorn'></i> Report a bug</a></li>
                     </ul>
                     <ul class="nav navbar-nav pull-right">
@@ -65,13 +65,13 @@
                                 </a> 
                                 <!-- Dropdown menu -->
                                 <ul class="dropdown-menu">
-                                    <li><a href="{{ profile }}"><i class="fa fa-user"></i> Profile</a></li>
-                                    <li><a href="{{ logout }}"><i class="fa fa-sign-out"></i> Logout</a></li>
+                                    <li><a href="{{ profile_url }}"><i class="fa fa-user"></i> Profile</a></li>
+                                    <li><a href="{{ logout_url }}"><i class="fa fa-sign-out"></i> Logout</a></li>
                                 </ul>
                             </li>
                         {% else %}
-                            <li class='{{ request|active:login }}'>
-                                <a href='{{ login }}'><i class='fa fa-sign-in'></i> Sign In</a>
+                            <li class='{{ request|active:login_url }}'>
+                                <a href='{{ login_url }}'><i class='fa fa-sign-in'></i> Sign In</a>
                             </li>
                         {% endif %}
                     </ul>

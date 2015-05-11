@@ -35,7 +35,7 @@
     </script>
 
     <script id="choicePubTmpl" type="text/html">
-        <form role="search" method="get" action="{% url 'haystack_search' %}" class="form-horizontal">
+            <form role="search" method="get" action="{{ search }}" class="form-horizontal">
             {% bootstrap_form form layout="horizontal" label_class="col-md-2" %}
             {% buttons layout='horizontal' label_class="col-md-2" %}
                 <button type="submit" class="btn btn-default">Search</button>
@@ -50,7 +50,7 @@
                 <tbody>
                     {% for row in page.object_list %}
                         <tr class="{% cycle "odd" "even" %}">
-                            <td><a href="{% url 'publication_detail' row.pk %}">{{ row.title }}</td>
+                            <td><a href="{% url 'core:publication_detail' row.pk %}">{{ row.title }}</td>
                             <td>{{ row.pub_date }}</td>
                         </tr>
                     {% empty %}
@@ -108,7 +108,7 @@
 
                 self.previewEmail = function(formElement) {
                     var formData = $(formElement).serialize()
-                    $.get("{% url 'invite_email_preview' %}?" + formData)
+                    $.get("{% url 'core:invite_email_preview' %}?" + formData)
                         .done(function(result) {
                             $("#email-text").html(result.content);
                         })
@@ -160,7 +160,7 @@
                         var $btn = $("#nextBtn").button('loading');
                         $.ajax({
                             type: "POST",
-                            url: "{% url 'send_invites' %}" + window.location.search,
+                            url: "{% url 'core:send_invites' %}" + window.location.search,
                             contentType: "application/json; charset=utf-8",
                             data: ko.toJSON(self.currentStep().model()),
                             dataType:"json",

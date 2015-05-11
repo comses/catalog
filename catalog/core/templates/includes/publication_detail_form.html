@@ -171,19 +171,19 @@
             model.model_docs = ko.observableArray([data.model_documentation || ""]);
 
             model.getPlatformList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'platform_search' %}");
+                model.makeAsyncRequest(query, callback, "{% url 'core:platform_search' %}");
             };
             model.getSponsorList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'sponsor_search' %}");
+                model.makeAsyncRequest(query, callback, "{% url 'core:sponsor_search' %}");
             };
             model.getTagList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'tag_search' %}");
+                model.makeAsyncRequest(query, callback, "{% url 'core:tag_search' %}");
             };
             model.getJournalList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'journal_search' %}");
+                model.makeAsyncRequest(query, callback, "{% url 'core:journal_search' %}");
             };
             model.getModelDocList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'model_doc_search' %}");
+                model.makeAsyncRequest(query, callback, "{% url 'core:model_doc_search' %}");
             };
 
             model.makeAsyncRequest = function(query, callback, url) {
@@ -229,13 +229,14 @@
 
             model.savePublication = function(data, event) {
                 var pub_data = model.gatherData(data);
-                if(pub_data.id()){ 
+                if (pub_data.id()) { 
                     model.makeRequest("PUT", window.location.pathname, ko.toJSON(pub_data));
                 } else {
                     model.makeRequest("POST", window.location.pathname, ko.toJSON(pub_data));
                 }
             };
 
+            {# FIXME: remove code duplication #}
             model.makeRequest = function(request_type, url, data) {
                 $.ajax({
                     type: request_type,
@@ -244,10 +245,10 @@
                     dataType: "json",
                     contentType: "application/json; charset=utf-8",
                     success: function(result) {
-                        humane.log("Data save was success!!", {timeout: 5000})
+                        humane.log("Data saved successfully.", {timeout: 5000})
                     },
                     error: function(result) {
-                        humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
+                        humane.log("Something went wrong, please validate data or contact us if this persists.", {timeout: 5000});
                         console.log(result.responseJSON);
                     }
                 });

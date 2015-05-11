@@ -1,7 +1,7 @@
-from django.conf.urls import patterns, include, url
+from django.conf.urls import include, url
 from django.contrib import admin
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
-    url(r'', include('catalog.core.urls')),
-)
+    url(r'', include('catalog.core.urls', namespace='core', app_name='core')),
+]
