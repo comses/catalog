@@ -18,7 +18,7 @@ sys.path.append(env.abs_project_path)
 # default env configuration
 env.roledefs = {
     'localhost': ['localhost'],
-    'staging': ['dev.catalog.comses.net'],
+    'staging': ['dev-catalog.comses.net'],
     'prod': ['catalog.comses.net'],
 }
 env.python = 'python'
@@ -139,13 +139,6 @@ def prod():
 def setup_solr():
     _virtualenv(local, 'python manage.py build_solr_schema > %(abs_project_path)s/schema.xml' % env)
     sudo('cp %(abs_project_path)s/schema.xml %(solr_conf_dir)s/' % env)
-    execute(restart_solr)
-
-
-@task
-def restart_solr():
-    # FIXME: for RHEL, systemctl restart solr or service solr restart, need to switch on os type?
-    sudo('service tomcat6 restart')
 
 
 @roles('localhost')
@@ -157,30 +150,26 @@ def setup():
     execute(setup_solr)
     execute(rebuild_index)
 
-@task
-def init_db():
-    execute(initialize_database_schema)
 
-
-@task
+@task(aliases=['idb', 'init_db'])
 def initialize_database_schema():
     local('python manage.py makemigrations')
     local('python manage.py migrate')
 
 
-@task
-def zotero_import():
-    local('python manage.py zotero_import')
+@task(alias='zi')
+def zotero_import(group=None, collection=None):
+    _command = 'python manage.py zotero_import'
+    if group:
+        _command += ' --group=%s' % group
+    if collection:
+        _command += ' --collection=%s' % collection
+    local(_command)
 
 
-@roles('localhost')
-@task
+@task(alias='ri')
 def rebuild_index():
     local('python manage.py rebuild_index')
-
-@task
-def ri():
-    execute(rebuild_index)
 
 
 @roles('localhost')
@@ -191,9 +180,7 @@ def setup_postgres():
 
 
 def _restart_command(systemd=True):
-    """
-    FIXME: look into less drastic ways to reload the app and sockjs servers
-    """
+    """ FIXME: just send SIGHUP to uWSGI pid """
     if systemd:
         cmd = 'systemctl restart %(services)s && systemctl status -l %(services)s'
     else:
