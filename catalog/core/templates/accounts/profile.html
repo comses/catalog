@@ -54,7 +54,7 @@
                 self.saveProfile = function(data) {
                     $.ajax({
                         type: "POST",
-                        url: "{% url 'user_profile' %}",
+                        url: "{{ user_profile_url }}",
                         contentType: "application/json; charset=utf-8",
                         data: ko.toJSON(data),
                         dataType:"json",

@@ -6,6 +6,6 @@
 
 {% trans "You can archive your work by following this link:" %}
 
-http{% if secure %}s{% endif %}://{{ site.domain }}{% url "publication_archive" token %}
+http{% if secure %}s{% endif %}://{{ site.domain }}{% url "core:publication_archive" token %}
 
 Thanks!

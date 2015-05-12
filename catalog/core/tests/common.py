@@ -3,14 +3,15 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.utils.http import urlencode
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class BaseTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user('temporary', 'temporary@gmail.com', 'temporary')
-
-    @property
-    def login_url(self):
-        return reverse('login')
+        self.login_url = reverse('core:login')
 
     def login(self):
         return self.client.login(username='temporary', password='temporary')
@@ -25,6 +26,8 @@ class BaseTest(TestCase):
         return reversed_url
 
     def without_login_and_with_login_test(self, url, before_status=302, after_status=200):
+        if ':' in url:
+            url = self.reverse(url)
         response = self.get(url)
         self.assertEqual(before_status, response.status_code)
 
@@ -46,4 +49,3 @@ class BaseTest(TestCase):
             url = self.reverse(url)
         response = self.client.post(url, *args, **kwargs)
         return response
-

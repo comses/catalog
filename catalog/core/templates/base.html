@@ -4,7 +4,7 @@
 {% url 'core:logout' as logout_url %}
 {% url 'core:index' as index_url %}
 {% url 'core:dashboard' as dashboard_url %}
-{% url 'core:user_profile' as profile_url %}
+{% url 'core:user_profile' as user_profile_url %}
 {% url 'core:publications' as publications_url %}
 {% url 'core:haystack_search' as search_url %}
 {% url 'core:curator_workflow' as curator_workflow_url %}
@@ -65,7 +65,7 @@
                                 </a> 
                                 <!-- Dropdown menu -->
                                 <ul class="dropdown-menu">
-                                    <li><a href="{{ profile_url }}"><i class="fa fa-user"></i> Profile</a></li>
+                                    <li><a href="{{ user_profile_url }}"><i class="fa fa-user"></i> Profile</a></li>
                                     <li><a href="{{ logout_url }}"><i class="fa fa-sign-out"></i> Logout</a></li>
                                 </ul>
                             </li>

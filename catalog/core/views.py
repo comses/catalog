@@ -52,14 +52,14 @@ class LoginView(FormView):
     def get_success_url(self):
         next_url = self.request.GET.get('next', '')
         # if no next_url specified, redirect to dashboard page
-        return next_url if next_url else reverse('dashboard')
+        return next_url if next_url else reverse('core:dashboard')
 
 
 class LogoutView(TemplateView):
 
     def get(self, request, *args, **kwargs):
         logout(request)
-        return redirect('login')
+        return redirect('core:index')
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
