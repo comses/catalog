@@ -48,7 +48,7 @@ class CustomSearchForm(SearchForm):
         sqs = super(CustomSearchForm, self).search().models(JournalArticle)
 
         if assigned_curator:
-            return sqs.filter(assigned_curator=assigned_curator, status=Publication.Status.UNTAGGED).order_by()
+            return sqs.filter(assigned_curator=assigned_curator, status=Publication.Status.UNTAGGED).order_by('title')
         if not self.is_valid():
             return self.no_query_found()
 

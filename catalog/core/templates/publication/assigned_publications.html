@@ -4,7 +4,8 @@
 {% block content %}
     <div class="widget-wrapper">
         <div class="widget-head">
-            <h4>Assigned Publications</h4>
+            <h4>Assigned Publications for {{ request.user.get_full_name }}</h4>
+            <div>Showing {{ page.start_index }} to {{ page.end_index }} of {{ page.paginator.count }} entries</div>
         </div>
         <div class="widget-content">
             <table class="table table-striped">
@@ -27,6 +28,7 @@
         </div>
         {% if page.has_previous or page.has_next %}
         <div class="widget-foot clearfix">
+            <div class='text-center'>Showing {{ page.start_index }} to {{ page.end_index }} of {{ page.paginator.count }} entries</div>
             <div class="text-center">{% bootstrap_pagination page url=request.get_full_path %}</div>
         </div>
         {% endif %}

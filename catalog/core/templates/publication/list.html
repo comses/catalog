@@ -34,9 +34,9 @@
                 </table>
                 <nav>
                     <ul class="pager">
-                        <li class="previous" data-bind="css: {disabled: !canGoPrevious()}"><a data-bind="attr:{href: previous}"><span aria-hidden="true">&larr;</span> Previous Page</a></li>
-                        <li data-bind="text: tableInfo"></li>
-                        <li class="next" data-bind="css: {disabled: !canGoNext()}"><a data-bind="attr:{href: next}">Next Page<span aria-hidden="true">&rarr;</span></a></li>
+                        <li class="previous" data-bind="css: {disabled: !previous()}"><a data-bind="attr:{href: previous}"><span aria-hidden="true">&larr;</span> Previous Page</a></li>
+                        <li data-bind="text: numberOfResults"></li>
+                        <li class="next" data-bind="css: {disabled: !next()}"><a data-bind="attr:{href: next}">Next Page<span aria-hidden="true">&rarr;</span></a></li>
                     </ul>
                 </nav>
             </div>
@@ -66,14 +66,8 @@
                 };
                 var model = ko.mapping.fromJS(data, pubs_mapping, self)
 
-                model.tableInfo = ko.computed(function() {
+                model.numberOfResults = ko.computed(function() {
                     return "Showing "+ model.start_index() + " to " + model.end_index() + " of " + model.count() + " entries";
-                });
-                model.canGoNext = ko.dependentObservable(function() {
-                    return model.next() ? true : false;
-                });
-                model.canGoPrevious = ko.dependentObservable(function() {
-                    return model.previous() ? true : false;
                 });
                 model.template_id = ko.observable("all-publications");
                 model.newPublication = function() {
