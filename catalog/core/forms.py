@@ -42,16 +42,15 @@ class CustomSearchForm(SearchForm):
     def no_query_found(self):
         return self.searchqueryset.all()
 
-    def search(self, user=None):
+    def search(self, assigned_curator=None):
         # First, store the SearchQuerySet received from other processing.
         # NOTE: Keep on adding the publication subtypes to models below to show them in search
         sqs = super(CustomSearchForm, self).search().models(JournalArticle)
 
+        if assigned_curator:
+            return sqs.filter(assigned_curator=assigned_curator, status=Publication.Status.UNTAGGED).order_by()
         if not self.is_valid():
-            if not user:
-                return self.no_query_found()
-            else:
-                return sqs.filter(assigned_curator=user, status=Publication.Status.UNTAGGED).order_by('-pub_date')
+            return self.no_query_found()
 
         criteria = dict()
         # Check to see if a start_date was chosen.

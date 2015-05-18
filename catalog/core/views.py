@@ -9,7 +9,6 @@ from django.shortcuts import redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators import cache, csrf
 from django.views.generic import FormView, TemplateView
-
 from haystack.query import SearchQuerySet
 from haystack.views import SearchView
 from hashlib import sha1
@@ -23,7 +22,7 @@ from datetime import datetime, timedelta
 from .forms import LoginForm, CustomSearchForm
 from .models import Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation, Note
 from .serializers import (PublicationSerializer, CustomPagination, JournalArticleSerializer, InvitationSerializer,
-                          ArchivePublicationSerializer, ContactFormSerializer, UserProfileSerializer, NoteSerializer, )
+                          UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer, NoteSerializer, )
 
 import logging
 import markdown
@@ -119,7 +118,7 @@ class PublicationList(LoginRequiredMixin, APIView):
         result_page = paginator.paginate_queryset(publication_list, request)
         serializer = PublicationSerializer(result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
-        return Response({'json': dumps(response)}, template_name="publications.html")
+        return Response({'json': dumps(response)}, template_name="publication/list.html")
 
     def post(self, request, format=None):
         # adding current user to added_by field
@@ -146,7 +145,7 @@ class PublicationDetail(LoginRequiredMixin, APIView):
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
         serializer = JournalArticleSerializer(publication)
-        return Response({'json': dumps(serializer.data)}, template_name='publication_detail.html')
+        return Response({'json': dumps(serializer.data)}, template_name='publication/detail.html')
 
     def put(self, request, pk):
         publication = self.get_object(pk)
@@ -172,7 +171,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, APIView):
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
         serializer = JournalArticleSerializer(publication)
-        return Response({'json': dumps(serializer.data)}, template_name='curator_publication_detail.html')
+        return Response({'json': dumps(serializer.data)}, template_name='publication/curator_workflow_detail.html')
 
     def put(self, request, pk):
         publication = self.get_object(pk)
@@ -180,6 +179,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, APIView):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
+        logger.warn("serializer failed validation: %s", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -302,8 +302,8 @@ class CustomSearchView(SearchView):
     template = 'search/search.html'
 
 
-class AssignedPubSearchView(SearchView):
-    template = 'search/assigned_publications.html'
+class AssignedPublicationsView(SearchView):
+    template = 'publication/assigned_publications.html'
 
     def get_results(self):
         return self.form.search(self.request.user)
@@ -353,7 +353,7 @@ class ContactFormView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ArchivePublication(APIView):
+class UpdateModelUrlView(APIView):
 
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
     token_expires = 3600 * 168  # Seven days
@@ -366,11 +366,11 @@ class ArchivePublication(APIView):
         return get_object_or_404(Publication, pk=pk)
 
     def get(self, request, token, format=None):
-        serializer = ArchivePublicationSerializer(self.get_object(token))
-        return Response({'json': dumps(serializer.data)}, template_name='archive_publication_form.html')
+        serializer = UpdateModelUrlSerializer(self.get_object(token))
+        return Response({'json': dumps(serializer.data)}, template_name='publication/update_model_url.html')
 
     def post(self, request, token, format=None):
-        serializer = ArchivePublicationSerializer(self.get_object(token), data=request.data)
+        serializer = UpdateModelUrlSerializer(self.get_object(token), data=request.data)
         if serializer.is_valid():
             serializer.validated_data['status'] = Publication.STATUS_CHOICES.AUTHOR_UPDATED
             serializer.save()

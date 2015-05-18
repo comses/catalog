@@ -4,9 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic import RedirectView, TemplateView
 
 from .views import (LoginView, LogoutView, DashboardView, PublicationDetail, PublicationList, EmailPreview,
-                    ContactAuthor, ArchivePublication, CustomSearchView, ContactFormView, UserProfileView,
+                    ContactAuthor, UpdateModelUrlView, CustomSearchView, ContactFormView, UserProfileView,
                     PlatformSearchView, SponsorSearchView, TagSearchView, JournalSearchView, ModelDocSearchView,
-                    CuratorPublicationDetail, AssignedPubSearchView, NoteList, NoteDetail, )
+                    CuratorPublicationDetail, AssignedPublicationsView, NoteList, NoteDetail, )
 
 from .forms import CustomSearchForm
 
@@ -17,7 +17,7 @@ urlpatterns = format_suffix_patterns([
     url(r'^publication/(?P<pk>\d+)/curate/$', CuratorPublicationDetail.as_view(), name='curator_publication_detail'),
     url(r'^publication/workflow/email-preview/$', EmailPreview.as_view(), name='invite_email_preview'),
     url(r'^publication/workflow/invite/$', ContactAuthor.as_view(), name='send_invites'),
-    url(r'^publication/archive/(?P<token>[\w:-]+)/$', ArchivePublication.as_view(), name='publication_archive'),
+    url(r'^publication/update-model-url/(?P<token>[\w:-]+)/$', UpdateModelUrlView.as_view(), name='update_model_url'),
     url(r'^notes/$', NoteList.as_view(), name='notes'),
     url(r'^note/(?P<pk>\d+)/$', NoteDetail.as_view(), name='note_detail'),
 ])
@@ -32,7 +32,7 @@ urlpatterns += [
     url(r'^accounts/logout/$', LogoutView.as_view(), name='logout'),
     url(r'^bug-report/$', RedirectView.as_view(url='https://github.com/comses/catalog/issues/new'),
         name='report_issues'),
-    url(r'^publication/workflow/$', login_required(AssignedPubSearchView(form_class=CustomSearchForm)),
+    url(r'^publication/workflow/$', login_required(AssignedPublicationsView(form_class=CustomSearchForm)),
         name='curator_workflow'),
     url(r'^search/$', login_required(CustomSearchView(form_class=CustomSearchForm)), name='haystack_search'),
     url(r'^search/platform/$', PlatformSearchView.as_view(), name="platform_search"),

@@ -2,7 +2,9 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import signing
 from django.core.mail import send_mass_mail, send_mail
+from django.core.validators import URLValidator
 from django.db.models import F
+from django.utils.translation import ugettext as _
 
 from rest_framework import serializers, pagination
 from rest_framework.compat import OrderedDict
@@ -167,7 +169,8 @@ class JournalArticleSerializer(serializers.ModelSerializer):
 
     """
     XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some
-    point.
+    point. See http://www.django-rest-framework.org/api-guide/serializers/#writable-nested-representations for more
+    details
     """
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -267,13 +270,14 @@ class InvitationSerializer(serializers.Serializer):
         pub_list.update(email_sent_count=F('email_sent_count') + 1)
 
 
-class ArchivePublicationSerializer(serializers.ModelSerializer):
+class UpdateModelUrlSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publication
         fields = ('title', 'code_archive_url', 'author_comments')
+        read_only_fields = ('title',)
 
     def validate(self, data):
         url = data['code_archive_url']
-        if not url:
-            raise serializers.ValidationError("Please provide code archive url.")
+        validator = URLValidator(message=_("Please enter a valid URL for this computational model."))
+        validator(url)
         return data
