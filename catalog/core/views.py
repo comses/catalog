@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.core.urlresolvers import reverse
 from django.db.models import Count
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators import cache, csrf
@@ -23,10 +23,13 @@ from datetime import datetime, timedelta
 from .forms import LoginForm, CustomSearchForm
 from .models import Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation, Note
 from .serializers import (PublicationSerializer, CustomPagination, JournalArticleSerializer, InvitationSerializer,
-                          ArchivePublicationSerializer, ContactUsSerializer, UserProfileSerializer, NoteSerializer, )
+                          ArchivePublicationSerializer, ContactFormSerializer, UserProfileSerializer, NoteSerializer, )
 
-import time
+import logging
 import markdown
+import time
+
+logger = logging.getLogger(__name__)
 
 
 class LoginRequiredMixin(object):
@@ -92,11 +95,11 @@ class UserProfileView(LoginRequiredMixin, APIView):
     """
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
 
-    def get(self, request, format=None):
+    def get(self, request):
         serializer = UserProfileSerializer(instance=request.user)
         return Response({'json': dumps(serializer.data)}, template_name="accounts/profile.html")
 
-    def post(self, request, format=None):
+    def post(self, request):
         serializer = UserProfileSerializer(instance=request.user, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -321,27 +324,32 @@ class ContactAuthor(LoginRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ContactUsView(APIView):
+class ContactFormView(APIView):
 
-    renderer_classes = (TemplateHTMLRenderer, JSONRenderer, )
+    renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
 
-    def get(self, request, format=None):
+    def get(self, request):
         timestamp = str(time.time())
         info = (timestamp, settings.SECRET_KEY)
         security_hash = sha1("".join(info)).hexdigest()
 
-        data = {'contact_number': '', 'name': '', 'timestamp': timestamp,
-                'security_hash': security_hash, 'message': '', 'email': ''}
-
-        serializer = ContactUsSerializer(data)
-
+        data = {'contact_number': '',
+                'name': '',
+                'timestamp': timestamp,
+                'security_hash': security_hash,
+                'message': '',
+                'email': ''}
+        user = request.user
+        if user.is_authenticated():
+            data.update(name=user.get_full_name(), email=user.email)
+        serializer = ContactFormSerializer(data)
         return Response({'json': dumps(serializer.data)}, template_name='contact_us.html')
 
-    def post(self, request, format=None):
-        serializer = ContactUsSerializer(data=request.data)
+    def post(self, request):
+        serializer = ContactFormSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return JsonResponse(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

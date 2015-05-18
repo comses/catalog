@@ -10,7 +10,7 @@
             <form class="form-horizontal">
                 <div class="form-group">
                     <label class="col-md-2 control-label" for="id_contact_number">&nbsp;</label>
-                    <div class="col-md-4">                
+                    <div class="col-md-4">
                         <input class="form-control" id="id_contact_number" name="contact_number" type="text" data-bind="value: contact_number">
                     </div>
                 </div>
@@ -33,7 +33,7 @@
                     </div>
                 </div>
                 <input id="id_timestamp" name="timestamp" type="hidden" data-bind="value: timestamp">
-                <input id="id_security_hash" maxlength="40" name="security_hash" type="hidden" data-bind="value: security_hash"> 
+                <input id="id_security_hash" maxlength="40" name="security_hash" type="hidden" data-bind="value: security_hash">
                 <div class="form-group">
                     <div class="col-sm-offset-2 col-sm-10">
                         <button type="submit" class="btn btn-primary" data-bind="click: sendEmail"><i class="fa fa-envelope-square"></i> Send </button>
@@ -41,7 +41,7 @@
                 </div>
             </form>
         </div>
-    </div> 
+    </div>
 {% endblock content %}
 
 {% block javascript %}
@@ -60,11 +60,12 @@
                         dataType: "json",
                         contentType: "application/json; charset=utf-8",
                         success: function(result) {
-                            $('.widget-content').html("Email sent successfully.")
+                            $('.widget-content').html("Your email has been sent. Thanks for your feedback.");
                         },
                         error: function(result) {
-                            humane.log("Something went wrong. Please try again", {timeout: 5000});
-                            console.log(result.responseJSON);
+                            humane.log("We were unable able to process your request", {timeout: 6000});
+                            console.error("Invalid submission.");
+                            console.error(result.responseJSON);
                         }
                     });
                 }

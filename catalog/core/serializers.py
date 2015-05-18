@@ -13,7 +13,10 @@ from .models import (Tag, Sponsor, Platform, Creator, Publication, Journal, Jour
 
 from hashlib import sha1
 
+import logging
 import time
+
+logger = logging.getLogger(__name__)
 
 
 class CustomPagination(pagination.PageNumberPagination):
@@ -198,7 +201,7 @@ class JournalArticleSerializer(serializers.ModelSerializer):
 #    Custom Serializers    #
 ############################
 
-class ContactUsSerializer(serializers.Serializer):
+class ContactFormSerializer(serializers.Serializer):
     name = serializers.CharField()
     email = serializers.EmailField()
     message = serializers.CharField()
@@ -210,12 +213,15 @@ class ContactUsSerializer(serializers.Serializer):
 
     def validate_contact_number(self, value):
         if value:
-            raise serializers.ValidationError("Bot Alert...")
+            raise serializers.ValidationError("Honeypot bot alert failed.")
         return value
 
     def validate_timestamp(self, value):
+        """ spam protection currently only accept form submissions between 3 seconds and 2 hours """
+        min_seconds = 3
+        max_seconds = 2 * 60 * 60
         difference = float(time.time()) - float(value)
-        if difference > (2 * 60 * 60) or difference < 5:
+        if min_seconds < difference < max_seconds:
             raise serializers.ValidationError("Timestamp check failed")
         return value
 
@@ -225,16 +231,19 @@ class ContactUsSerializer(serializers.Serializer):
 
         info = (timestamp, settings.SECRET_KEY)
         new_security_hash = sha1("".join(info)).hexdigest()
-        if security_hash != new_security_hash:
-            raise serializers.ValidationError("timestamp was tampered!!!")
-        return data
+        if security_hash == new_security_hash:
+            return data
+        logger.warn("timestamp was altered, flagging as invalid")
+        raise serializers.ValidationError("timestamp was tampered.")
 
     def save(self):
         # name = self.validated_data['name']
         email = self.validated_data['email']
         message = self.validated_data['message']
 
-        send_mail(from_email=email, message=message, subject="CoMSES Catalog Feedback",
+        send_mail(from_email=email,
+                  message=message,
+                  subject="CoMSES Catalog Feedback",
                   recipient_list=[settings.DEFAULT_FROM_EMAIL])
 
 

@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.generic import RedirectView, TemplateView
 
 from .views import (LoginView, LogoutView, DashboardView, PublicationDetail, PublicationList, EmailPreview,
-                    ContactAuthor, ArchivePublication, CustomSearchView, ContactUsView, UserProfileView,
+                    ContactAuthor, ArchivePublication, CustomSearchView, ContactFormView, UserProfileView,
                     PlatformSearchView, SponsorSearchView, TagSearchView, JournalSearchView, ModelDocSearchView,
                     CuratorPublicationDetail, AssignedPubSearchView, NoteList, NoteDetail, )
 
@@ -20,11 +20,11 @@ urlpatterns = format_suffix_patterns([
     url(r'^publication/archive/(?P<token>[\w:-]+)/$', ArchivePublication.as_view(), name='publication_archive'),
     url(r'^notes/$', NoteList.as_view(), name='notes'),
     url(r'^note/(?P<pk>\d+)/$', NoteDetail.as_view(), name='note_detail'),
-    url(r'^contact-us/$', ContactUsView.as_view(), name='contact_us'),
 ])
 
 # authentication, user dashboard, workflow, and search URLs
 urlpatterns += [
+    url(r'^contact-us/$', ContactFormView.as_view(), name='contact_us'),
     url(r'^$', TemplateView.as_view(template_name='index.html'), name='index'),
     url(r'^dashboard/$', DashboardView.as_view(), name='dashboard'),
     url(r'^accounts/profile/$', UserProfileView.as_view(), name='user_profile'),
