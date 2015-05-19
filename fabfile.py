@@ -3,9 +3,10 @@ from fabric.context_managers import prefix
 from fabric.contrib.console import confirm
 from fabric.contrib import django
 from fabric.contrib.project import rsync_project
-import sys
-import os
 import logging
+import os
+import re
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -19,17 +20,16 @@ sys.path.append(env.abs_project_path)
 env.roledefs = {
     'localhost': ['localhost'],
     'staging': ['dev-catalog.comses.net'],
-    'prod': ['catalog.comses.net'],
+    'prod': ['alee14@catalog.comses.net'],
 }
 env.python = 'python'
 env.project_name = 'catalog'
 env.project_conf = 'catalog.settings'
-env.deploy_user = 'catalog'
-env.deploy_group = 'catalog'
+env.deploy_user = 'nginx'
+env.deploy_group = 'comses'
 env.database = 'default'
 env.deploy_parent_dir = '/opt/'
 env.git_url = 'https://github.com/comses/catalog.git'
-env.services = 'nginx memcached redis supervisord'
 env.docs_path = os.path.join(env.project_path, 'docs')
 env.virtualenv_path = '%s/.virtualenvs/%s' % (os.getenv('HOME'), env.project_name)
 env.ignored_coverage = ('test', 'settings', 'migrations', 'fabfile', 'wsgi', 'management')
@@ -37,7 +37,6 @@ env.solr_conf_dir = '/etc/solr/conf'
 env.db_user = 'catalog'
 env.db_name = 'comses_catalog'
 env.vcs = 'git'
-env.vcs_command = 'export GIT_WORK_TREE=%(deploy_dir)s && git checkout -f %(branch)s && git pull'
 
 # django integration for access to settings, etc.
 django.project(env.project_name)
@@ -54,11 +53,6 @@ def docs(remote_path='/home/www/dev.commons.asu.edu/catalog/'):
     rsync_project(local_dir='htmlcov/', remote_dir=os.path.join(remote_path, 'coverage'), delete=True)
     with cd(remote_path):
         sudo('find . -type d -exec chmod a+rx {} \; && chmod -R a+r .')
-
-
-@task
-def migrate():
-    local("%(python)s manage.py migrate" % env, capture=False)
 
 
 @task
@@ -130,8 +124,8 @@ def staging():
 
 @roles('prod')
 @task
-def prod():
-    execute(deploy, 'master')
+def prod(user=None):
+    execute(deploy, 'master', user)
 
 
 @roles('localhost')
@@ -179,13 +173,16 @@ def setup_postgres():
     local("psql -c 'create database %(db_name)s OWNER=%(db_user)s' -U postgres" % env)
 
 
-def _restart_command(systemd=True):
-    """ FIXME: just send SIGHUP to uWSGI pid """
-    if systemd:
-        cmd = 'systemctl restart %(services)s && systemctl status -l %(services)s'
+@task(alias='reload')
+def reload_uwsgi():
+    status_line = sudo("supervisorctl status")
+    m = re.search('RUNNING(?:\s+)pid\s(\d+)', status_line)
+    if m:
+        uwsgi_pid = m.group(1)
+        logger.debug("sending HUP to %s", uwsgi_pid)
+        sudo("kill -HUP {}".format(uwsgi_pid))
     else:
-        cmd = ' && '.join(['service %s restart' % service for service in env.services.split()])
-    return cmd % env
+        logger.warning("No pid found: %s", status_line)
 
 
 @roles('localhost')
@@ -197,19 +194,18 @@ def clean():
         sudo('rm -rvf docs/build')
 
 
-@task
-def restart():
-    sudo(_restart_command(), pty=True)
-
-
 def sudo_chain(*commands, **kwargs):
     sudo(' && '.join(commands), **kwargs)
 
 
-def deploy(branch):
+def deploy(branch, user):
     """ deploy to an already setup environment """
+    if user is None:
+        user = env.deploy_user
     env.deploy_dir = env.deploy_parent_dir + env.project_name
     env.branch = branch
+    env.virtualenv_path = '/comses/virtualenvs/{}'.format(env.project_name)
+    env.vcs_command = 'export GIT_WORK_TREE={} && git checkout -f {} && git pull'.format(env.deploy_dir, env.branch)
     if confirm("Deploying '%(branch)s' branch to host %(host)s : \n\r%(vcs_command)s\nContinue? " % env):
         with cd(env.deploy_dir):
             sudo_chain(
@@ -219,15 +215,15 @@ def deploy(branch):
                 user=env.deploy_user, pty=True)
             env.static_root = catalog_settings.STATIC_ROOT
             if confirm("Update pip dependencies?"):
-                _virtualenv(sudo, 'pip install -Ur requirements.txt', user=env.deploy_user)
+                _virtualenv(sudo, 'pip install -Ur requirements.txt', user=user)
             if confirm("Run database migrations?"):
-                _virtualenv(sudo, '%(python)s manage.py migrate' % env, user=env.deploy_user)
-            _virtualenv(sudo, '%(python)s manage.py collectstatic' % env)
+                _virtualenv(sudo, '%(python)s manage.py migrate' % env, user=user)
+            _virtualenv(sudo, '%(python)s manage.py collectstatic' % env, user=user)
             sudo_chain(
                 'chmod -R ug+rw .',
                 'find %(static_root)s %(virtualenv_path)s -type d -exec chmod a+x {} \;' % env,
                 'find %(static_root)s %(virtualenv_path)s -type f -exec chmod a+r {} \;' % env,
                 'find . -type d -exec chmod ug+x {} \;',
                 'chown -R %(deploy_user)s:%(deploy_group)s . %(static_root)s %(virtualenv_path)s' % env,
-                _restart_command(),
                 pty=True)
+            execute(reload_uwsgi)
