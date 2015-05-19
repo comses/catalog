@@ -91,7 +91,7 @@ class Note(models.Model):
     publication = models.ForeignKey('Publication', null=True, blank=True)
 
     def __unicode__(self):
-        return u'{0}'.format(self.text)
+        return u'{}'.format(self.text)
 
 
 class Platform(models.Model):
@@ -101,7 +101,7 @@ class Platform(models.Model):
     description = models.TextField(null=True, blank=True)
 
     def __unicode__(self):
-        return u'{0}'.format(self.name)
+        return u'{}'.format(self.name)
 
 
 class PlatformVersion(models.Model):
@@ -116,7 +116,7 @@ class Sponsor(models.Model):
     description = models.TextField(null=True, blank=True)
 
     def __unicode__(self):
-        return u'{0}'.format(self.name)
+        return u'{}'.format(self.name)
 
 
 class Publication(models.Model):
@@ -125,10 +125,12 @@ class Publication(models.Model):
         ('NEEDS_AUTHOR_REVIEW', _('Curator has reviewed publication, requires author intervention.')),
         ('FLAGGED', _('Flagged for further internal review by CoMSES staff')),
         ('AUTHOR_UPDATED', _('Updated by author, needs CoMSES review')),
+        ('INVALID', _('Publication record is not applicable or invalid')),
         ('COMPLETE', _('Reviewed and verified by CoMSES')),
     )
     objects = InheritanceManager()
 
+# zotero publication metadata
     title = models.TextField()
     abstract = models.TextField()
     short_title = models.CharField(max_length=255, blank=True)
@@ -144,18 +146,14 @@ class Publication(models.Model):
     rights = models.CharField(max_length=255, blank=True)
     extra = models.TextField(blank=True)
     published_language = models.CharField(max_length=255, default='English')
-    date_added = models.DateTimeField(auto_now_add=True,
-                                      help_text=_('Date this publication was imported into this system'))
-    date_modified = models.DateTimeField(auto_now=True,
-                                         help_text=_('Date this publication was last modified on this system'))
     zotero_date_added = models.DateTimeField(help_text=_('date added field from zotero'), null=True, blank=True)
     zotero_date_modified = models.DateTimeField(help_text=_('date modified field from zotero'), null=True, blank=True)
-    status = models.CharField(choices=Status, max_length=32, default=Status.UNTAGGED)
     creators = models.ManyToManyField(Creator)
 
 # custom incoming tags set by zotero data entry to mark the code archive url, contact author's email, the ABM platform
 # used, research sponsors (funding agencies, etc.), documentation, and other research keyword tags
     code_archive_url = models.URLField(max_length=255, null=True, blank=True)
+    contact_author_name = models.CharField(max_length=255, blank=True)
     contact_email = models.EmailField(blank=True)
     platforms = models.ManyToManyField(Platform, blank=True)
     sponsors = models.ManyToManyField(Sponsor, blank=True)
@@ -164,6 +162,12 @@ class Publication(models.Model):
     added_by = models.ForeignKey(User, related_name='added_publication_set')
 
 # custom fields used by catalog internally
+    status = models.CharField(choices=Status, max_length=32, default=Status.UNTAGGED)
+    date_added = models.DateTimeField(auto_now_add=True,
+                                      help_text=_('Date this publication was imported into this system'))
+    date_modified = models.DateTimeField(auto_now=True,
+                                         help_text=_('Date this publication was last modified on this system'))
+
     author_comments = models.TextField(blank=True)
     email_sent_count = models.PositiveIntegerField(default=0)
     assigned_curator = models.ForeignKey(User,
@@ -176,7 +180,7 @@ class Publication(models.Model):
         return reverse('core:publication_detail', args=[self.pk])
 
     def __unicode__(self):
-        return u'{0}'.format(self.title)
+        return u'{}'.format(self.title)
 
 
 class Journal(models.Model):
@@ -185,7 +189,7 @@ class Journal(models.Model):
     abbreviation = models.CharField(max_length=255, blank=True)
 
     def __unicode__(self):
-        return u'{0}'.format(self.name)
+        return u'{}'.format(self.name)
 
 
 class JournalArticle(Publication):
