@@ -35,17 +35,7 @@
         <div class="col-md-2">
             <div class="panel panel-warning">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=NEEDS_AUTHOR_REVIEW">Needs Author Review</a></h3>
-                </div>
-                <div class="panel-body">
-                    <h1 class="text-center">{{status.NEEDS_AUTHOR_REVIEW|default:"0"}}</h1>
-                </div>
-            </div> 
-        </div>
-        <div class="col-md-2">
-            <div class="panel panel-warning">
-                <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=UNTAGGED">Needs Review</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=UNTAGGED">Untagged</a></h3>
                 </div>
                 <div class="panel-body">
                     <h1 class="text-center">{{status.UNTAGGED|default:"0"}}</h1>
@@ -53,9 +43,19 @@
             </div> 
         </div>
         <div class="col-md-2">
+            <div class="panel panel-warning">
+                <div class="panel-heading">
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=NEEDS_AUTHOR_REVIEW">Ready for Author Review</a></h3>
+                </div>
+                <div class="panel-body">
+                    <h1 class="text-center">{{status.NEEDS_AUTHOR_REVIEW|default:"0"}}</h1>
+                </div>
+            </div> 
+        </div>
+        <div class="col-md-2">
             <div class="panel panel-danger">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=FLAGGED">Flagged</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=FLAGGED">Flagged for CoMSES Review</a></h3>
                 </div>
                 <div class="panel-body">
                     <h1 class="text-center">{{status.FLAGGED|default:"0"}}</h1>
@@ -82,18 +82,18 @@
                 <div class="panel-body">
                     {% if recently_updated|length > 0 %}
                     <table class="table">
-                        <thead><tr><th>Sr.No</th><th>Date Modified</th><th>Publication Title</th></thead>
+                        <thead><tr><th>ID</th><th>Last Modified</th><th>Publication Title</th></thead>
                         <tbody>
                         {% for pub in recently_updated %}
                             <tr>
-                                <td>{{forloop.counter}}</td>
+                                <td>{{ pub.pk}}</td>
                                 <td>{{ pub.date_modified }}</td>
                                 <td><a href="{% url 'core:publication_detail' pub.pk %}">{{ pub.title }}</a></td></tr>
                         {% endfor %}
                         </tbody>
                     </table>
                     {% else %}
-                        None recently updated publications found
+                        No recently updated publications found
                     {% endif %}
                 </div>
             </div>
@@ -103,23 +103,24 @@
         <div class="col-md-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h3 class="panel-title">Recently Author Updated Publications</h3>
+                    <h3 class="panel-title">Recent Author Updates</h3>
                 </div>
                 <div class="panel-body">
                     {% if recently_author_updated|length > 0 %}
                     <table class="table">
-                        <thead><tr><th>Sr.No</th><th>Date Modified</th><th>Publication Title</th></thead>
+                        <thead><tr><th>ID</th><th>Date Modified</th><th>Publication Title</th></thead>
                         <tbody>
                         {% for pub in recently_author_updated %}
                             <tr>
-                                <td>{{forloop.counter}}</td>
+                                <td>{{ pub.pk}}</td>
                                 <td>{{ pub.date_modified }}</td>
-                                <td><a href="{% url 'core:publication_detail' pub.pk %}">{{ pub.title }}</a></td></tr>
+                                <td><a href="{% url 'core:publication_detail' pub.pk %}">{{ pub.title }}</a></td>
+                            </tr>
                         {% endfor %}
                         </tbody>
                     </table>
                     {% else %}
-                        None recently author updated publications found
+                        No publications have been updated by authors recently. 
                     {% endif %}
                 </div>
             </div>
