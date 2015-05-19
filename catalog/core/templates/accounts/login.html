@@ -1,30 +1,31 @@
 {% extends "base.html" %}
 {% load bootstrap3 %}
 {% load staticfiles %}
-{% block title %}Comses Catalog Web Login{% endblock %}
+{% block title %}CoMSES Catalog Sign In{% endblock %}
 
 {% block content %}
 
 <div class="container">
     <div class="widget-wrapper">
         <div class="widget-head">
-            <i class="fa fa-lock"></i> Login here:
+            <i class="fa fa-lock"></i> Sign in
         </div>
-        <div class="widget-content clearfix"> 
-            <div class="col-md-7">
+        <div class='row'>
+            <div class="col-md-8">
                 <form id='signin-form' role="form" class="form-horizontal" method="post">
                     {% csrf_token %}
                     {%  bootstrap_form form layout="horizontal" field_class="col-md-6"%}
                     {% buttons layout='horizontal'%}
                         <button type="submit" class="btn btn-primary">
-                            <i class='fa fa-user'></i> Sign In
+                            <i class='fa fa-sign-in'></i> Sign In
                         </button>
                     {% endbuttons %}
                 </form>
             </div>
         </div>
         <div class="widget-foot">
-            Forgot Password? <a href="#">Reset password here</a>
+            {# FIXME: replace with styled password reset eventually #}
+            Forgot your password? <a href="{% url 'password_reset' %}">Request a password reset here</a>.
         </div>
     </div>
 </div>
