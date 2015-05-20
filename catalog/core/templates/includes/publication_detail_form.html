@@ -11,7 +11,7 @@
         </div>
         <div class="widget-content clearfix">
             <form role="form">
-                <div class="well clearfix">
+                <div class="row well clearfix">
                     <!-- ko if: id -->
                     <div class="col-md-6">
                         <note-detail params="notes: notes, pub_id: id"></note-detail>
@@ -21,132 +21,169 @@
                         <creator-detail params="creators: creators"></creator-detail>
                     </div>
                 </div>
-                <div class="col-md-12">
-                    <label class="control-label" for="id_title">Title</label>
-                    <input type="text" class="form-control" id="id_title" name="title" placeholder="Title" data-bind="value: title" />
+                <div class='row'>
+                    <div class="col-md-12">
+                        <label class="control-label" for="id_title">Title</label>
+                        <input type="text" class="form-control" id="id_title" name="title" placeholder="Title" data-bind="value: title" />
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="control-label" for="id_journal">Journal</label>
-                    <select class="form-control" id="id_journal" name="journal" data-bind="selectize: journals, value: journal.name, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getJournalList }"></select>
+                <div class='row'>
+                    <div class="col-md-6">
+                        <label class="control-label" for="id_journal">Journal</label>
+                        <select class="form-control" id="id_journal" name="journal" data-bind="selectize: journals, value: journal.name, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getJournalList }"></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="control-label" for="id_model_documentation">Model documentation</label>
+                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: model_docs, value: model_documentation.value, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocList }"></select>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="control-label" for="id_model_documentation">Model documentation</label>
-                    <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: model_docs, value: model_documentation.value, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocList }"></select>
+                <div class='row'>
+                    <div class="col-md-12">
+                        <label class="control-label" for="id_abstract">Abstract</label>
+                        <textarea class="form-control" id="id_abstract" name="abstract" placeholder="Abstract" required="required" rows="6" data-bind="value: abstract"></textarea>
+                    </div>
                 </div>
-                <div class="col-md-12">
-                    <label class="control-label" for="id_abstract">Abstract</label>
-                    <textarea class="form-control" id="id_abstract" name="abstract" placeholder="Abstract" required="required" rows="4" data-bind="value: abstract"></textarea>
+                <div class='row'>
+                    <div class="col-md-12">
+                        <label class="control-label" for="id_platforms">Platforms</label>
+                        <select multiple="multiple" class="form-control" id="id_platforms" name="platforms" data-bind="selectize: platforms, selectedOptions: selected_platforms, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}"></select>
+                    </div>
                 </div>
-                <div class="col-md-12">
-                    <label class="control-label" for="id_platforms">Platforms</label>
-                    <select multiple="multiple" class="form-control" id="id_platforms" name="platforms" data-bind="selectize: platforms, selectedOptions: selected_platforms, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}"></select>
+                <div class='row'>
+                    <div class="col-md-12">
+                        <label class="control-label" for="id_sponsors">Sponsors</label>
+                        <select multiple="multiple" class="form-control" id="id_sponsors" name="sponsors" data-bind="selectize: sponsors, selectedOptions: selected_sponsors, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getSponsorList }"></select>
+                    </div>
                 </div>
-                <div class="col-md-12">
-                    <label class="control-label" for="id_sponsors">Sponsors</label>
-                    <select multiple="multiple" class="form-control" id="id_sponsors" name="sponsors" data-bind="selectize: sponsors, selectedOptions: selected_sponsors, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getSponsorList }"></select>
+                <div class='row'>
+                    <div class="col-md-12">
+                        <label class="control-label" for="id_tags">Tags</label>
+                        <select multiple="multiple" class="form-control" id="id_tags" name="tags" data-bind="selectize: tags, selectedOptions: selected_tags, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getTagList }"></select>
+                    </div>
                 </div>
-                <div class="col-md-12">
-                    <label class="control-label" for="id_tags">Tags</label>
-                    <select multiple="multiple" class="form-control" id="id_tags" name="tags" data-bind="selectize: tags, selectedOptions: selected_tags, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getTagList }"></select>
+                <div class='row'>
+                    <div class="col-md-3">
+                        <label class="control-label" for="id_short_title">Short title</label>
+                        <input class="form-control" id="id_short_title" maxlength="255" name="short_title" placeholder="Short title" type="text" data-bind="value: short_title">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="control-label" for="id_url">Url</label>
+                        <input class="form-control" id="id_url" maxlength="200" name="url" placeholder="Url" type="url" data-bind="value: url" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="control-label" for="id_date_published">Date published</label>
+                        <input class="form-control" id="id_date_published" name="date_published" placeholder="Date published" type="text" data-bind="value: date_published">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="control-label" for="id_date_accessed">Date accessed</label>
+                        <input class="form-control" id="id_date_accessed" name="date_accessed" placeholder="Date accessed" type="text" data-bind="value: date_accessed">
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="control-label" for="id_status">Status</label>
-                    <select class="form-control" id="id_status" name="status" data-bind="value: status">
-                        <option value="UNTAGGED" selected="selected">Not reviewed</option>
-                        <option value="NEEDS_AUTHOR_REVIEW">Curator has reviewed publication, requires author intervention.</option>
-                        <option value="FLAGGED">Flagged for further internal review by CoMSES staff</option>
-                        <option value="AUTHOR_UPDATED">Updated by author, needs CoMSES review</option>
-                        <option value="COMPLETE">Reviewed and verified by CoMSES</option>
-                    </select>
+                <div class='row'>
+                    <div class="col-md-3">
+                        <label class="control-label" for="id_archive">Archive</label>
+                        <input class="form-control" id="id_archive" maxlength="255" name="archive" placeholder="Archive" type="text" data-bind="value: archive">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="control-label" for="id_archive_location">Archive location</label>
+                        <input class="form-control" id="id_archive_location" maxlength="255" name="archive_location" placeholder="Archive location" type="text" data-bind="value: archive_location">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="control-label" for="id_library_catalog">Library catalog</label>
+                        <input class="form-control" id="id_library_catalog" maxlength="255" name="library_catalog" placeholder="Library catalog" type="text" data-bind="value: library_catalog">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="control-label" for="id_call_number">Call number</label>
+                        <input class="form-control" id="id_call_number" maxlength="255" name="call_number" placeholder="Call number" type="text" data-bind="value: call_number">
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_short_title">Short title</label>
-                    <input class="form-control" id="id_short_title" maxlength="255" name="short_title" placeholder="Short title" type="text" data-bind="value: short_title">
+                <div class='row'>
+                    <div class="col-md-2">
+                        <label class="control-label" for="id_rights">Rights</label>
+                        <input class="form-control" id="id_rights" maxlength="255" name="rights" placeholder="Rights" type="text" data-bind="value: rights">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="control-label" for="id_extra">Extra</label>
+                        <input type="text" class="form-control" id="id_extra" name="extra" data-bind="value: extra"/> 
+                    </div>
+                    <div class="col-md-2">
+                        <label class="control-label" for="id_published_language">Published language</label>
+                        <input class="form-control" id="id_published_language" maxlength="255" name="published_language" placeholder="Published language" required="required" type="text" data-bind="value: published_language">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="control-label" for="id_series">Series</label>
+                        <input class="form-control" id="id_series" maxlength="255" name="series" placeholder="Series" type="text" data-bind="value: series">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="control-label" for="id_series_title">Series title</label>
+                        <input class="form-control" id="id_series_title" maxlength="255" name="series_title" placeholder="Series title" type="text" data-bind="value: series_title">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="control-label" for="id_series_text">Series text</label>
+                        <input class="form-control" id="id_series_text" maxlength="255" name="series_text" placeholder="Series text" type="text" data-bind="value: series_text">
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_url">Url</label>
-                    <input class="form-control" id="id_url" maxlength="200" name="url" placeholder="Url" type="url" data-bind="value: url" />
+                <div class='row'>
+                    <div class="col-md-4">
+                        <label class="control-label" for="id_doi">Doi</label><input class="form-control" id="id_doi" maxlength="255" name="doi" placeholder="Doi" type="text" data-bind="value: doi">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="control-label" for="id_issn">Issn</label>
+                        <input class="form-control" id="id_issn" maxlength="255" name="issn" placeholder="Issn" type="text" data-bind="value: issn">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="control-label" for="id_volume">Volume</label>
+                        <input class="form-control" id="id_volume" maxlength="255" name="volume" placeholder="Volume" type="text" data-bind="value: volume">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="control-label" for="id_issue">Issue</label>
+                        <input class="form-control" id="id_issue" maxlength="255" name="issue" placeholder="Issue" type="text" data-bind="value: issue">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="control-label" for="id_pages">Pages</label>
+                        <input class="form-control" id="id_pages" maxlength="255" name="pages" placeholder="Pages" type="text" data-bind="value: pages">
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_date_published">Date published</label>
-                    <input class="form-control" id="id_date_published" name="date_published" placeholder="Date published" type="text" data-bind="value: date_published">
+                <hr>
+                <div class='row'>
+                    <div class="col-md-3">
+                        <label class="control-label" for="id_contact_author">Corresponding author</label>
+                        <input class="form-control" id="id_contact_author" maxlength="75" name="contact_author_name" placeholder="Corresponding author name" type="text" data-bind="value: contact_author_name">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="control-label" for="id_contact_email">Contact email</label>
+                        <input class="form-control" id="id_contact_email" maxlength="75" name="contact_email" placeholder="Contact email" type="email" data-bind="value: contact_email">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="control-label" for="id_code_archive_url">Code archive url</label>
+                        <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_date_accessed">Date accessed</label>
-                    <input class="form-control" id="id_date_accessed" name="date_accessed" placeholder="Date accessed" type="text" data-bind="value: date_accessed">
+                <div class='row'>
+                    <div class='col-md-12'>
+                        <label class="control-label" for="id_status">Current Status: </label>
+                        <b class='text-danger' data-bind='text:status'></b>
+                        <br>
+                        <div class="radio" data-toggle="buttons" id="id_status">
+                            <label class="btn btn-info btn-sm">
+                                <input type="radio" name="status" value="UNTAGGED" data-bind="bsChecked: status"> <i class='fa fa-eye-slash'></i> Incomplete
+                            </label>
+                            <label class="btn btn-primary btn-sm">
+                                <input type="radio" name="status" value="NEEDS_AUTHOR_REVIEW" data-bind="bsChecked: status"> <i class='fa fa-tag'></i> Tagging Complete, Needs Author Input
+                            </label>
+                            <label class="btn btn-success btn-sm">
+                                <input type="radio" name="status" value="COMPLETE" data-bind="bsChecked: status"> <i class='fa fa-thumbs-o-up'></i> Tagging Complete, Code Archived
+                            </label>
+                            <label class="btn btn-warning btn-sm">
+                                <input type="radio" name="status" value="INVALID" data-bind="bsChecked: status"> <i class='fa fa-times'></i> Invalid Publication
+                            </label>
+                            <label class="btn btn-danger btn-sm">
+                                <input type="radio" name="status" value="FLAGGED" data-bind="bsChecked: status"> <i class='fa fa-flag'></i> Flag for Additional CoMSES Review
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_archive">Archive</label>
-                    <input class="form-control" id="id_archive" maxlength="255" name="archive" placeholder="Archive" type="text" data-bind="value: archive">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_archive_location">Archive location</label>
-                    <input class="form-control" id="id_archive_location" maxlength="255" name="archive_location" placeholder="Archive location" type="text" data-bind="value: archive_location">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_library_catalog">Library catalog</label>
-                    <input class="form-control" id="id_library_catalog" maxlength="255" name="library_catalog" placeholder="Library catalog" type="text" data-bind="value: library_catalog">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_call_number">Call number</label>
-                    <input class="form-control" id="id_call_number" maxlength="255" name="call_number" placeholder="Call number" type="text" data-bind="value: call_number">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_rights">Rights</label>
-                    <input class="form-control" id="id_rights" maxlength="255" name="rights" placeholder="Rights" type="text" data-bind="value: rights">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_extra">Extra</label>
-                    <input type="text" class="form-control" id="id_extra" name="extra" placeholder="Extra" data-bind="value: extra"/> 
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_published_language">Published language</label>
-                    <input class="form-control" id="id_published_language" maxlength="255" name="published_language" placeholder="Published language" required="required" type="text" data-bind="value: published_language">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_code_archive_url">Code archive url</label>
-                    <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_contact_email">Contact email</label>
-                    <input class="form-control" id="id_contact_email" maxlength="75" name="contact_email" placeholder="Contact email" type="email" data-bind="value: contact_email">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_contact_author">Corresponding author</label>
-                    <input class="form-control" id="id_contact_author" maxlength="75" name="contact_author_name" placeholder="Corresponding author name" type="text" data-bind="value: contact_author_name">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_pages">Pages</label>
-                    <input class="form-control" id="id_pages" maxlength="255" name="pages" placeholder="Pages" type="text" data-bind="value: pages">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_issn">Issn</label>
-                    <input class="form-control" id="id_issn" maxlength="255" name="issn" placeholder="Issn" type="text" data-bind="value: issn">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_volume">Volume</label>
-                    <input class="form-control" id="id_volume" maxlength="255" name="volume" placeholder="Volume" type="text" data-bind="value: volume">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_issue">Issue</label>
-                    <input class="form-control" id="id_issue" maxlength="255" name="issue" placeholder="Issue" type="text" data-bind="value: issue">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_series">Series</label>
-                    <input class="form-control" id="id_series" maxlength="255" name="series" placeholder="Series" type="text" data-bind="value: series">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_series_title">Series title</label>
-                    <input class="form-control" id="id_series_title" maxlength="255" name="series_title" placeholder="Series title" type="text" data-bind="value: series_title">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_series_text">Series text</label>
-                    <input class="form-control" id="id_series_text" maxlength="255" name="series_text" placeholder="Series text" type="text" data-bind="value: series_text">
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label" for="id_doi">Doi</label><input class="form-control" id="id_doi" maxlength="255" name="doi" placeholder="Doi" type="text" data-bind="value: doi">
-                </div>
-           </form>
+            </form>
         </div>
         <div class="widget-foot clearfix">
             <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
@@ -164,8 +201,8 @@
             }
             //use default data for any property not found in data
             var data = $.extend(defaultData, params.data);
-            if(!data.journal) data.journal = {'name': null}
-            if(!data.model_documentation) data.model_documentation = {'value': null}
+            if (!data.journal) data.journal = {'name': null}
+            if (!data.model_documentation) data.model_documentation = {'value': null}
 
             var model = ko.mapping.fromJS(data, {}, this);
 

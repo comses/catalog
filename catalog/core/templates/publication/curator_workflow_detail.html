@@ -70,7 +70,7 @@
                     <div class='col-md-12'>
                         <div class='well'>
                         <label class="control-label" for="id_status">Current Status: </label>
-                        <b><span data-bind='text:status'></b>
+                        <b class='text-danger' data-bind='text:status'></b>
                         <br>
                         <div class="radio" data-toggle="buttons" id="id_status">
                             <label class="btn btn-info btn-sm">
@@ -174,16 +174,16 @@
                         return {'value': tag};
                     }));
 
-                    if(data_clone.journal.name() == undefined) {
-                        if(data.journals()[0].name) { 
+                    if (data_clone.journal.name() == undefined) {
+                        if (data.journals()[0].name) { 
                             data_clone.journal.name = ko.observable(data.journals()[0].name);
                         } else {
                             data_clone.journal = null;
                         }
-                    } else if(data_clone.journal.name() == "") {
+                    } else if (data_clone.journal.name() == "") {
                         data_clone.journal = null
                     }
-                    if(data_clone.model_documentation.value() == undefined) {
+                    if (data_clone.model_documentation.value() == undefined) {
                         if (data.modelDocumentationList()[0].value) {
                             data_clone.model_documentation.value = ko.observable(data.modelDocumentationList()[0].value);
                         } else {
@@ -193,8 +193,7 @@
                         data_clone.model_documentation = null;
                     }
 
-                    self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname)
-                        .done(function(result) {
+                    self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname).done(function(result) {
                             window.location.replace("{% url 'core:curator_workflow' %}");
                             humane.log("Data saved successfully.", {timeout: 5000})
                         });

@@ -3,12 +3,12 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 from lxml import html
-from optparse import make_option
 from pyzotero import zotero
 
 from catalog.core.models import (Creator, Publication, JournalArticle, Tag, Note, Platform, Sponsor, Journal,
                                  ModelDocumentation)
 
+import json
 import logging
 import requests
 import re
@@ -26,26 +26,33 @@ note_map = {}
 class Command(BaseCommand):
     help = 'Imports data from zotero'
 
-    option_list = BaseCommand.option_list + (
-        make_option('--test',
-                    action='store',
-                    dest='test',
-                    default=False,
-                    help='used for test cases only'),
-    )
-
-    option_list = option_list + (
-        make_option('--group',
-                    action='store',
-                    dest='group_id',
-                    default='284000',
-                    help='zotero group id'),
-        make_option('--collection',
-                    action='store',
-                    dest='collection_id',
-                    default=False,
-                    help='used to fetch a particular collection in the group')
-    )
+    def add_arguments(self, parser):
+        parser.add_argument('--test',
+                            action='store',
+                            dest='test',
+                            default=False,
+                            help='used for test cases only')
+        parser.add_argument('--group',
+                            action='store',
+                            dest='group_id',
+                            default='284000',
+                            help='Zotero group id to pull records from')
+        parser.add_argument('--collection',
+                            action='store',
+                            dest='collection_id',
+                            default=False,
+                            help='Zotero collection ID, used to fetch a particular collection in the group')
+        parser.add_argument('--outfile',
+                            nargs='?',
+                            dest='output_data_file',
+                            default='zotero_data.json',
+                            help='data file to write zotero results to')
+        parser.add_argument('--infile',
+                            nargs='?',
+                            dest='input_data_file',
+                            default='',
+                            const='',
+                            help='data file to read zotero results from')
 
     def convert(self, name):
         s1 = first_cap_re.sub(r'\1_\2', name)
@@ -160,49 +167,54 @@ class Command(BaseCommand):
         return item
 
     def create_journal_article(self, data, meta):
+        zotero_key = data['key']
         try:
-            return JournalArticle.objects.get(zotero_key=data['key'])
+            article = JournalArticle.objects.get(zotero_key=zotero_key)
+            logger.debug("article with key %s already present %s", zotero_key, article)
+            return article
         except JournalArticle.DoesNotExist:
-            item = JournalArticle(zotero_key=data['key'])
+            article = JournalArticle(zotero_key=zotero_key)
 
-        item = self.set_common_fields(item, data, meta)
-        item.journal, created = Journal.objects.get_or_create(
+        article = self.set_common_fields(article, data, meta)
+        article.journal, created = Journal.objects.get_or_create(
             name=data['publicationTitle'].strip(),
             defaults={'abbreviation': data['journalAbbreviation'].strip()})
-        item.pages = data['pages'].strip()
-        item.issn = data['ISSN'].strip().strip()
-        item.volume = data['volume'].strip()
-        item.issue = data['issue'].strip()
-        item.series = data['series'].strip()
-        item.series_title = data['seriesText'].strip()
-        item.series_text = data['seriesTitle'].strip()
-        item.doi = data['DOI'].strip()
-        item.save()
+        article.pages = data['pages'].strip()
+        article.issn = data['ISSN'].strip().strip()
+        article.volume = data['volume'].strip()
+        article.issue = data['issue'].strip()
+        article.series = data['series'].strip()
+        article.series_title = data['seriesText'].strip()
+        article.series_text = data['seriesTitle'].strip()
+        article.doi = data['DOI'].strip()
+        article.save()
 
         for c in self.get_creators(data):
-            item.creators.add(c)
+            article.creators.add(c)
 
+        tags = data['tags']
+        logger.debug("checking tags: %s", tags)
         if not data['tags']:
             # if publication has no zotero tags, mark it as untagged (i.e not reviewed)
-            item.status = Publication.Status.UNTAGGED
+            article.status = Publication.Status.UNTAGGED
         else:
-            item = self.set_tags(data, item)
-            if not item.code_archive_url:
-                item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
+            article = self.set_tags(data, article)
+            if not article.code_archive_url:
+                article.status = Publication.Status.NEEDS_AUTHOR_REVIEW
             else:
                 # if code_archive_url exists, check for validity and set appropriate status
                 try:
-                    response = requests.get(item.code_archive_url)
+                    response = requests.get(article.code_archive_url)
                     if response.status_code == 200:
-                        item.status = Publication.Status.COMPLETE
+                        article.status = Publication.Status.COMPLETE
                     else:
-                        item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
+                        article.status = Publication.Status.NEEDS_AUTHOR_REVIEW
                 except Exception:
                     logger.exception("Error verifying code archive url %s for publication_id %s",
-                                     item.code_archive_url, item.pk)
-                    item.status = Publication.Status.NEEDS_AUTHOR_REVIEW
-        item.save()
-        return item
+                                     article.code_archive_url, article.pk)
+                    article.status = Publication.Status.NEEDS_AUTHOR_REVIEW
+        article.save()
+        return article
 
     def get_raw_note(self, html_text):
         if html_text:
@@ -221,9 +233,11 @@ class Command(BaseCommand):
                                            zotero_date_modified=data['dateModified'],
                                            added_by=self.get_user(meta['createdByUser']))
 
-    def generate_entry(self, data):
+    def process(self, data):
         for item in data:
-            if item['data']['itemType'] == 'journalArticle':
+            publication_type = item['data']['itemType']
+            logger.debug("Generating bibliographic entry of type %s for %s", item, publication_type)
+            if publication_type == 'journalArticle':
                 article = self.create_journal_article(item['data'], item['meta'])
 
                 if item['data']['key'] in note_map:
@@ -232,7 +246,7 @@ class Command(BaseCommand):
                     note.save()
                 else:
                     pub_map.update({item['data']['key']: article})
-            elif item['data']['itemType'] == 'note':
+            elif publication_type == 'note':
                 note = self.create_note(item['data'], item['meta'])
                 if note:
                     if 'parentItem' in item['data']:
@@ -241,19 +255,31 @@ class Command(BaseCommand):
                             note.save()
                         else:
                             note_map.update({item['data']['parentItem']: note})
+            else:
+                logger.error("Unhandled bibliographic entry: %s", item)
 
     def handle(self, *args, **options):
         zot = zotero.Zotero(options['group_id'], "group", settings.ZOTERO_API_KEY)
-        if options['test']:
+        input_data_file = options['input_data_file']
+        if input_data_file:
+            logger.debug("Loading data from file %s", input_data_file)
+            with open(input_data_file, 'r') as infile:
+                json_data = json.load(infile)
+        elif options['test']:
             json_data = zot.top(limit=5)
         else:
             zot.add_parameters(limit=100)
-            logger.info("Starting to import data from Zotero. Hang tight, this may take a while.")
+            logger.info("Importing data from Zotero.")
             if options['collection_id']:
                 json_data = zot.everything(zot.collection_items(options['collection_id']))
             else:
                 json_data = zot.everything(zot.items())
 
-        logger.info("Number of Publications to import: %d", len(json_data))
-        self.generate_entry(json_data)
+            output_data_file = options['output_data_file']
+            logger.debug("saving zotero data to disk at %s", output_data_file)
+            with open(output_data_file, 'w') as outfile:
+                json.dump(json_data, outfile)
+
+        logger.info("Number of publications to import: %d", len(json_data))
+        self.process(json_data)
         logger.info("Zotero import completed.")
