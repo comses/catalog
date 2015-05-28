@@ -82,13 +82,14 @@
                 <div class="panel-body">
                     {% if recently_updated|length > 0 %}
                     <table class="table">
-                        <thead><tr><th>ID</th><th>Last Modified</th><th>Publication Title</th></thead>
+                        <thead><tr><th>ID</th><th>Last Modified</th><th>Title</th></thead>
                         <tbody>
                         {% for pub in recently_updated %}
                             <tr>
                                 <td>{{ pub.pk}}</td>
                                 <td>{{ pub.date_modified }}</td>
-                                <td><a href="{% url 'core:publication_detail' pub.pk %}">{{ pub.title }}</a></td></tr>
+                                <td><a href="{% url 'core:curator_publication_detail' pub.pk %}">{{ pub.title }}</a></td>
+                            </tr>
                         {% endfor %}
                         </tbody>
                     </table>

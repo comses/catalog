@@ -57,10 +57,12 @@ class PublicationSerializer(serializers.ModelSerializer):
     Serializes publication querysets.
     """
     detail_url = serializers.CharField(source='get_absolute_url', read_only=True)
+    assigned_curator = serializers.StringRelatedField()
+    date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
 
     class Meta:
         model = Publication
-        fields = ('id', 'title', 'date_published', 'detail_url',)
+        fields = ('id', 'title', 'date_published',)
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -150,7 +152,7 @@ class NoteSerializer(serializers.ModelSerializer):
         fields = ('id', 'text',  'publication', 'added_by')
 
 
-class JournalArticleSerializer(serializers.ModelSerializer):
+class JournalArticleSerializer(PublicationSerializer):
     """
     Serializes journal article querysets
     """
@@ -164,8 +166,8 @@ class JournalArticleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = JournalArticle
-        exclude = ('date_added', 'date_modified', 'zotero_date_added', 'zotero_date_modified', 'zotero_key',
-                   'email_sent_count', 'assigned_curator', 'date_published_text', 'author_comments')
+        exclude = ('date_added', 'zotero_date_added', 'zotero_date_modified', 'zotero_key',
+                   'email_sent_count', 'date_published_text', 'author_comments')
 
     """
     XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some

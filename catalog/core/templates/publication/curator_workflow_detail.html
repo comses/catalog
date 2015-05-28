@@ -12,15 +12,18 @@
             <form method="post" role="form">
                 <div class="row well">
                     <div class="col-md-6">
-                        <legend class="scheduler-border">Publication</legend>
+                        <legend class="scheduler-border">Assigned to <mark data-bind='text:assigned_curator'></mark></legend>
                         <p><b>Journal: </b><span data-bind="text: journal.name"></span></p>
                         <p><b>Date Published: </b><span data-bind="text: date_published"></span></p>
-                        <p><b>Authors: </b>
-                            <span data-bind="foreach: creators">
+                        <div><b>Author(s): </b>
+                        <ul class='list-inline' data-bind="foreach: creators">
+                            <li class='bg-info'>
                                 <span data-bind="text: first_name"></span>
                                 <span data-bind="text: last_name"></span>
-                            </span>
-                        </p>
+                            </li>
+                        </ul>
+                        </div>
+                        <p>Last modified: <b data-bind='text:date_modified'></b></p>
                         <p><a target='_blank' data-bind="attr: { href: googleScholarLink() }">Find on Google Scholar <i class='fa fa-external-link'></i></a>
                         <p><a target='_blank' data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic record</a></p>
                     </div>
