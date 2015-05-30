@@ -203,14 +203,16 @@ class NoteDetail(LoginRequiredMixin, APIView):
     def put(self, request, pk):
         note = self.get_object(pk)
         serializer = NoteSerializer(note, data=request.data)
+        logger.debug("serializer: %s", serializer)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(added_by=request.user)
             return Response(serializer.data)
+        logger.error("serializer errors: %s", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, pk, format=None):
-        serializer = self.get_object(pk)
-        serializer.delete()
+        note = self.get_object(pk)
+        note.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -227,10 +229,9 @@ class NoteList(LoginRequiredMixin, APIView):
 
     def post(self, request):
         # adding current user to added_by field
-        request.data.update({'added_by': request.user.id})
         serializer = NoteSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(added_by=request.user)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

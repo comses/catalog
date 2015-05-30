@@ -132,7 +132,7 @@ class Publication(models.Model):
 
 # zotero publication metadata
     title = models.TextField()
-    abstract = models.TextField()
+    abstract = models.TextField(blank=True)
     short_title = models.CharField(max_length=255, blank=True)
     zotero_key = models.CharField(max_length=64, unique=True, null=True, blank=True)
     url = models.URLField(null=True, blank=True)

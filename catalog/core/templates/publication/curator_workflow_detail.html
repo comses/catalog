@@ -28,7 +28,7 @@
                         <p><a target='_blank' data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic record</a></p>
                     </div>
                     <div class="col-md-6">
-                        <note-detail params="notes: notes, pub_id: id"></note-detail> 
+                        <note-detail params="notes: notes, pub_id: id"></note-detail>
                     </div>
                 </div>
                 <div class="row">
@@ -57,6 +57,9 @@
                     <div class='col-md-12'>
                         <label class="control-label" for="id_code_archive_url">Code url</label>
                         <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
+                        <span data-bind='if: code_archive_url'>
+                            <a href='attr: {href: code_archive_url}' target='_blank'>View code <i class='fa fa-external-link'</a>
+                        </span>
                     </div>
                 </div>
                 <div class='row'>

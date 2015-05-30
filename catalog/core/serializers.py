@@ -62,7 +62,7 @@ class PublicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Publication
-        fields = ('id', 'title', 'date_published',)
+        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url', 'assigned_curator',)
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -147,6 +147,9 @@ class JournalSerializer(serializers.ModelSerializer):
 
 
 class NoteSerializer(serializers.ModelSerializer):
+
+    added_by = serializers.StringRelatedField(read_only=True)
+
     class Meta:
         model = Note
         fields = ('id', 'text',  'publication', 'added_by')

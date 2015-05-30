@@ -2,21 +2,22 @@
     <legend class="scheduler-border">Notes <button type="button" class="btn btn-xs btn-primary" data-bind="click: addNote"><i class="fa fa-plus-square"></i> Add Note </button></legend>
     <div data-bind="foreach: notes">
         <p>
+            <span class='bg-danger' data-bind='text: added_by'></span>: 
             <span data-bind="text: text"></span>
             <a href='#' data-bind='click: editNote'><i class="fa fa-edit"></i></a>
             <a href='#' data-bind='click: removeNote'><i class="fa fa-times"></i></a>
         </p>
     </div>
-    <div class="modal fade" data-bind="showModal: activateNoteModal" data-backdrop="static" data-keyboard="false">
+    <div id='noteModal' class="modal fade" data-bind="showModal: activateNoteModal" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true" data-bind="click:hideNoteModal">&times;</button>
-                    <h4 class="modal-title">Edit Details and Click Save</h4>
+                    <h4 class="modal-title">Add Note</h4>
                 </div>
                 <div class="modal-body" data-bind="with: modalNoteData">
                     <label class="control-label">Note</label>
-                    <textarea class="form-control" rows="3" data-bind="value: text"></textarea>
+                    <textarea id='noteModalText' class="form-control" rows="3" data-bind="value: text" autofocus></textarea>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-primary" data-bind="click: saveNote">Save</button>
@@ -37,11 +38,12 @@
 
         self.hideNoteModal = function() {
             self.modalNoteData("");
-            self.activateNoteModal("");
+            self.activateNoteModal(false);
         };
         self.addNote = function() {
             self.modalNoteData({id: -1, text: "", publication: self.pub_id()});
             self.activateNoteModal(true);
+            $('#note-detail-text').focus();
         };
         self.editNote = function(data, event) {
             self.selectedNote(data);
@@ -49,7 +51,7 @@
             self.activateNoteModal(true);
         };
         self.removeNote = function() {
-            var note = this;
+           var note = this;
             self.makeRequest("DELETE", ko.toJSON(note), "/note/"+note.id())
                 .done(function(result) {
                     self.notes.remove(note);
@@ -85,5 +87,4 @@
     },
     template: { element: 'note_form' }
 });
-
 </script>
