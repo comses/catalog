@@ -5,21 +5,25 @@
     <div class="widget-wrapper">
         <div class="widget-head">
             <h3>
-            <span data-bind='text: title'></span> 
+            <span data-bind='text: title'></span>
+            <span data-bind='ifnot: title'>New Publication</span>
             <button type="button" class="pull-right btn btn-xs btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
             </h3>
+            {% if pk %}
+            <a href="{% url 'core:curator_publication_detail' pk %}">Curate</a>
+            {% endif %}
         </div>
         <div class="widget-content clearfix">
             <form role="form">
                 <div class="row well clearfix">
+                    <div class="col-md-6">
+                        <creator-detail params="creators: creators"></creator-detail>
+                    </div>
                     <!-- ko if: id -->
                     <div class="col-md-6">
                         <note-detail params="notes: notes, pub_id: id"></note-detail>
                     </div>
                     <!-- /ko -->
-                    <div class="col-md-6">
-                        <creator-detail params="creators: creators"></creator-detail>
-                    </div>
                 </div>
                 <div class='row'>
                     <div class="col-md-12">
@@ -194,10 +198,11 @@
     ko.components.register('publication-detail', {
         viewModel: function(params) {
             var defaultData = {
-                id: null, title: '', abstract: '', status: '', short_title: '', url: '', date_published: '', date_accessed: '', 
-                archive: '', archive_location: '', library_catalog: '', call_number: '', rights: '', extra: '', published_language: '', 
-                code_archive_url: '', contact_email: '', pages: '', issn: '', volume: '', issue: '', series: '', series_title: '',
-                series_text: '', doi: '', tags: [], platforms: [], sponsors: [], notes:[], creators:[], journal: null, model_documentation: null
+                id: null, title: '', abstract: '', status: '', short_title: '', url: '', date_published: null,
+                date_accessed: null, archive: '', archive_location: '', library_catalog: '', call_number: '', rights: '',
+                extra: '', published_language: '', code_archive_url: '', contact_email: '', pages: '', issn: '', volume: '',
+                issue: '', series: '', series_title: '', contact_author_name: '', series_text: '', doi: '',
+                tags: [], platforms: [], sponsors: [], notes:[], creators:[], journal: null, model_documentation: null
             }
             //use default data for any property not found in data
             var data = $.extend(defaultData, params.data);

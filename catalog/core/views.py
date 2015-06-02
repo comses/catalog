@@ -145,7 +145,8 @@ class PublicationDetail(LoginRequiredMixin, APIView):
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
         serializer = JournalArticleSerializer(publication)
-        return Response({'json': dumps(serializer.data)}, template_name='publication/detail.html')
+        return Response({'json': dumps(serializer.data), 'pk': publication.pk},
+                        template_name='publication/detail.html')
 
     def put(self, request, pk):
         publication = self.get_object(pk)

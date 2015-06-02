@@ -1,4 +1,4 @@
-var inject_binding = function (allBindings, key, value) {
+var injectBinding = function (allBindings, key, value) {
     //https://github.com/knockout/knockout/pull/932#issuecomment-26547528
     return {
         has: function (bindingKey) {
@@ -17,11 +17,11 @@ var inject_binding = function (allBindings, key, value) {
 ko.bindingHandlers.selectize = {
     init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
         if (!allBindingsAccessor.has('optionsText'))
-            allBindingsAccessor = inject_binding(allBindingsAccessor, 'optionsText', 'name');
+            allBindingsAccessor = injectBinding(allBindingsAccessor, 'optionsText', 'name');
         if (!allBindingsAccessor.has('optionsValue'))
-            allBindingsAccessor = inject_binding(allBindingsAccessor, 'optionsValue', 'id');
+            allBindingsAccessor = injectBinding(allBindingsAccessor, 'optionsValue', 'id');
         if (typeof allBindingsAccessor.get('optionsCaption') == 'undefined')
-            allBindingsAccessor = inject_binding(allBindingsAccessor, 'optionsCaption', 'Choose...');
+            allBindingsAccessor = injectBinding(allBindingsAccessor, 'optionsCaption', 'Choose...');
 
         ko.bindingHandlers.options.update(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext);
 

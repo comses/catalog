@@ -5,14 +5,21 @@
     <div class="widget-wrapper">
         <div class="widget-head">
             <h4>
-                <a target='_blank' data-bind="text: title, attr: { href: googleScholarLink() }"></a> <i class='fa fa-external-link'></i>
+                <a target='_blank' data-bind="attr: { href: googleScholarLink() }">
+                    <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
+                </a>
             </h4>
         </div>
         <div class="widget-content clearfix">
-            <form method="post" role="form">
+            <form id='curatorPublicationDetailForm' method="post" role="form">
                 <div class="row well">
                     <div class="col-md-6">
-                        <legend class="scheduler-border">Assigned to <mark data-bind='text:assigned_curator'></mark></legend>
+                        <legend class="scheduler-border">Assigned to 
+                            <mark>
+                                <span data-bind='ifnot: assigned_curator'>nobody</span>
+                                <span data-bind='text: assigned_curator'></span>
+                            </mark>
+                        </legend>
                         <p><b>Journal: </b><span data-bind="text: journal.name"></span></p>
                         <p><b>Date Published: </b><span data-bind="text: date_published"></span></p>
                         <div><b>Author(s): </b>
@@ -25,58 +32,59 @@
                         </div>
                         <p>Last modified: <b data-bind='text:date_modified'></b></p>
                         <p><a target='_blank' data-bind="attr: { href: googleScholarLink() }">Find on Google Scholar <i class='fa fa-external-link'></i></a>
-                        <p><a target='_blank' data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic record</a></p>
+                        {# FIXME: dirty, hard-coded URL #}
+                        <p><a data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic record</a></p>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 form-group">
                         <note-detail params="notes: notes, pub_id: id"></note-detail>
                     </div>
                 </div>
                 <div class="row">
-                    <div class='col-md-4'>
+                    <div class='col-md-4 form-group'>
                         <label class="control-label" for="id_model_documentation">Model documentation</label>
                         <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: modelDocumentationList, value: model_documentation.value, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocList }"></select>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-8 form-group">
                         <label class="control-label" for="id_platforms">Platforms</label>
                         <select multiple="multiple" class="form-control" id="id_platforms" name="platforms" data-bind="selectize: platforms, selectedOptions: selectedPlatforms, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}"></select>
                     </div>
                 </div>
                 <div class='row'>
-                    <div class="col-md-12">
+                    <div class="col-md-12 form-group">
                         <label class="control-label" for="id_sponsors">Sponsors</label>
                         <select multiple="multiple" class="form-control" id="id_sponsors" name="sponsors" data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getSponsorList }"></select>
                     </div>
                 </div>
                 <div class='row'>
-                    <div class="col-md-12">
+                    <div class="col-md-12 form-group">
                         <label class="control-label" for="id_tags">Tags</label>
                         <select multiple="multiple" class="form-control" id="id_tags" name="tags" data-bind="selectize: tags, selectedOptions: selectedTags, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getTagList }"></select>
                     </div>
                 </div>
                 <div class='row'>
-                    <div class='col-md-12'>
+                    <div class='col-md-11 form-group'>
                         <label class="control-label" for="id_code_archive_url">Code url</label>
                         <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
-                        <span data-bind='if: code_archive_url'>
-                            <a href='attr: {href: code_archive_url}' target='_blank'>View code <i class='fa fa-external-link'</a>
+                        <span data-bind='if: validCodeArchiveUrl'>
+                            <a data-bind='attr: {href: code_archive_url}' target='_blank'>View code <i class='fa fa-external-link'></i></a>
                         </span>
                     </div>
                 </div>
                 <div class='row'>
-                    <div class="col-md-6">
+                    <div class="col-md-6 form-group">
                         <label class="control-label" for="id_contact_author">Contact author name</label>
                         <input class="form-control" id="id_contact_author" maxlength="75" name="contact_author" placeholder="Corresponding Author" type="text" data-bind="value: contact_author_name">
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-6 form-group">
                         <label class="control-label" for="id_contact_email">Contact email</label>
                         <input class="form-control" id="id_contact_email" maxlength="75" name="contact_email" placeholder="Contact email" type="email" data-bind="value: contact_email">
                     </div>
                 </div>
                 <div class='row'>
-                    <div class='col-md-12'>
+                    <div class='col-md-12 form-group'>
                         <div class='well'>
                         <label class="control-label" for="id_status">Current Status: </label>
-                        <b class='text-danger' data-bind='text:status'></b>
+                        <b class='text-warning' data-bind='text:status'></b>
                         <br>
                         <div class="radio" data-toggle="buttons" id="id_status">
                             <label class="btn btn-info btn-sm">
@@ -127,10 +135,15 @@
                 self.selectedSponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));
                 self.journals = ko.observableArray([data.journal || ""]);
                 self.googleScholarLink = ko.computed(function() {
-                    return 'https://scholar.google.com/scholar?hl=en&q=' + encodeURIComponent(self.title());
+                    var firstAuthorLastName = self.creators()[0].last_name();
+                    return 'https://scholar.google.com/scholar?as_q=' + encodeURIComponent(self.title()) +
+                        '&as_sauthors=' + encodeURIComponent(firstAuthorLastName);
                 });
-                self.modelDocumentationList = ko.observableArray([data.model_documentation || ""]);
+                self.validCodeArchiveUrl = ko.computed(function() {
+                    return self.code_archive_url() && $('#curatorPublicationDetailForm').valid();
+                });
 
+                self.modelDocumentationList = ko.observableArray([data.model_documentation || ""]);
                 self.getPlatformList = function(query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'core:platform_search' %}");
                 };
@@ -163,12 +176,18 @@
                         dataType: "json",
                         contentType: "application/json; charset=utf-8"
                     }).fail(function(result) {
-                        humane.log("Something went wrong, Please verify the from data and try again!!", {timeout: 5000});
+                        humane.log("Something went wrong, Please verify the form data and try again.", {timeout: 5000});
                         console.log(result.responseJSON);
                     });
                 }
 
                 self.savePublication = function(data, event) {
+                    var form = $('#curatorPublicationDetailForm');
+                    if ( !form.valid() ) {
+                        form.showErrors();
+                        return false;
+                    }
+
                     var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
                     data_clone.platforms(ko.utils.arrayMap(data.selectedPlatforms(), function(platform) {
                         return {'name': platform};
@@ -181,7 +200,7 @@
                     }));
 
                     if (data_clone.journal.name() == undefined) {
-                        if (data.journals()[0].name) { 
+                        if (data.journals()[0].name) {
                             data_clone.journal.name = ko.observable(data.journals()[0].name);
                         } else {
                             data_clone.journal = null;
@@ -206,6 +225,7 @@
                 };
             };
             ko.applyBindings(new PublicationDetail(viewModelJson));
+            $('#curatorPublicationDetailForm').validate();
         });
     </script>
 {% endblock javascript %}
