@@ -59,7 +59,7 @@ class PublicationSerializer(serializers.ModelSerializer):
     detail_url = serializers.CharField(source='get_absolute_url', read_only=True)
     assigned_curator = serializers.StringRelatedField()
     date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
-    code_archive_url = serializers.URLField(max_length=255, allow_blank=True)
+    code_archive_url = serializers.URLField(max_length=255, allow_blank=True, allow_null=True)
 
     class Meta:
         model = Publication
