@@ -1,14 +1,11 @@
 from rest_framework.urlpatterns import format_suffix_patterns
 from django.conf.urls import url
-from django.contrib.auth.decorators import login_required
 from django.views.generic import RedirectView, TemplateView
 
 from .views import (LoginView, LogoutView, DashboardView, PublicationDetail, PublicationList, EmailPreview,
-                    ContactAuthor, UpdateModelUrlView, CustomSearchView, ContactFormView, UserProfileView,
+                    ContactAuthor, UpdateModelUrlView, CatalogSearchView, ContactFormView, UserProfileView,
                     PlatformSearchView, SponsorSearchView, TagSearchView, JournalSearchView, ModelDocSearchView,
-                    CuratorPublicationDetail, AssignedPublicationsView, NoteList, NoteDetail, )
-
-from .forms import CustomSearchForm
+                    CuratorPublicationDetail, CuratorWorkflowView, NoteList, NoteDetail, )
 
 # django rest framework endpoints that can generate JSON / HTML
 urlpatterns = format_suffix_patterns([
@@ -22,7 +19,7 @@ urlpatterns = format_suffix_patterns([
     url(r'^note/(?P<pk>\d+)/$', NoteDetail.as_view(), name='note_detail'),
 ])
 
-# authentication, user dashboard, workflow, and search URLs
+# non django rest framework endpoints for authentication, user dashboard, workflow, and search URLs
 urlpatterns += [
     url(r'^contact-us/$', ContactFormView.as_view(), name='contact_us'),
     url(r'^$', TemplateView.as_view(template_name='index.html'), name='index'),
@@ -32,9 +29,8 @@ urlpatterns += [
     url(r'^accounts/logout/$', LogoutView.as_view(), name='logout'),
     url(r'^bug-report/$', RedirectView.as_view(url='https://gitreports.com/issue/comses/catalog'),
         name='report_issues'),
-    url(r'^publication/workflow/$', login_required(AssignedPublicationsView(form_class=CustomSearchForm)),
-        name='curator_workflow'),
-    url(r'^search/$', login_required(CustomSearchView(form_class=CustomSearchForm)), name='haystack_search'),
+    url(r'^publication/workflow/$', CuratorWorkflowView.as_view(), name='curator_workflow'),
+    url(r'^search/$', CatalogSearchView.as_view(), name='haystack_search'),
     url(r'^search/platform/$', PlatformSearchView.as_view(), name="platform_search"),
     url(r'^search/sponsor/$', SponsorSearchView.as_view(), name="sponsor_search"),
     url(r'^search/tag/$', TagSearchView.as_view(), name="tag_search"),

@@ -3,9 +3,13 @@ from django.forms import widgets
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Publication, JournalArticle
+from .models import Publication
 
 from haystack.forms import SearchForm
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class LoginForm(forms.Form):
@@ -29,9 +33,9 @@ class LoginForm(forms.Form):
         return cleaned_data
 
 
-class CustomSearchForm(SearchForm):
+class CatalogSearchForm(SearchForm):
 
-    STATUS_CHOICES = tuple([("", "Any"), ] + list(Publication.Status))
+    STATUS_CHOICES = [("", "Any")] + Publication.Status
 
     publication_start_date = forms.DateField(required=False)
     publication_end_date = forms.DateField(required=False)
@@ -42,17 +46,16 @@ class CustomSearchForm(SearchForm):
     def no_query_found(self):
         return self.searchqueryset.all()
 
-    def search(self, assigned_curator=None):
+    def search(self):
         # First, store the SearchQuerySet received from other processing.
         # NOTE: Keep on adding the publication subtypes to models below to show them in search
-        sqs = super(CustomSearchForm, self).search().models(JournalArticle)
-
-        if assigned_curator:
-            return sqs.filter(assigned_curator=assigned_curator, status=Publication.Status.UNTAGGED).order_by('title')
         if not self.is_valid():
             return self.no_query_found()
 
-        criteria = dict()
+        sqs = super(CatalogSearchForm, self).search()
+        logger.debug("searching on %s", self.cleaned_data)
+
+        criteria = {}
         # Check to see if a start_date was chosen.
         if self.cleaned_data['publication_start_date']:
             criteria.update(pub_date__gte=self.cleaned_data['publication_start_date'])
@@ -74,7 +77,8 @@ class CustomSearchForm(SearchForm):
         if self.cleaned_data['contact_email']:
             sqs = sqs.exclude(contact_email__exact='')
 
-        # if not using query to search return the results sorted by date
+        # if not using query to search, return the results sorted by date
         if not self.cleaned_data['q']:
             sqs = sqs.order_by('-pub_date')
+        logger.debug("search queryset: %s", sqs)
         return sqs

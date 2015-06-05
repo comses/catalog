@@ -5,6 +5,7 @@
     <div class="widget-wrapper">
         <div class="widget-head">
             <h4>
+                <a class='btn btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
                 <a target='_blank' data-bind="attr: { href: googleScholarLink() }">
                     <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
                 </a>
@@ -90,13 +91,13 @@
                             <label class="btn btn-info btn-sm">
                                 <input type="radio" name="status" value="UNTAGGED" data-bind="bsChecked: status"> <i class='fa fa-eye-slash'></i> Incomplete
                             </label>
-                            <label class="btn btn-primary btn-sm">
+                            <label class="btn btn-warning btn-sm">
                                 <input type="radio" name="status" value="NEEDS_AUTHOR_REVIEW" data-bind="bsChecked: status"> <i class='fa fa-tag'></i> Tagging Complete, Needs Author Input
                             </label>
                             <label class="btn btn-success btn-sm">
                                 <input type="radio" name="status" value="COMPLETE" data-bind="bsChecked: status"> <i class='fa fa-thumbs-o-up'></i> Tagging Complete, Code Archived
                             </label>
-                            <label class="btn btn-warning btn-sm">
+                            <label class="btn btn-danger btn-sm">
                                 <input type="radio" name="status" value="INVALID" data-bind="bsChecked: status"> <i class='fa fa-times'></i> Invalid Publication
                             </label>
                             <label class="btn btn-danger btn-sm">
@@ -110,6 +111,7 @@
         </div>
         <div class="widget-foot clearfix">
             <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
+            <a class='btn btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
         </div>
     </div>
 {% endblock content %}
@@ -219,9 +221,8 @@
                     }
 
                     self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname).done(function(result) {
-                            window.location.replace("{% url 'core:curator_workflow' %}");
-                            humane.log("Data saved successfully.", {timeout: 5000})
-                        });
+                        humane.log("Data saved successfully.", {timeout: 5000})
+                    });
                 };
             };
             ko.applyBindings(new PublicationDetail(viewModelJson));

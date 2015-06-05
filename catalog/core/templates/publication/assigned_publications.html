@@ -5,7 +5,7 @@
     <div class="widget-wrapper">
         <div class="widget-head">
             <h4>Assigned Publications for {{ request.user.get_full_name }}</h4>
-            <div>Showing {{ page.start_index }} to {{ page.end_index }} of {{ page.paginator.count }} entries</div>
+            <div>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries</div>
         </div>
         <div class="widget-content">
             <table class="table table-striped">
@@ -13,7 +13,7 @@
                     <tr><th>Title</th><th>Date Published</th></tr>
                 </thead>
                 <tbody>
-                    {% for row in page.object_list %}
+                    {% for row in object_list %}
                         <tr class="{% cycle "odd" "even" %}">
                             <td><a href="{% url 'core:curator_publication_detail' row.pk %}">{{ row.title }}</td>
                             <td>{{ row.pub_date }}</td>
@@ -26,10 +26,10 @@
                 </tbody>
             </table>
         </div>
-        {% if page.has_previous or page.has_next %}
+        {% if page_obj.has_previous or page_obj.has_next %}
         <div class="widget-foot clearfix">
-            <div class='text-center'>Showing {{ page.start_index }} to {{ page.end_index }} of {{ page.paginator.count }} entries</div>
-            <div class="text-center">{% bootstrap_pagination page url=request.get_full_path %}</div>
+            <div class='text-center'>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries</div>
+            <div class="text-center">{% bootstrap_pagination page_obj url=request.get_full_path %}</div>
         </div>
         {% endif %}
     </div>

@@ -21,7 +21,7 @@ import time
 logger = logging.getLogger(__name__)
 
 
-class CustomPagination(pagination.PageNumberPagination):
+class CatalogPagination(pagination.PageNumberPagination):
     """
     Serializes page objects of user querysets.
     """
@@ -59,12 +59,10 @@ class PublicationSerializer(serializers.ModelSerializer):
     detail_url = serializers.CharField(source='get_absolute_url', read_only=True)
     assigned_curator = serializers.StringRelatedField()
     date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
-    code_archive_url = serializers.URLField(max_length=255, allow_blank=True, allow_null=True)
 
     class Meta:
         model = Publication
-        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url', 'assigned_curator',
-                  'code_archive_url',)
+        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url', 'assigned_curator', )
 
 
 class TagSerializer(serializers.ModelSerializer):

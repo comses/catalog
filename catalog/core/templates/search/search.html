@@ -48,7 +48,7 @@
                     <tr><th>Title</th><th>Date Published</th></tr>
                 </thead>
                 <tbody>
-                    {% for row in page.object_list %}
+                    {% for row in object_list %}
                         <tr class="{% cycle "odd" "even" %}">
                             <td><a href="{% url 'core:publication_detail' row.pk %}">{{ row.title }}</td>
                             <td>{{ row.pub_date }}</td>
@@ -61,7 +61,7 @@
                 </tbody>
             </table>
         {% endif %}
-        {% if page.has_previous or page.has_next and request.GET %}
+        {% if page_object.has_previous or page_object.has_next and request.GET %}
             <div class="text-center">{% bootstrap_pagination page url=request.get_full_path %}</div>
         {% endif %}
     </script>
@@ -138,7 +138,7 @@
                 self.stepModels = ko.observableArray([
                     new Step(1, "Select Publications", "choicePubTmpl", {}, "", "Construct Email "),
                     new Step(2, "Contruct Email", "inviteFormTmpl", new InvitationViewModel(), " Select Publications", "Submit "),
-                    new Step(3, "Done!!", "basicTmpl", { message: "you are finished!" }, "", "Done "),
+                    new Step(3, "Done", "basicTmpl", { message: "Completed." }, "", "Done "),
                 ]);
 
                 self.currentStep = ko.observable(self.stepModels()[0]);

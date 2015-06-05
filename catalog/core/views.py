@@ -10,7 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators import cache, csrf
 from django.views.generic import FormView, TemplateView
 from haystack.query import SearchQuerySet
-from haystack.views import SearchView
+from haystack.generic_views import SearchView
 from hashlib import sha1
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
 from rest_framework.views import APIView
@@ -19,9 +19,9 @@ from rest_framework import status
 from json import dumps
 from datetime import datetime, timedelta
 
-from .forms import LoginForm, CustomSearchForm
-from .models import Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation, Note
-from .serializers import (PublicationSerializer, CustomPagination, JournalArticleSerializer, InvitationSerializer,
+from .forms import LoginForm, CatalogSearchForm
+from .models import (Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation, Note, )
+from .serializers import (PublicationSerializer, CatalogPagination, JournalArticleSerializer, InvitationSerializer,
                           UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer, NoteSerializer, )
 
 import logging
@@ -67,7 +67,7 @@ class LogoutView(TemplateView):
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, number_of_publications=20, **kwargs):
         context = super(DashboardView, self).get_context_data(**kwargs)
         last_week_datetime = datetime.now() - timedelta(days=7)
         context['status'] = {}
@@ -82,9 +82,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                                                                             assigned_curator=self.request.user).count()
         context['recently_author_updated'] = Publication.objects.select_subclasses().filter(
             status=Publication.Status.AUTHOR_UPDATED)
-        pub_recently_updated = Publication.objects.select_subclasses().exclude(status=Publication.Status.AUTHOR_UPDATED)
-        context['recently_updated'] = pub_recently_updated.filter(
-            date_modified__gte=last_week_datetime).order_by('-date_modified')[:10]
+        recently_updated_publications = Publication.objects.select_subclasses().exclude(
+            status=Publication.Status.AUTHOR_UPDATED)
+        context['recently_updated'] = recently_updated_publications.filter(
+            date_modified__gte=last_week_datetime).order_by('-date_modified')[:number_of_publications]
         return context
 
 
@@ -114,7 +115,7 @@ class PublicationList(LoginRequiredMixin, APIView):
 
     def get(self, request, format=None):
         publication_list = Publication.objects.all()
-        paginator = CustomPagination()
+        paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(publication_list, request)
         serializer = PublicationSerializer(result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
@@ -172,7 +173,8 @@ class CuratorPublicationDetail(LoginRequiredMixin, APIView):
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
         serializer = JournalArticleSerializer(publication)
-        return Response({'json': dumps(serializer.data)}, template_name='publication/curator_workflow_detail.html')
+        return Response({'json': dumps(serializer.data), 'pk': pk},
+                        template_name='publication/curator_workflow_detail.html')
 
     def put(self, request, pk):
         publication = self.get_object(pk)
@@ -300,15 +302,25 @@ class JournalSearchView(LoginRequiredMixin, APIView):
         return Response(dumps(data))
 
 
-class CustomSearchView(SearchView):
-    template = 'search/search.html'
+class CatalogSearchView(SearchView):
+    """ django haystack searchview """
+    form_class = CatalogSearchForm
 
 
-class AssignedPublicationsView(SearchView):
-    template = 'publication/assigned_publications.html'
+class CuratorWorkflowView(SearchView):
+    """ django haystack searchview """
+    template_name = 'publication/assigned_publications.html'
+    form_class = CatalogSearchForm
 
-    def get_results(self):
-        return self.form.search(self.request.user)
+    def get_context_data(self, **kwargs):
+        context = super(CuratorWorkflowView, self).get_context_data(**kwargs)
+        logger.debug("context: %s", context)
+        return context
+
+    def get_queryset(self):
+        queryset = super(CuratorWorkflowView, self).get_queryset()
+        return queryset.filter(assigned_curator=self.request.user,
+                               status=Publication.Status.UNTAGGED).order_by('title')
 
 
 class ContactAuthor(LoginRequiredMixin, APIView):
@@ -319,7 +331,7 @@ class ContactAuthor(LoginRequiredMixin, APIView):
 
     def post(self, request, format=None):
         serializer = InvitationSerializer(data=request.data)
-        pk_list = CustomSearchForm(request.GET or None).search().values_list('pk', flat=True)
+        pk_list = CatalogSearchForm(request.GET or None).search().values_list('pk', flat=True)
         if serializer.is_valid():
             serializer.save(self.request, pk_list)
             return Response(serializer.data)
