@@ -196,6 +196,8 @@ class Command(BaseCommand):
         logger.debug("checking tags: %s", tags)
         if not data['tags']:
             # if publication has no zotero tags, mark it as untagged (i.e not reviewed)
+            # FIXME: this condition is rarely true. We need to check for the existence of key: value tags instead of
+            # just tags in general because the citation import into zotero generates numerous general zotero tags
             article.status = Publication.Status.UNTAGGED
         else:
             article = self.set_tags(data, article)

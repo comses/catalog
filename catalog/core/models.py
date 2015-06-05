@@ -87,6 +87,8 @@ class Note(models.Model):
     zotero_date_added = models.DateTimeField(null=True, blank=True)
     zotero_date_modified = models.DateTimeField(null=True, blank=True)
     added_by = models.ForeignKey(User, related_name='added_note_set')
+    deleted_on = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(User, related_name='deleted_note_set', null=True, blank=True)
 
     publication = models.ForeignKey('Publication', null=True, blank=True)
 

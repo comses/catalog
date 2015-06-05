@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.core.urlresolvers import reverse
 from django.db.models import Count
-from django.http import Http404, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators import cache, csrf
@@ -138,10 +138,7 @@ class PublicationDetail(LoginRequiredMixin, APIView):
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
 
     def get_object(self, pk):
-        try:
-            return Publication.objects.get_subclass(id=pk)
-        except Publication.DoesNotExist:
-            raise Http404("Publication does not exist")
+        return get_object_or_404(Publication.objects.select_subclasses(), pk=pk)
 
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
@@ -165,10 +162,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, APIView):
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
 
     def get_object(self, pk):
-        try:
-            return Publication.objects.get_subclass(id=pk)
-        except Publication.DoesNotExist:
-            raise Http404("Publication does not exist")
+        return get_object_or_404(Publication.objects.select_subclasses(), pk=pk)
 
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
@@ -193,10 +187,7 @@ class NoteDetail(LoginRequiredMixin, APIView):
     renderer_classes = (JSONRenderer, )
 
     def get_object(self, pk):
-        try:
-            return Note.objects.get(id=pk)
-        except Note.DoesNotExist:
-            raise Http404("Note does not exist")
+        return get_object_or_404(Note, pk=pk)
 
     def get(self, request, pk, format=None):
         note = self.get_object(pk)
@@ -215,7 +206,9 @@ class NoteDetail(LoginRequiredMixin, APIView):
 
     def delete(self, request, pk, format=None):
         note = self.get_object(pk)
-        note.delete()
+        note.deleted_by = request.user
+        note.deleted_on = datetime.today()
+        note.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -302,12 +295,12 @@ class JournalSearchView(LoginRequiredMixin, APIView):
         return Response(dumps(data))
 
 
-class CatalogSearchView(SearchView):
+class CatalogSearchView(LoginRequiredMixin, SearchView):
     """ django haystack searchview """
     form_class = CatalogSearchForm
 
 
-class CuratorWorkflowView(SearchView):
+class CuratorWorkflowView(LoginRequiredMixin, SearchView):
     """ django haystack searchview """
     template_name = 'publication/assigned_publications.html'
     form_class = CatalogSearchForm
