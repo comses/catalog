@@ -4,8 +4,8 @@ from django.views.generic import RedirectView, TemplateView
 
 from .views import (LoginView, LogoutView, DashboardView, PublicationDetail, PublicationList, EmailPreview,
                     ContactAuthor, UpdateModelUrlView, CatalogSearchView, ContactFormView, UserProfileView,
-                    PlatformSearchView, SponsorSearchView, TagSearchView, JournalSearchView, ModelDocSearchView,
-                    CuratorPublicationDetail, CuratorWorkflowView, NoteList, NoteDetail, )
+                    PlatformSearchView, SponsorSearchView, TagSearchView, JournalSearchView,
+                    ModelDocumentationSearchView, CuratorPublicationDetail, CuratorWorkflowView, NoteList, NoteDetail, )
 
 # django rest framework endpoints that can generate JSON / HTML
 urlpatterns = format_suffix_patterns([
@@ -35,5 +35,5 @@ urlpatterns += [
     url(r'^search/sponsor/$', SponsorSearchView.as_view(), name="sponsor_search"),
     url(r'^search/tag/$', TagSearchView.as_view(), name="tag_search"),
     url(r'^search/journal/$', JournalSearchView.as_view(), name="journal_search"),
-    url(r'^search/modeldoc/$', ModelDocSearchView.as_view(), name="model_doc_search"),
+    url(r'^search/modeldoc/$', ModelDocumentationSearchView.as_view(), name="model_doc_search"),
 ]

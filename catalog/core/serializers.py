@@ -69,13 +69,13 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         extra_kwargs = {
-            "value": {
+            "name": {
                 "validators": [],
             },
         }
 
     def validate(self, data):
-        tag, created = Tag.objects.get_or_create(value=data['value'])
+        tag, created = Tag.objects.get_or_create(name=data['name'])
         return tag
 
 
@@ -122,13 +122,13 @@ class ModelDocSerializer(serializers.ModelSerializer):
     class Meta:
         model = ModelDocumentation
         extra_kwargs = {
-            "value": {
+            "name": {
                 "validators": [],
             },
         }
 
     def validate(self, data):
-        model_doc, created = ModelDocumentation.objects.get_or_create(value=data['value'])
+        model_doc, created = ModelDocumentation.objects.get_or_create(name=data['name'])
         return model_doc
 
 

@@ -61,22 +61,22 @@ class Creator(models.Model):
     last_name = models.CharField(max_length=255)
 
     def __unicode__(self):
-        return u'{0} {1} ({2})'.format(self.first_name, self.last_name, self.creator_type)
+        return u'{} {} ({})'.format(self.first_name, self.last_name, self.creator_type)
 
 
 class Tag(models.Model):
-    value = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255, unique=True)
 
     def __unicode__(self):
-        return unicode(self.value)
+        return self.name
 
 
 class ModelDocumentation(models.Model):
     ''' common choices: UML, ODD, Word / PDF doc '''
-    value = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255, unique=True)
 
     def __unicode__(self):
-        return unicode(self.value)
+        return self.name
 
 
 class Note(models.Model):

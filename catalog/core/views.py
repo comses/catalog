@@ -249,50 +249,52 @@ class EmailPreview(LoginRequiredMixin, APIView):
         return Response({'content': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PlatformSearchView(LoginRequiredMixin, APIView):
+class AutocompleteView(LoginRequiredMixin, APIView):
 
     renderer_classes = (JSONRenderer,)
 
     def get(self, request, format=None):
-        sqs = SearchQuerySet().autocomplete(name=request.GET.get('q', '')).models(Platform)
-        data = [{"id": int(result.pk), "name": result.name} for result in sqs]
+        query = request.GET.get('q', '').strip()
+        sqs = SearchQuerySet().models(self.model_class)
+        if query:
+            sqs = sqs.autocomplete(name=query)
+        data = [{'id': int(result.pk), 'name': result.name} for result in sqs]
         return Response(dumps(data))
 
 
-class SponsorSearchView(LoginRequiredMixin, APIView):
-    renderer_classes = (JSONRenderer,)
+class PlatformSearchView(AutocompleteView):
 
-    def get(self, request, format=None):
-        sqs = SearchQuerySet().autocomplete(name=request.GET.get('q', '')).models(Sponsor)
-        data = [{"id": int(result.pk), "name": result.name} for result in sqs]
-        return Response(dumps(data))
+    @property
+    def model_class(self):
+        return Platform
 
 
-class TagSearchView(LoginRequiredMixin, APIView):
-    renderer_classes = (JSONRenderer,)
+class SponsorSearchView(AutocompleteView):
 
-    def get(self, request, format=None):
-        sqs = SearchQuerySet().autocomplete(value=request.GET.get('q', '')).models(Tag)
-        data = [{"id": int(result.pk), "value": result.value} for result in sqs]
-        return Response(dumps(data))
+    @property
+    def model_class(self):
+        return Sponsor
 
 
-class ModelDocSearchView(LoginRequiredMixin, APIView):
-    renderer_classes = (JSONRenderer,)
+class TagSearchView(AutocompleteView):
 
-    def get(self, request, format=None):
-        sqs = SearchQuerySet().autocomplete(value=request.GET.get('q', '')).models(ModelDocumentation)
-        data = [{"id": int(result.pk), "value": result.value} for result in sqs]
-        return Response(dumps(data))
+    @property
+    def model_class(self):
+        return Tag
 
 
-class JournalSearchView(LoginRequiredMixin, APIView):
-    renderer_classes = (JSONRenderer,)
+class ModelDocumentationSearchView(AutocompleteView):
 
-    def get(self, request, format=None):
-        sqs = SearchQuerySet().autocomplete(name=request.GET.get('q', '')).models(Journal)
-        data = [{"id": int(result.pk), "name": result.name} for result in sqs]
-        return Response(dumps(data))
+    @property
+    def model_class(self):
+        return ModelDocumentation
+
+
+class JournalSearchView(AutocompleteView):
+
+    @property
+    def model_class(self):
+        return Journal
 
 
 class CatalogSearchView(LoginRequiredMixin, SearchView):

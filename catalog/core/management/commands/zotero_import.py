@@ -105,7 +105,7 @@ class Command(BaseCommand):
                 item.contact_email = value
             # match for docs
             elif sliced_key == 'doc':
-                item.model_documentation, created = ModelDocumentation.objects.get_or_create(value=value)
+                item.model_documentation, created = ModelDocumentation.objects.get_or_create(name=value)
             # match for platform
             elif sliced_key == 'pla':
                 platform, created = Platform.objects.get_or_create(name=value)
@@ -116,9 +116,9 @@ class Command(BaseCommand):
                 item.sponsors.add(sponsor)
             elif key:
                 logger.debug("Tag [%s :: %s] was added as is for publication_id %s", key, value, item.pk)
-                tag, created = Tag.objects.get_or_create(value=t['tag'].strip())
+                tag, created = Tag.objects.get_or_create(name=t['tag'].strip())
             else:
-                tag, created = Tag.objects.get_or_create(value=value)
+                tag, created = Tag.objects.get_or_create(name=value)
                 item.tags.add(tag)
         try:
             item.save()

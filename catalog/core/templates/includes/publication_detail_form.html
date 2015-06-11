@@ -38,7 +38,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="control-label" for="id_model_documentation">Model documentation</label>
-                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: model_docs, value: model_documentation.value, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocList }"></select>
+                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: model_docs, value: model_documentation.name, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocList }"></select>
                     </div>
                 </div>
                 <div class='row'>
@@ -211,7 +211,7 @@
 
             var model = ko.mapping.fromJS(data, {}, this);
 
-            model.selected_tags = ko.observableArray(ko.utils.arrayMap(model.tags(), function(tag) { return tag.value(); }));
+            model.selected_tags = ko.observableArray(ko.utils.arrayMap(model.tags(), function(tag) { return tag.name(); }));
             model.selected_platforms = ko.observableArray(ko.utils.arrayMap(model.platforms(), function(platform) { return platform.name();}));
             model.selected_sponsors = ko.observableArray(ko.utils.arrayMap(model.sponsors(), function(sponsor) { return sponsor.name();}));
             model.journals = ko.observableArray([data.journal || ""]);
@@ -250,7 +250,7 @@
                     return {'name': sponsor};
                 }));
                 data_clone.tags(ko.utils.arrayMap(data.selected_tags(), function(tag) {
-                    return {'value': tag};
+                    return {'name': tag};
                 }));
 
                 if(data_clone.journal.name() == undefined) {
@@ -262,13 +262,13 @@
                 } else if(data_clone.journal.name() == "") {
                     data_clone.journal = null
                 }
-                if(data_clone.model_documentation.value() == undefined) {
-                    if(data.model_docs()[0].value) {
-                        data_clone.model_documentation.value = ko.observable(data.model_docs()[0].value);
+                if(data_clone.model_documentation.name() == undefined) {
+                    if(data.model_docs()[0].name) {
+                        data_clone.model_documentation.name = ko.observable(data.model_docs()[0].name);
                     } else {
                         data_clone.model_documentation = null;
                     }
-                } else if(data_clone.model_documentation.value() == "") {
+                } else if(data_clone.model_documentation.name() == "") {
                     data_clone.model_documentation = null;
                 }
                 return data_clone

@@ -27,15 +27,7 @@ class JournalArticleIndex(PublicationIndex, indexes.Indexable):
 #       AutoComplete Index Fields        #
 ##########################################
 
-class ValueAutoCompleteIndex(indexes.SearchIndex):
-    text = indexes.CharField(document=True)
-    value = indexes.NgramField(model_attr='value')
-
-    class Meta:
-        abstract = True
-
-
-class NameAutoCompleteIndex(indexes.SearchIndex):
+class NameAutocompleteIndex(indexes.SearchIndex):
     text = indexes.CharField(document=True)
     name = indexes.NgramField(model_attr='name')
 
@@ -43,26 +35,26 @@ class NameAutoCompleteIndex(indexes.SearchIndex):
         abstract = True
 
 
-class PlatformIndex(NameAutoCompleteIndex, indexes.Indexable):
+class PlatformIndex(NameAutocompleteIndex, indexes.Indexable):
     def get_model(self):
         return Platform
 
 
-class SponsorIndex(NameAutoCompleteIndex, indexes.Indexable):
+class SponsorIndex(NameAutocompleteIndex, indexes.Indexable):
     def get_model(self):
         return Sponsor
 
 
-class TagIndex(ValueAutoCompleteIndex, indexes.Indexable):
+class TagIndex(NameAutocompleteIndex, indexes.Indexable):
     def get_model(self):
         return Tag
 
 
-class JournalIndex(NameAutoCompleteIndex, indexes.Indexable):
+class JournalIndex(NameAutocompleteIndex, indexes.Indexable):
     def get_model(self):
         return Journal
 
 
-class ModelDocIndex(ValueAutoCompleteIndex, indexes.Indexable):
+class ModelDocIndex(NameAutocompleteIndex, indexes.Indexable):
     def get_model(self):
         return ModelDocumentation

@@ -43,7 +43,7 @@
                 <div class="row">
                     <div class='col-md-4 form-group'>
                         <label class="control-label" for="id_model_documentation">Model documentation</label>
-                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: modelDocumentationList, value: model_documentation.value, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocList }"></select>
+                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: modelDocumentationList, value: model_documentation.name, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocList }"></select>
                     </div>
                     <div class="col-md-8 form-group">
                         <label class="control-label" for="id_platforms">Platforms</label>
@@ -132,7 +132,7 @@
                 var self = this;
                 ko.mapping.fromJS(data, {}, self);
 
-                self.selectedTags = ko.observableArray(ko.utils.arrayMap(self.tags(), function(tag) { return tag.value(); }));
+                self.selectedTags = ko.observableArray(ko.utils.arrayMap(self.tags(), function(tag) { return tag.name(); }));
                 self.selectedPlatforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
                 self.selectedSponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));
                 self.journals = ko.observableArray([data.journal || ""]);
@@ -210,13 +210,13 @@
                     } else if (data_clone.journal.name() == "") {
                         data_clone.journal = null
                     }
-                    if (data_clone.model_documentation.value() == undefined) {
-                        if (data.modelDocumentationList()[0].value) {
-                            data_clone.model_documentation.value = ko.observable(data.modelDocumentationList()[0].value);
+                    if (data_clone.model_documentation.name() == undefined) {
+                        if (data.modelDocumentationList()[0].name) {
+                            data_clone.model_documentation.name = ko.observable(data.modelDocumentationList()[0].name);
                         } else {
                             data_clone.model_documentation = null;
                         }
-                    } else if (data_clone.model_documentation.value() == "") {
+                    } else if (data_clone.model_documentation.name() == "") {
                         data_clone.model_documentation = null;
                     }
 
