@@ -310,7 +310,7 @@ class CuratorWorkflowView(LoginRequiredMixin, SearchView):
     def get_context_data(self, **kwargs):
         context = super(CuratorWorkflowView, self).get_context_data(**kwargs)
         context['other_publications'] = SearchQuerySet().filter(assigned_curator=self.request.user).exclude(
-            status=Publication.Status.UNTAGGED).order_by('date_published')
+            status=Publication.Status.UNTAGGED).order_by('-last_modified')
         return context
 
     def get_queryset(self):

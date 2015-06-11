@@ -2,22 +2,6 @@
 {% load bootstrap3 %}
 
 {% block content %}
-    <div class='well'>
-        <h4>Completed Publications</h4>
-        <table class='table table-striped'>
-            <thead>
-                <tr><th>Title</th><th>Last Modified</th></tr>
-            </thead>
-            <tbody>
-                {% for pub in other_publications %}
-                <tr>
-                    <td><a href="{% url 'core:curator_publication_detail' pub.pk %}">{{pub.title}}</td>
-                    <td>{{ pub.last_modified }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
     <div class="widget-wrapper">
         <div class="widget-head">
             <h4>Assigned Publications for {{ request.user.get_full_name }}</h4>
@@ -49,4 +33,47 @@
         </div>
         {% endif %}
     </div>
+    <div class='panel-group' id='accordion' role='tablist'>
+        <div class='panel panel-default'>
+            <div class='panel-heading' role='tab' id='otherPublications'>
+                <h4 class='panel-title'>
+                    <a id='collapser' data-toggle='collapse' data-parent='#accordion' href='#collapseOtherPublications'
+                       aria-expanded='true' aria-controls='collapseOtherPublications'>
+                        <i class='dropdown fa fa-chevron-right'></i> Your Recently Updated Publications
+                    </a>
+                </h4>
+            </div>
+            <div id='collapseOtherPublications' class='panel-collapse collapse' role='tabpanel' aria-labelledby='otherPublications'>
+                <div class='panel-body'>
+                    <table class='table table-striped'>
+                        <thead>
+                            <tr><th>Status</th><th>Title</th><th>Last Modified</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for pub in other_publications %}
+                            <tr>
+                                <td><mark>{{ pub.status }}</mark></td>
+                                <td><a href="{% url 'core:curator_publication_detail' pub.pk %}">{{pub.title}}</td>
+                                    <td>{{ pub.last_modified }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block javascript %}
+    {{block.super}}
+
+    <script>
+$(function() {
+
+    $('#collapser').click(function() {
+        $(this).find('.dropdown').toggleClass('fa-chevron-right fa-chevron-down');
+    });
+});
+    </script>
 {% endblock %}
