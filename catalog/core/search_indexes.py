@@ -9,7 +9,8 @@ from .models import JournalArticle, Platform, Sponsor, Tag, Journal, ModelDocume
 class PublicationIndex(indexes.SearchIndex):
     text = indexes.CharField(document=True, use_template=True)
     title = indexes.CharField(model_attr='title')
-    pub_date = indexes.DateField(model_attr='date_published', null=True)
+    date_published = indexes.DateField(model_attr='date_published', null=True)
+    last_modified = indexes.DateField(model_attr='date_modified')
     contact_email = indexes.BooleanField(model_attr='contact_email')
     status = indexes.CharField(model_attr='status')
     assigned_curator = indexes.CharField(model_attr='assigned_curator', null=True)

@@ -51,7 +51,7 @@
                     {% for row in object_list %}
                         <tr class="{% cycle "odd" "even" %}">
                             <td><a href="{% url 'core:publication_detail' row.pk %}">{{ row.title }}</td>
-                            <td>{{ row.pub_date }}</td>
+                            <td>{{ row.date_published }}</td>
                         </tr>
                     {% empty %}
                         <tr class="{% cycle "odd" "even" %}">

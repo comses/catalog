@@ -2,6 +2,22 @@
 {% load bootstrap3 %}
 
 {% block content %}
+    <div class='well'>
+        <h4>Completed Publications</h4>
+        <table class='table table-striped'>
+            <thead>
+                <tr><th>Title</th><th>Last Modified</th></tr>
+            </thead>
+            <tbody>
+                {% for pub in other_publications %}
+                <tr>
+                    <td><a href="{% url 'core:curator_publication_detail' pub.pk %}">{{pub.title}}</td>
+                    <td>{{ pub.last_modified }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     <div class="widget-wrapper">
         <div class="widget-head">
             <h4>Assigned Publications for {{ request.user.get_full_name }}</h4>
@@ -14,14 +30,14 @@
                 </thead>
                 <tbody>
                     {% for row in object_list %}
-                        <tr class="{% cycle "odd" "even" %}">
-                            <td><a href="{% url 'core:curator_publication_detail' row.pk %}">{{ row.title }}</td>
-                            <td>{{ row.pub_date }}</td>
-                        </tr>
+                    <tr>
+                        <td><a href="{% url 'core:curator_publication_detail' row.pk %}">{{ row.title }}</td>
+                        <td>{{ row.date_published }}</td>
+                    </tr>
                     {% empty %}
-                        <tr class="{% cycle "odd" "even" %}">
-                            <td colspan="2">No assigned publications.</td>
-                        </tr>
+                    <tr>
+                        <td colspan="2">No assigned publications.</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>

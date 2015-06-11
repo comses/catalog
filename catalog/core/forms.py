@@ -58,11 +58,11 @@ class CatalogSearchForm(SearchForm):
         criteria = {}
         # Check to see if a start_date was chosen.
         if self.cleaned_data['publication_start_date']:
-            criteria.update(pub_date__gte=self.cleaned_data['publication_start_date'])
+            criteria.update(date_published__gte=self.cleaned_data['publication_start_date'])
 
         # Check to see if an end_date was chosen.
         if self.cleaned_data['publication_end_date']:
-            criteria.update(pub_date__lte=self.cleaned_data['publication_end_date'])
+            criteria.update(date_published__lte=self.cleaned_data['publication_end_date'])
 
         # Check to see if status was selected.
         if self.cleaned_data['status']:
@@ -79,6 +79,5 @@ class CatalogSearchForm(SearchForm):
 
         # if not using query to search, return the results sorted by date
         if not self.cleaned_data['q']:
-            sqs = sqs.order_by('-pub_date')
-        logger.debug("search queryset: %s", sqs)
+            sqs = sqs.order_by('-date_published')
         return sqs

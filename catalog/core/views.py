@@ -304,12 +304,13 @@ class CatalogSearchView(LoginRequiredMixin, SearchView):
 
 class CuratorWorkflowView(LoginRequiredMixin, SearchView):
     """ django haystack searchview """
-    template_name = 'publication/assigned_publications.html'
+    template_name = 'publication/curator_workflow.html'
     form_class = CatalogSearchForm
 
     def get_context_data(self, **kwargs):
         context = super(CuratorWorkflowView, self).get_context_data(**kwargs)
-        logger.debug("context: %s", context)
+        context['other_publications'] = SearchQuerySet().filter(assigned_curator=self.request.user).exclude(
+            status=Publication.Status.UNTAGGED).order_by('date_published')
         return context
 
     def get_queryset(self):
