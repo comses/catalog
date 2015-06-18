@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class CatalogPagination(pagination.PageNumberPagination):
     """
-    Serializes page objects of user querysets.
+    See http://www.django-rest-framework.org/api-guide/pagination/ and clean this up
     """
     def get_paginated_response(self, data):
         return OrderedDict([
@@ -118,7 +118,7 @@ class SponsorSerializer(serializers.ModelSerializer):
         return sponsor
 
 
-class ModelDocSerializer(serializers.ModelSerializer):
+class ModelDocumentationSerializer(serializers.ModelSerializer):
     class Meta:
         model = ModelDocumentation
         extra_kwargs = {
@@ -163,7 +163,7 @@ class JournalArticleSerializer(PublicationSerializer):
     platforms = PlatformSerializer(many=True)
     sponsors = SponsorSerializer(many=True)
     journal = JournalSerializer()
-    model_documentation = ModelDocSerializer(allow_null=True)
+    model_documentation = ModelDocumentationSerializer(allow_null=True)
     notes = NoteSerializer(source='note_set', many=True, read_only=True)
     creators = CreatorSerializer(many=True)
 

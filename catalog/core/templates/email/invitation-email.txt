@@ -12,8 +12,8 @@ After you have archived the computational model associated with this publication
 us know where you put it by filling out the following form:
 {% endblocktrans %}
 
-http{% if secure %}s{% endif %}://{{ site.domain }}{% url "core:update_model_url" token %}
+https://{{ domain }}{% url "core:update_model_url" token %}
 
 Thanks!
 
-The CoMSES Network Development Team
+The CoMSES Network Editors

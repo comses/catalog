@@ -1,29 +1,24 @@
 {% extends "base.html" %}
 {% load bootstrap3 %}
 {% load staticfiles %}
-{% block title %}Comses Catalog Web Login{% endblock %}
+{% block title %}CoMSES Catalog{% endblock %}
 
 {% block content %}
-
-<div class="container">
-    <div class="widget-wrapper">
-        <div class="widget-head">
-            <i class="fa fa-newspaper-o"></i> The CoMSES Catalog
-        </div>
-        <div class="widget-content">
-            <p>
-            The CoMSES Catalog app is being actively developed to investigate and improve the state of computational
-            model archiving. The <em>digital context</em>, e.g., metadata, code, documentation, and data needed for
-            reproducible research are often missing from publications that depend on computational models or other
-            software artifacts.
-            </p>
-            <p>
-            We are compiling a list of publications that depend on computational models across several journals and
-            tagging their research sponsor, contact addresses, and whether or not their digital context has been
-            archived in a digital repository or otherwise available online.
-            </p>
-        </div>
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h4><i class="fa fa-newspaper-o"></i> CoMSES Catalog</h4>
+    </div>
+    <div class="panel-body">
+        <p>
+        The CoMSES Catalog app is being developed to discover and improve the state of computational model archiving.
+        The <em>digital context</em>, e.g., metadata, code, documentation, and data needed for reproducible research are
+        often missing from publications that depend on computational models or other software artifacts.
+        </p>
+        <p>
+        We are compiling a list of publications that depend on computational models across several journals and
+        tagging their research sponsor, contact addresses, and whether or not their digital context has been
+        archived in a digital repository or otherwise available online.
+        </p>
     </div>
 </div>
-
 {% endblock content %}

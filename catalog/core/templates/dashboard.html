@@ -3,7 +3,7 @@
 {% block content %}
     <div class="row">
         <div class="col-md-2">
-            <div class="panel panel-success">
+            <div class="panel panel-default">
                 <div class="panel-heading">
                     <h3 class="panel-title text-center"><a href="{{ search_url }}?q=&publication_start_date=&publication_end_date=&status=">All</a></h3>
                 </div>
@@ -30,17 +30,17 @@
                 <div class="panel-body">
                     <h1 class="text-center">{{status.AUTHOR_UPDATED|default:"0"}}</h1>
                 </div>
-            </div> 
+            </div>
         </div>
         <div class="col-md-2">
-            <div class="panel panel-warning">
+            <div class="panel panel-info">
                 <div class="panel-heading">
                     <h3 class="panel-title text-center"><a href="{{ search_url }}?status=UNTAGGED">Untagged</a></h3>
                 </div>
                 <div class="panel-body">
                     <h1 class="text-center">{{status.UNTAGGED|default:"0"}}</h1>
                 </div>
-            </div> 
+            </div>
         </div>
         <div class="col-md-2">
             <div class="panel panel-warning">
@@ -80,21 +80,21 @@
                     <h3 class="panel-title">Recently Updated Publications</h3>
                 </div>
                 <div class="panel-body">
-                    {% if recently_updated|length > 0 %}
-                    <table class="table">
-                        <thead><tr><th>ID</th><th>Last Modified</th><th>Title</th></thead>
+                    {% if recently_updated %}
+                    <table class="table table-striped">
+                        <thead><tr><th>Curator</th><th>Title</th><th class='col-sm-2'>Last Modified</th></thead>
                         <tbody>
                         {% for pub in recently_updated %}
                             <tr>
-                                <td>{{ pub.pk}}</td>
-                                <td>{{ pub.date_modified }}</td>
+                                <td><mark>{{ pub.assigned_curator }}</mark></td>
                                 <td><a href="{% url 'core:curator_publication_detail' pub.pk %}">{{ pub.title }}</a></td>
+                                <td>{{ pub.date_modified }}</td>
                             </tr>
                         {% endfor %}
                         </tbody>
                     </table>
                     {% else %}
-                        No recently updated publications found
+                        No recently updated publications found.
                     {% endif %}
                 </div>
             </div>

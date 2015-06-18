@@ -8,12 +8,12 @@
 {% block javascript %}
     <!-- Templates -->
     <script id="baseTmpl" type="text/html">
-        <div class="widget-wrapper">
-            <div class="widget-head">
+        <div class="panel panel-default">
+            <div class="panel-heading">
                 <h4 data-bind="text: name"></h4>
             </div>
-            <div class="widget-content clearfix" data-bind="template: { name: getTemplate, data: model }"></div>
-            <div class="widget-foot clearfix">
+            <div class="panel-body" data-bind="template: { name: getTemplate, data: model }"></div>
+            <div class="clearfix">
                 <!-- ko if: $root.canGoPrevious -->
                 <button id="prevBtn" class="btn btn-primary pull-left" data-bind="click: $root.goPrevious">
                     <i class="fa fa-arrow-left"></i><span data-bind="text: prvBtnTxt"><span></button>
@@ -35,7 +35,7 @@
     </script>
 
     <script id="choicePubTmpl" type="text/html">
-            <form role="search" method="get" action="{{ search }}" class="form-horizontal">
+        <form role="search" method="get" action="{{ search }}" class="form-horizontal">
             {% bootstrap_form form layout="horizontal" label_class="col-md-2" %}
             {% buttons layout='horizontal' label_class="col-md-2" %}
                 <button type="submit" class="btn btn-default">Search</button>
@@ -45,16 +45,16 @@
             <h3>Results</h3>
             <table class="table table-striped">
                 <thead>
-                    <tr><th>Title</th><th>Date Published</th></tr>
+                    <tr><th class='col-md-9'>Title</th><th class='col-md-3'>Last Modified</th></tr>
                 </thead>
                 <tbody>
                     {% for row in object_list %}
-                        <tr class="{% cycle "odd" "even" %}">
-                            <td><a href="{% url 'core:publication_detail' row.pk %}">{{ row.title }}</td>
-                            <td>{{ row.date_published }}</td>
+                        <tr>
+                            <td><a href="{% url 'core:curator_publication_detail' row.pk %}">{{ row.title }}</td>
+                            <td>{{ row.last_modified }}</td>
                         </tr>
                     {% empty %}
-                        <tr class="{% cycle "odd" "even" %}">
+                        <tr>
                             <td colspan="2">No results found for the provided query</td>
                         </tr>
                     {% endfor %}

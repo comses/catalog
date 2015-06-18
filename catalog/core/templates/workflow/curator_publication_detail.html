@@ -2,20 +2,21 @@
 {% load bootstrap3 %}
 
 {% block content %}
-    <div class="widget-wrapper">
-        <div class="widget-head">
+    <div class="panel panel-default">
+        <div class="panel-heading">
             <h4>
                 <a class='btn btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
+                <br>
                 <a target='_blank' data-bind="attr: { href: googleScholarLink() }">
                     <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
                 </a>
             </h4>
         </div>
-        <div class="widget-content clearfix">
+        <div class="panel-body clearfix">
             <form id='curatorPublicationDetailForm' method="post" role="form">
                 <div class="row well">
                     <div class="col-md-6">
-                        <legend class="scheduler-border">Assigned to 
+                        <legend class="scheduler-border">Assigned to
                             <mark>
                                 <span data-bind='ifnot: assigned_curator'>nobody</span>
                                 <span data-bind='text: assigned_curator'></span>
@@ -43,7 +44,7 @@
                 <div class="row">
                     <div class='col-md-4 form-group'>
                         <label class="control-label" for="id_model_documentation">Model documentation</label>
-                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: modelDocumentationList, value: model_documentation.name, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocList }"></select>
+                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: modelDocumentationList, value: model_documentation.name, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocumentationList }"></select>
                     </div>
                     <div class="col-md-8 form-group">
                         <label class="control-label" for="id_platforms">Platforms</label>
@@ -107,11 +108,9 @@
                         </div>
                     </div>
                 </div>
+                <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
+                <a class='btn btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
             </form>
-        </div>
-        <div class="widget-foot clearfix">
-            <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
-            <a class='btn btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
         </div>
     </div>
 {% endblock content %}
@@ -125,7 +124,7 @@
             viewModelJson.journal = {'name': null};
         }
         if (!viewModelJson.model_documentation) {
-            viewModelJson.model_documentation = {'value': null};
+            viewModelJson.model_documentation = {'name': null};
         }
         $(function() {
             var PublicationDetail = function(data) {
@@ -158,7 +157,7 @@
                 self.getJournalList = function(query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'core:journal_search' %}");
                 };
-                self.getModelDocList = function(query, callback) {
+                self.getModelDocumentationList = function(query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'core:model_doc_search' %}");
                 };
 
@@ -189,7 +188,6 @@
                         form.showErrors();
                         return false;
                     }
-
                     var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
                     data_clone.platforms(ko.utils.arrayMap(data.selectedPlatforms(), function(platform) {
                         return {'name': platform};
@@ -198,7 +196,7 @@
                         return {'name': sponsor};
                     }));
                     data_clone.tags(ko.utils.arrayMap(data.selectedTags(), function(tag) {
-                        return {'value': tag};
+                        return {'name': tag};
                     }));
 
                     if (data_clone.journal.name() == undefined) {

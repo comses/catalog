@@ -13,7 +13,7 @@ from haystack.query import SearchQuerySet
 from haystack.generic_views import SearchView
 from hashlib import sha1
 from rest_framework.renderers import JSONRenderer, TemplateHTMLRenderer
-from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework import status
 from json import dumps
@@ -89,7 +89,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class UserProfileView(LoginRequiredMixin, APIView):
+class UserProfileView(LoginRequiredMixin, GenericAPIView):
     """
     Retrieve or Update User Profile of current logged in User
     """
@@ -107,11 +107,13 @@ class UserProfileView(LoginRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PublicationList(LoginRequiredMixin, APIView):
+class PublicationList(LoginRequiredMixin, GenericAPIView):
     """
     List all publications, or create a new publication
     """
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
+    # FIXME: look into properly implementing pagination via django rest framework
+    pagination_class = CatalogPagination
 
     def get(self, request, format=None):
         publication_list = Publication.objects.all()
@@ -124,6 +126,7 @@ class PublicationList(LoginRequiredMixin, APIView):
     def post(self, request, format=None):
         # adding current user to added_by field
         request.data.update({'added_by': request.user.id})
+        # FIXME: hard coded JournalArticleSerializer should instead depend on incoming data
         serializer = JournalArticleSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -131,7 +134,7 @@ class PublicationList(LoginRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PublicationDetail(LoginRequiredMixin, APIView):
+class PublicationDetail(LoginRequiredMixin, GenericAPIView):
     """
     Retrieve, update or delete a publication instance.
     """
@@ -155,7 +158,7 @@ class PublicationDetail(LoginRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CuratorPublicationDetail(LoginRequiredMixin, APIView):
+class CuratorPublicationDetail(LoginRequiredMixin, GenericAPIView):
     """
     Retrieve, update or delete a publication instance.
     """
@@ -168,7 +171,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, APIView):
         publication = self.get_object(pk)
         serializer = JournalArticleSerializer(publication)
         return Response({'json': dumps(serializer.data), 'pk': pk},
-                        template_name='publication/curator_workflow_detail.html')
+                        template_name='workflow/curator_publication_detail.html')
 
     def put(self, request, pk):
         publication = self.get_object(pk)
@@ -180,7 +183,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class NoteDetail(LoginRequiredMixin, APIView):
+class NoteDetail(LoginRequiredMixin, GenericAPIView):
     """
     Retrieve, update or delete a note instance.
     """
@@ -212,7 +215,7 @@ class NoteDetail(LoginRequiredMixin, APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class NoteList(LoginRequiredMixin, APIView):
+class NoteList(LoginRequiredMixin, GenericAPIView):
     """
     Get all the notes or create a note
     """
@@ -232,7 +235,7 @@ class NoteList(LoginRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class EmailPreview(LoginRequiredMixin, APIView):
+class EmailPreview(LoginRequiredMixin, GenericAPIView):
     """
     Preview the final email content
     """
@@ -249,7 +252,7 @@ class EmailPreview(LoginRequiredMixin, APIView):
         return Response({'content': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class AutocompleteView(LoginRequiredMixin, APIView):
+class AutocompleteView(LoginRequiredMixin, GenericAPIView):
 
     renderer_classes = (JSONRenderer,)
 
@@ -298,28 +301,28 @@ class JournalSearchView(AutocompleteView):
 
 
 class CatalogSearchView(LoginRequiredMixin, SearchView):
-    """ django haystack searchview """
+    """ generic django haystack searchview using a custom form """
     form_class = CatalogSearchForm
 
 
 class CuratorWorkflowView(LoginRequiredMixin, SearchView):
     """ django haystack searchview """
-    template_name = 'publication/curator_workflow.html'
+    template_name = 'workflow/curator.html'
     form_class = CatalogSearchForm
 
     def get_context_data(self, **kwargs):
         context = super(CuratorWorkflowView, self).get_context_data(**kwargs)
-        context['other_publications'] = SearchQuerySet().filter(assigned_curator=self.request.user).exclude(
-            status=Publication.Status.UNTAGGED).order_by('-last_modified')
+        logger.debug("context: %s", context)
+        sqs = SearchQuerySet().filter(assigned_curator=self.request.user).facet('status')
+        context.update(facets=sqs.facet_counts())
         return context
 
     def get_queryset(self):
-        queryset = super(CuratorWorkflowView, self).get_queryset()
-        return queryset.filter(assigned_curator=self.request.user,
-                               status=Publication.Status.UNTAGGED).order_by('title')
+        sqs = super(CuratorWorkflowView, self).get_queryset()
+        return sqs.filter(assigned_curator=self.request.user)
 
 
-class ContactAuthor(LoginRequiredMixin, APIView):
+class ContactAuthor(LoginRequiredMixin, GenericAPIView):
     """
     Emails invitations to authors to archive their work
     """
@@ -334,7 +337,7 @@ class ContactAuthor(LoginRequiredMixin, APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class ContactFormView(APIView):
+class ContactFormView(GenericAPIView):
 
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
 
@@ -363,7 +366,7 @@ class ContactFormView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UpdateModelUrlView(APIView):
+class UpdateModelUrlView(GenericAPIView):
 
     renderer_classes = (TemplateHTMLRenderer, JSONRenderer)
     token_expires = 3600 * 168  # Seven days

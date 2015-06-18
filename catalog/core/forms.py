@@ -3,7 +3,7 @@ from django.forms import widgets
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from .models import Publication
+from .models import Publication, JournalArticle
 
 from haystack.forms import SearchForm
 
@@ -44,7 +44,7 @@ class CatalogSearchForm(SearchForm):
     assigned_curator = forms.CharField(required=False)
 
     def no_query_found(self):
-        return self.searchqueryset.all()
+        return self.searchqueryset.models(Publication, JournalArticle).all()
 
     def search(self):
         # First, store the SearchQuerySet received from other processing.

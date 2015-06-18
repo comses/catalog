@@ -12,7 +12,7 @@ class PublicationIndex(indexes.SearchIndex):
     date_published = indexes.DateField(model_attr='date_published', null=True)
     last_modified = indexes.DateTimeField(model_attr='date_modified')
     contact_email = indexes.BooleanField(model_attr='contact_email')
-    status = indexes.CharField(model_attr='status')
+    status = indexes.CharField(model_attr='status', faceted=True)
     assigned_curator = indexes.CharField(model_attr='assigned_curator', null=True)
 
     class Meta:
@@ -56,6 +56,6 @@ class JournalIndex(NameAutocompleteIndex, indexes.Indexable):
         return Journal
 
 
-class ModelDocIndex(NameAutocompleteIndex, indexes.Indexable):
+class ModelDocumentationIndex(NameAutocompleteIndex, indexes.Indexable):
     def get_model(self):
         return ModelDocumentation

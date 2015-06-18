@@ -36,7 +36,7 @@
             <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
         {% block header %}
-            <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+            <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
                 <div class="container">
                     <div class="navbar-header">
                         <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
@@ -45,7 +45,7 @@
                             <span class="icon-bar"></span>
                             <span class="icon-bar"></span>
                         </button>
-                        <a href="{{ index_url }}" class="navbar-brand"><img width="163" height="37" src='{% static "images/comses-logo.png" %}' alt='CoMSES Network'></a>
+                        <a href="{{ index_url }}" class="navbar-brand"><img width="160" height="33" src='{% static "images/comses-logo.png" %}' alt='CoMSES Network'></a>
                     </div>
                     <ul class='nav navbar-nav'>
                         {% if user.is_authenticated %}
@@ -81,11 +81,11 @@
           </nav>
         {% endblock header %}
 
-        <section id="content" class="container">
+        <div id="content" class="container">
             {% block content %}
                 <p>Hello world!</p>
             {% endblock content %}
-        </section>
+        </div>
 
         <footer id="footer">
             {% block footer %}

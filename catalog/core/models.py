@@ -18,21 +18,13 @@ class InvitationEmail(object):
 
     @property
     def site(self):
-        if Site._meta.installed:
-            return Site.objects.get_current()
-        else:
-            return RequestSite(self.request)
-
-    @property
-    def is_secure(self):
-        return self.request.is_secure()
+        return RequestSite(self.request)
 
     def get_context(self, message, token):
         return Context({
             'invitation_text': message,
-            'site': self.site,
+            'domain': self.site.domain,
             'token': token,
-            'secure': self.is_secure
         })
 
     def get_plaintext_content(self, message, token):
