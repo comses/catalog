@@ -312,14 +312,14 @@ class CuratorWorkflowView(LoginRequiredMixin, SearchView):
 
     def get_context_data(self, **kwargs):
         context = super(CuratorWorkflowView, self).get_context_data(**kwargs)
-        logger.debug("context: %s", context)
         sqs = SearchQuerySet().filter(assigned_curator=self.request.user).facet('status')
-        context.update(facets=sqs.facet_counts())
+        context.update(facets=sqs.facet_counts(),
+                       total_number_of_records=Publication.objects.filter(assigned_curator=self.request.user).count())
         return context
 
     def get_queryset(self):
         sqs = super(CuratorWorkflowView, self).get_queryset()
-        return sqs.filter(assigned_curator=self.request.user)
+        return sqs.filter(assigned_curator=self.request.user).order_by('-last_modified')
 
 
 class ContactAuthor(LoginRequiredMixin, GenericAPIView):

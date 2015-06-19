@@ -9,7 +9,7 @@
         </div>
         <div class='panel-body'>
             <ul class='list-inline'>
-                <li class='list-group-item'><a href='?status=ALL'>ALL <span class='badge'>{{ page_obj.paginator.count }}</span></a></li>
+                <li class='list-group-item'><a href='?status=ALL'>ALL <span class='badge'>{{ total_number_of_records }}</span></a></li>
                 {% if facets.fields.status %}
                 {% for s in facets.fields.status %}
                 <li class='list-group-item {{s.0|lower}}'><a href='?status={{s.0|urlencode}}'>{{s.0}} <span class='badge'>{{s.1}}</span></a></li>
@@ -29,14 +29,13 @@
         <div class="panel-body">
             <table class="table table-striped">
                 <thead>
-                    <tr><th>Status</th><th>Title</th><th>Date Published</th><th>Last Modified</th></tr>
+                    <tr><th>Status</th><th>Title</th><th class='col-sm-2'>Last Modified</th></tr>
                 </thead>
                 <tbody>
                     {% for result in object_list %}
                     <tr>
                         <td><mark>{{ result.status }}</mark></td>
                         <td><a href="{% url 'core:curator_publication_detail' result.pk %}">{{ result.title }}</td>
-                        <td>{{ result.date_published }}</td>
                         <td>{{ result.last_modified }}</td>
                     </tr>
                     {% empty %}
