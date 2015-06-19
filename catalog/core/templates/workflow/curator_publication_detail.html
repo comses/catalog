@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load bootstrap3 %}
+{% load static %}
 
 {% block content %}
     <div class="panel panel-default">
@@ -33,9 +34,23 @@
                         </ul>
                         </div>
                         <p>Last modified: <b data-bind='text:date_modified'></b></p>
-                        <p><a target='_blank' data-bind="attr: { href: googleScholarLink() }">Find on Google Scholar <i class='fa fa-external-link'></i></a>
-                        {# FIXME: dirty, hard-coded URL #}
-                        <p><a data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic record</a></p>
+                        <ul class='list-group'>
+                            <li class='list-group-item'>
+                                <i class='google-blue fa fa-graduation-cap'></i>
+                                <a target='_blank' data-bind="attr: { href: googleScholarLink() }">
+                                    Search Google Scholar <i class='fa fa-external-link'></i>
+                                </a>
+                            </li>
+                            <li class='list-group-item'>
+                                <i class='asu-maroon fa fa-university'></i> 
+                                <a target='_blank' data-bind='attr: { href: asuLibraryLink() }'>
+                                    Search ASU Libraries <i class='fa fa-external-link'></i></a>
+                            </li>
+                            <li class='list-group-item'>
+                                {# FIXME: dirty, hard-coded URL #}
+                                <a data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic record</a>
+                            </li>
+                        </ul>
                     </div>
                     <div class="col-md-6 form-group">
                         <note-detail params="notes: notes, pub_id: id"></note-detail>
@@ -135,10 +150,16 @@
                 self.selectedPlatforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
                 self.selectedSponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));
                 self.journals = ko.observableArray([data.journal || ""]);
-                self.googleScholarLink = ko.computed(function() {
+                self.googleScholarLink = ko.pureComputed(function() {
                     var firstAuthorLastName = self.creators()[0].last_name();
                     return 'https://scholar.google.com/scholar?as_q=' + encodeURIComponent(self.title()) +
                         '&as_sauthors=' + encodeURIComponent(firstAuthorLastName);
+                });
+                self.asuLibraryLink = ko.pureComputed(function() {
+                    var firstAuthorLastName = self.creators()[0].last_name();
+                    return 'http://asu.summon.serialssolutions.com/search/results?q=' + encodeURIComponent(self.title()
+                        + ' author:' + firstAuthorLastName);
+
                 });
                 self.validCodeArchiveUrl = ko.computed(function() {
                     return self.code_archive_url() && $('#curatorPublicationDetailForm').valid();

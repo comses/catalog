@@ -1,10 +1,36 @@
 body {
     font-size: 1.5em;
 }
+.google-blue {
+    color: #4d90fe;
+}
+.asu-maroon {
+    color: #990033;
+}
+.asu-gold {
+    color: #ffb310;
+}
+.asu-green {
+    color: #568e14;
+}
+.asu-blue {
+    color: #008ed6;
+}
+.asu-orange {
+    color: #f47c00;
+}
+.asu-grey {
+    color: #AFA593;
+}
 #footer {
     height: 60px;
-    background-color: #EEEEEE;
+    background-color: #AFA593;
+    color: #ffffff;
     font-size: .8em;
+}
+.footer>li>a {
+    color: #ffffff;
+    text-decoration: underline;
 }
 .nav-footer {
     margin-top: 25px;
