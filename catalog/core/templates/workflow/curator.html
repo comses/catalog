@@ -9,6 +9,7 @@
         </div>
         <div class='panel-body'>
             <ul class='list-inline'>
+                <li class='list-group-item'><a href='?status=ALL'>ALL <span class='badge'>{{ page_obj.paginator.count }}</span></a></li>
                 {% if facets.fields.status %}
                 {% for s in facets.fields.status %}
                 <li class='list-group-item {{s.0|lower}}'><a href='?status={{s.0|urlencode}}'>{{s.0}} <span class='badge'>{{s.1}}</span></a></li>
