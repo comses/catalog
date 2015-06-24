@@ -38,7 +38,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="control-label" for="id_model_documentation">Model documentation</label>
-                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: model_docs, value: model_documentation.name, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocList }"></select>
+                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: model_docs, value: model_documentation.name, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocumentationList }"></select>
                     </div>
                 </div>
                 <div class='row'>
@@ -229,8 +229,8 @@
             model.getJournalList = function(query, callback) {
                 model.makeAsyncRequest(query, callback, "{% url 'core:journal_search' %}");
             };
-            model.getModelDocList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'core:model_doc_search' %}");
+            model.getModelDocumentationList = function(query, callback) {
+                model.makeAsyncRequest(query, callback, "{% url 'core:model_documentation_search' %}");
             };
 
             model.makeAsyncRequest = function(query, callback, url) {

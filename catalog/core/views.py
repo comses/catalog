@@ -69,14 +69,14 @@ class UserProfileView(LoginRequiredMixin, GenericAPIView):
 
     def get(self, request):
         serializer = UserProfileSerializer(instance=request.user)
-        return Response({'json': dumps(serializer.data)}, template_name="accounts/profile.html")
+        return Response({'profile': dumps(serializer.data)}, template_name="accounts/profile.html")
 
     def post(self, request):
         serializer = UserProfileSerializer(instance=request.user, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'profile': dumps(serializer.data)})
+        return Response({'errors': dumps(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PublicationList(LoginRequiredMixin, GenericAPIView):

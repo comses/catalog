@@ -36,5 +36,5 @@ urlpatterns += [
     url(r'^search/sponsor/$', SponsorSearchView.as_view(), name="sponsor_search"),
     url(r'^search/tag/$', TagSearchView.as_view(), name="tag_search"),
     url(r'^search/journal/$', JournalSearchView.as_view(), name="journal_search"),
-    url(r'^search/modeldoc/$', ModelDocumentationSearchView.as_view(), name="model_doc_search"),
+    url(r'^search/model-documentation/$', ModelDocumentationSearchView.as_view(), name="model_documentation_search"),
 ]

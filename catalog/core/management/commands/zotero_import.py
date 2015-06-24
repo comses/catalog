@@ -65,6 +65,8 @@ class Command(BaseCommand):
         user, created = User.objects.get_or_create(username=username,
                                                    defaults={'first_name': first_name,
                                                              'last_name': last_name})
+        if not created:
+            logger.debug("found existing user %s", user)
         return user
 
     def get_creators(self, data):
@@ -73,6 +75,8 @@ class Command(BaseCommand):
             creator, created = Creator.objects.get_or_create(
                 creator_type=self.convert(c['creatorType']),
                 first_name=c['firstName'].strip(), last_name=c['lastName'].strip())
+            if not created:
+                logger.debug("found existing creator %s", creator)
             creators.append(creator)
         return creators
 
@@ -105,20 +109,21 @@ class Command(BaseCommand):
                 item.contact_email = value
             # match for docs
             elif sliced_key == 'doc':
-                item.model_documentation, created = ModelDocumentation.objects.get_or_create(name=value)
+                item.model_documentation = ModelDocumentation.objects.get_or_create(name=value)[0]
             # match for platform
             elif sliced_key == 'pla':
-                platform, created = Platform.objects.get_or_create(name=value)
+                platform = Platform.objects.get_or_create(name=value)[0]
                 item.platforms.add(platform)
             # match for sponsor
             elif sliced_key == 'spo':
-                sponsor, created = Sponsor.objects.get_or_create(name=value)
+                sponsor = Sponsor.objects.get_or_create(name=value)[0]
                 item.sponsors.add(sponsor)
             elif key:
                 logger.debug("Tag [%s :: %s] was added as is for publication_id %s", key, value, item.pk)
-                tag, created = Tag.objects.get_or_create(name=t['tag'].strip())
+                tag = Tag.objects.get_or_create(name=t['tag'].strip())[0]
+                item.tags.add(tag)
             else:
-                tag, created = Tag.objects.get_or_create(name=value)
+                tag = Tag.objects.get_or_create(name=value)[0]
                 item.tags.add(tag)
         try:
             item.save()
@@ -176,9 +181,9 @@ class Command(BaseCommand):
             article = JournalArticle(zotero_key=zotero_key)
 
         article = self.set_common_fields(article, data, meta)
-        article.journal, created = Journal.objects.get_or_create(
+        article.journal = Journal.objects.get_or_create(
             name=data['publicationTitle'].strip(),
-            defaults={'abbreviation': data['journalAbbreviation'].strip()})
+            defaults={'abbreviation': data['journalAbbreviation'].strip()})[0]
         article.pages = data['pages'].strip()
         article.issn = data['ISSN'].strip().strip()
         article.volume = data['volume'].strip()
@@ -193,11 +198,11 @@ class Command(BaseCommand):
             article.creators.add(c)
 
         tags = data['tags']
-        logger.debug("checking tags: %s", tags)
-        if not data['tags']:
+        if not tags:
             # if publication has no zotero tags, mark it as untagged (i.e not reviewed)
-            # FIXME: this condition is rarely true. We need to check for the existence of key: value tags instead of
-            # just tags in general because the citation import into zotero generates numerous general zotero tags
+            # FIXME: this condition is rarely if ever true. We need to check for the existence of key: value tags
+            # instead of just tags in general because the citation import into zotero via the Web of Science already has
+            # numerous general tags
             article.status = Publication.Status.UNTAGGED
         else:
             article = self.set_tags(data, article)
@@ -238,7 +243,7 @@ class Command(BaseCommand):
     def process(self, data):
         for item in data:
             publication_type = item['data']['itemType']
-            logger.debug("Generating bibliographic entry of type %s for %s", item, publication_type)
+            logger.debug("Generating bibliographic entry of type %s for %s", publication_type, item)
             if publication_type == 'journalArticle':
                 article = self.create_journal_article(item['data'], item['meta'])
 

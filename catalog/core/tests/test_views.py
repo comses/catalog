@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.core import management
 from catalog.core.models import Publication
 
-from .common import BaseTest, logger
+from .common import BaseTest
 
 import json
 import time
@@ -43,19 +43,20 @@ class ProfileViewTest(BaseTest):
         self.without_login_and_with_login_test('core:user_profile')
 
     def test_profile_update(self):
-        url = self.reverse(
-            'core:user_profile', query_parameters={'format': 'json'})
+        url = self.reverse('core:user_profile', query_parameters={'format': 'json'})
         self.login()
         old_email = self.user.email
-        response = self.post(
-            url, {'first_name': 'Test', 'last_name': 'Test', 'email': 'temporary@gmail.com', 'username': 'temporary'})
+        response = self.post(url, {'first_name': 'Updated Firstname',
+                                   'last_name': 'Updated Lastname',
+                                   'username': self.user.username,
+                                   })
         self.assertTrue(200, response.status_code)
-        user = User.objects.get(username="temporary")
+        user = User.objects.get(username=self.user.username)
         # check for updated values
-        self.assertTrue(user.first_name, 'Test')
-        self.assertTrue(user.last_name, 'Test')
-        # check for unupdated values
-        self.assertTrue(user.email, old_email)
+        self.assertEqual(user.first_name, 'Updated Firstname')
+        self.assertEqual(user.last_name, 'Updated Lastname')
+        # ensure email has not been changed
+        self.assertEqual(user.email, old_email)
 
     def test_profile_invalid_update(self):
         url = self.reverse('core:user_profile', query_parameters={'format': 'json'})

@@ -38,13 +38,13 @@
                         <button type="submit" id="submitForm" class="btn btn-primary" data-bind="click: saveProfile">Save</button>
                     </div>
                 </div>
-            </form> 
+            </form>
         </div>
 {% endblock content %}
 
 {% block javascript %}
     <script type="text/javascript">
-        var viewModelJson = $.parseJSON("{{ json | escapejs }}");
+        var viewModelJson = $.parseJSON("{{ profile | escapejs }}");
 
         $(function(){
             var UserProfile =  function(data) {
@@ -58,14 +58,16 @@
                         contentType: "application/json; charset=utf-8",
                         data: ko.toJSON(data),
                         dataType:"json",
-                        success: function(result){
-                            humane.log("Profile saved Successfully")
+                        success: function(result) {
+                            console.log(result);
+                            humane.log("Profile updated.")
                         },
                         error: function(result) {
-                            humane.log(["Can't save the profile. Please fix your errors", result.responseJSON], {timeout: 7500})
-                            console.log(result.responseJSON);
+                            console.log(result);
+                            humane.log(["Couldn't update profile: ", result.errors], {timeout: 7500})
+                            console.log(result.errors);
                         }
-                    }); 
+                    });
                 }
             }
             ko.applyBindings(new UserProfile(viewModelJson));
