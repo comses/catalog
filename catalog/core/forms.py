@@ -1,7 +1,5 @@
 from django import forms
-from django.forms import widgets
-from django.contrib.auth import authenticate
-from django.utils.translation import ugettext_lazy as _
+# from django.utils.translation import ugettext_lazy as _
 
 from .models import Publication, JournalArticle
 
@@ -10,27 +8,6 @@ from haystack.forms import SearchForm
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-class LoginForm(forms.Form):
-    username = forms.CharField()
-    password = forms.CharField(widget=widgets.PasswordInput)
-
-    def get_user(self):
-        return self.user
-
-    def clean(self):
-        cleaned_data = super(LoginForm, self).clean()
-        username = cleaned_data.get('username')
-        password = cleaned_data.get('password')
-        self.user = authenticate(username=username, password=password)
-        if self.user is None:
-            raise forms.ValidationError(
-                _("Your combination of username and password was incorrect."), code='invalid')
-        elif not self.user.is_active:
-            raise forms.ValidationError(
-                _("This user has been deactivated. Please contact us if this is in error."))
-        return cleaned_data
 
 
 class CatalogSearchForm(SearchForm):

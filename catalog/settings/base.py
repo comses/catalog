@@ -80,6 +80,9 @@ USE_I18N = False
 # Salt used to generate token (SALT can remain public unlike SECRET_KEY)
 SALT = '48&6uv*x'
 
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/'
+
 # Zotero API Key
 ZOTERO_API_KEY = None
 

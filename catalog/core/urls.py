@@ -1,11 +1,12 @@
 from rest_framework.urlpatterns import format_suffix_patterns
 from django.conf.urls import url
+from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView, TemplateView
 
-from .views import (LoginView, LogoutView, DashboardView, PublicationDetail, PublicationList, EmailPreview,
-                    ContactAuthor, UpdateModelUrlView, CatalogSearchView, ContactFormView, UserProfileView,
-                    PlatformSearchView, SponsorSearchView, TagSearchView, JournalSearchView,
-                    ModelDocumentationSearchView, CuratorPublicationDetail, CuratorWorkflowView, NoteList, NoteDetail, )
+from .views import (DashboardView, PublicationDetail, PublicationList, EmailPreview, ContactAuthor, UpdateModelUrlView,
+                    CatalogSearchView, ContactFormView, UserProfileView, PlatformSearchView, SponsorSearchView,
+                    TagSearchView, JournalSearchView, ModelDocumentationSearchView, CuratorPublicationDetail,
+                    CuratorWorkflowView, NoteList, NoteDetail, )
 
 # django rest framework endpoints that can generate JSON / HTML
 urlpatterns = format_suffix_patterns([
@@ -25,8 +26,8 @@ urlpatterns += [
     url(r'^$', TemplateView.as_view(template_name='index.html'), name='index'),
     url(r'^dashboard/$', DashboardView.as_view(), name='dashboard'),
     url(r'^accounts/profile/$', UserProfileView.as_view(), name='user_profile'),
-    url(r'^accounts/login/$', LoginView.as_view(), name='login'),
-    url(r'^accounts/logout/$', LogoutView.as_view(), name='logout'),
+    url(r'^accounts/login/$', auth_views.login, {'template_name': 'accounts/login.html'}, name='login'),
+    url(r'^accounts/logout/$', auth_views.logout, {'next_page': '/'}, name='logout'),
     url(r'^bug-report/$', RedirectView.as_view(url='https://gitreports.com/issue/comses/catalog'),
         name='report_issues'),
     url(r'^publication/workflow/$', CuratorWorkflowView.as_view(), name='curator_workflow'),

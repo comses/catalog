@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.core import management
 from catalog.core.models import Publication
 
-from .common import BaseTest
+from .common import BaseTest, logger
 
 import json
 import time
@@ -18,10 +18,10 @@ class AuthTest(BaseTest):
         response = self.post(
             self.login_url, {'username': 'wrong_username', 'password': 'temporary'})
         self.assertTrue(200, response.status_code)
+        self.assertTrue('Please enter a correct username and password.' in response.content)
 
     def test_login_with_good_credentials(self):
-        response = self.post(
-            self.login_url, {'username': 'temporary', 'password': 'temporary'})
+        response = self.post(self.login_url, {'username': 'temporary', 'password': 'temporary'})
         self.assertTrue(200, response.status_code)
         self.assertTrue(self.reverse('core:dashboard') in response['Location'])
 
@@ -58,10 +58,8 @@ class ProfileViewTest(BaseTest):
         self.assertTrue(user.email, old_email)
 
     def test_profile_invalid_update(self):
-        url = self.reverse(
-            'core:user_profile', query_parameters={'format': 'json'})
+        url = self.reverse('core:user_profile', query_parameters={'format': 'json'})
         self.login()
-        old_email = self.user.email
         response = self.post(url, {'first_name': 'Test', 'last_name': 'Test'})
         self.assertTrue(400, response.status_code)
 
@@ -151,8 +149,9 @@ class ContactViewTest(BaseTest):
             self.reverse('core:contact_us'), before_status=200)
 
     def test_contact_info_submit_without_timestamp_and_security_hash(self):
-        response = self.post(self.reverse('core:contact_us', query_parameters={'format': 'json'}), {
-                             'name': 'John Watson', 'email': 'john@watson.com', 'message': 'Sherlock want to use this application.'})
+        response = self.post(self.reverse('core:contact_us', query_parameters={'format': 'json'}),
+                             {'name': 'John Watson', 'email': 'john@watson.com',
+                              'message': 'Sherlock want to use this application.'})
         self.assertTrue(400, response.status_code)
 
     def test_contact_info_submit_with_invalid_timestamp(self):
@@ -163,8 +162,12 @@ class ContactViewTest(BaseTest):
         security_hash = json_data['security_hash']
         timestamp = float(json_data['timestamp']) + 1
 
-        response = self.post(url, {'name': 'John Watson', 'email': 'john@watson.com', 'message':
-                                   'Sherlock want to use this application.', 'timestamp': timestamp, 'security_hash': security_hash, 'contact_number': ''})
+        response = self.post(url, {'name': 'John Watson',
+                                   'email': 'john@watson.com',
+                                   'message': 'Sherlock want to use this application.',
+                                   'timestamp': timestamp,
+                                   'security_hash': security_hash,
+                                   'contact_number': ''})
         self.assertTrue(400, response.status_code)
 
     def test_contact_info_submit_with_valid_timestamp_and_invalid_security_hash(self):
@@ -176,8 +179,11 @@ class ContactViewTest(BaseTest):
         timestamp = json_data['timestamp']
         time.sleep(5)
 
-        response = self.post(url, {'name': 'John Watson', 'email': 'john@watson.com', 'message':
-                                   'Sherlock want to use this application.', 'timestamp': timestamp, 'security_hash': security_hash, 'contact_number': ''})
+        response = self.post(url, {'name': 'John Watson', 'email': 'john@watson.com',
+                                   'message': 'Sherlock want to use this application.',
+                                   'timestamp': timestamp,
+                                   'security_hash': security_hash,
+                                   'contact_number': ''})
         self.assertTrue(400, response.status_code)
 
     def test_contact_info_submit_with_honeypot_field(self):
@@ -189,21 +195,25 @@ class ContactViewTest(BaseTest):
         timestamp = json_data['timestamp']
 
         time.sleep(5)
-        response = self.post(url, {'name': 'John Watson', 'email': 'john@watson.com', 'message': 'Sherlock want to use this application.',
-                                   'timestamp': timestamp, 'security_hash': security_hash, 'contact_number': 'bot alert'})
+        response = self.post(url, {'name': 'John Watson', 'email': 'john@watson.com',
+                                   'message': 'Sherlock want to use this application.',
+                                   'timestamp': timestamp,
+                                   'security_hash': security_hash,
+                                   'contact_number': 'bot alert'})
         self.assertTrue(400, response.status_code)
 
     def test_contact_info_submit_with_all_valid_fields(self):
-        url = self.reverse(
-            'core:contact_us', query_parameters={'format': 'json'})
+        url = self.reverse('core:contact_us', query_parameters={'format': 'json'})
         response = self.get(url)
         json_data = json.loads(response.data['json'])
         security_hash = json_data['security_hash']
         timestamp = json_data['timestamp']
         time.sleep(5)
 
-        response = self.post(url, {'name': 'John Watson', 'email': 'john@watson.com', 'message':
-                                   'Sherlock want to use this application.', 'timestamp': timestamp, 'security_hash': security_hash, 'contact_number': ''})
+        response = self.post(url, {'name': 'John Watson', 'email': 'john@watson.com',
+                                   'message': 'Sherlock want to use this application.',
+                                   'timestamp': timestamp, 'security_hash': security_hash,
+                                   'contact_number': ''})
         self.assertTrue(200, response.status_code)
 
 
@@ -216,6 +226,13 @@ class EmailPreviewTest(BaseTest):
 
     def test_email_preview_with_query_parameters(self):
         self.login()
-        url = self.reverse('core:invite_email_preview', query_parameters={'invitation_subject': 'test', 'invitation_text': 'test'})
+        url = self.reverse('core:invite_email_preview',
+                           query_parameters={'invitation_subject': 'test', 'invitation_text': 'test'})
         response = self.get(url)
         self.assertEqual(200, response.status_code)
+
+
+class CuratorWorkflowTest(BaseTest):
+
+    def test_edits(self):
+        pass

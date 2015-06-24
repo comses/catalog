@@ -1,13 +1,14 @@
 from django.contrib.auth.models import User
-from django.contrib.sites.models import Site, RequestSite
+from django.contrib.sites.models import RequestSite
 from django.core.urlresolvers import reverse
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.template import Context
 from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 
 from model_utils import Choices
-from model_utils.managers import InheritanceManager
+from model_utils.managers import InheritanceManager, PassThroughManager
 
 
 class InvitationEmail(object):
@@ -198,6 +199,20 @@ class JournalArticle(Publication):
     doi = models.CharField(max_length=255, blank=True)
 
 
+class PublicationAuditLogQuerySet(models.query.QuerySet):
+    pass
+
+
+class PublicationAuditLogManager(PassThroughManager):
+
+    def log_curator_action(self, message=None, creator=None, publication=None):
+        if not all([message, creator, publication]):
+            raise ValidationError("Requires valid message [%s], creator [%s], and publication [%s]",
+                                  message, creator, publication)
+        return self.create(action=PublicationAuditLog.Action.CURATOR_EDIT,
+                           message=message, creator=creator, publication=publication)
+
+
 class PublicationAuditLog(models.Model):
     Action = Choices(('AUTHOR_EDIT', _('Author edit')),
                      ('SYSTEM_LOG', _('System log')),
@@ -207,6 +222,8 @@ class PublicationAuditLog(models.Model):
     publication = models.ForeignKey(Publication)
     message = models.TextField(blank=True)
     creator = models.ForeignKey(User, null=True, blank=True, help_text=_('The user who initiated this action, if any.'))
+
+    objects = PublicationAuditLogManager.for_queryset_class(PublicationAuditLogQuerySet)()
 
 """
 class Book(Publication):

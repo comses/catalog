@@ -9,9 +9,13 @@ logger = logging.getLogger(__name__)
 
 
 class BaseTest(TestCase):
+    login_url = reverse('core:login')
+
     def setUp(self):
-        self.user = User.objects.create_user('temporary', 'temporary@gmail.com', 'temporary')
-        self.login_url = reverse('core:login')
+        self.user = self.create_user()
+
+    def create_user(self, username='temporary', email='temporary@gmail.com', password='temporary', **kwargs):
+        return User.objects.create_user(username=username, email=email, password=password, **kwargs)
 
     def login(self):
         return self.client.login(username='temporary', password='temporary')

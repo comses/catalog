@@ -1,14 +1,11 @@
+from collections import Counter
 from django.conf import settings
-from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.core import signing
-from django.core.urlresolvers import reverse
 from django.db.models import Count
 from django.http import JsonResponse
-from django.shortcuts import redirect, get_object_or_404
-from django.utils.decorators import method_decorator
-from django.views.decorators import cache, csrf
-from django.views.generic import FormView, TemplateView
+from django.shortcuts import get_object_or_404
+from django.views.generic import TemplateView
 from haystack.query import SearchQuerySet
 from haystack.generic_views import SearchView
 from hashlib import sha1
@@ -19,8 +16,9 @@ from rest_framework import status
 from json import dumps
 from datetime import datetime, timedelta
 
-from .forms import LoginForm, CatalogSearchForm
-from .models import (Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation, Note, )
+from .forms import CatalogSearchForm
+from .models import (Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation, Note,
+                     PublicationAuditLog)
 from .serializers import (PublicationSerializer, CatalogPagination, JournalArticleSerializer, InvitationSerializer,
                           UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer, NoteSerializer, )
 
@@ -38,45 +36,19 @@ class LoginRequiredMixin(object):
         return login_required(view)
 
 
-class LoginView(FormView):
-    form_class = LoginForm
-    template_name = 'accounts/login.html'
-
-    @method_decorator(csrf.csrf_protect)
-    @method_decorator(cache.never_cache)
-    def dispatch(self, *args, **kwargs):
-        return super(LoginView, self).dispatch(*args, **kwargs)
-
-    def form_valid(self, form):
-        login(self.request, form.get_user())
-        return super(LoginView, self).form_valid(form)
-
-    def get_success_url(self):
-        next_url = self.request.GET.get('next', '')
-        # if no next_url specified, redirect to dashboard page
-        return next_url if next_url else reverse('core:dashboard')
-
-
-class LogoutView(TemplateView):
-
-    def get(self, request, *args, **kwargs):
-        logout(request)
-        return redirect('core:index')
-
-
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
 
-    def get_context_data(self, number_of_publications=20, **kwargs):
+    def get_context_data(self, number_of_publications=25, **kwargs):
         context = super(DashboardView, self).get_context_data(**kwargs)
         last_week_datetime = datetime.now() - timedelta(days=7)
-        context['status'] = {}
+        context['status'] = Counter()
 
         pub_count = Publication.objects.all().values('status').annotate(total=Count('status')).order_by('-total')
-        context['status']['TOTAL'] = 0
         for item in pub_count:
-            context['status']['TOTAL'] += item['total']
-            context['status'][item['status']] = item['total']
+            total_count = item['total']
+            context['status'][item['status']] = total_count
+            context['status']['TOTAL'] += total_count
 
         context['untagged_publications_count'] = Publication.objects.filter(status=Publication.Status.UNTAGGED,
                                                                             assigned_curator=self.request.user).count()
@@ -175,9 +147,16 @@ class CuratorPublicationDetail(LoginRequiredMixin, GenericAPIView):
 
     def put(self, request, pk):
         publication = self.get_object(pk)
+        # FIXME: need to revisit this if we ever have other Publication Types - Books or Book Chapters may also refer to
+        # computational models.
         serializer = JournalArticleSerializer(publication, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            publication = serializer.save()
+            PublicationAuditLog.objects.log_curator_action(
+                creator=self.request.user,
+                publication=publication,
+                message='Updated publication with data {}'.format(serializer.validated_data)
+            )
             return Response(serializer.data)
         logger.warn("serializer failed validation: %s", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
