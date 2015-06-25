@@ -8,7 +8,7 @@
             <h4>
                 <a class='btn btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
                 <br>
-                <a target='_blank' data-bind="attr: { href: googleScholarLink() }">
+                <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
                     <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
                 </a>
             </h4>
@@ -35,16 +35,41 @@
                         </div>
                         <p>Last modified: <b data-bind='text:date_modified'></b></p>
                         <ul class='list-group'>
-                            <li class='list-group-item'>
-                                <i class='google-blue fa fa-graduation-cap'></i>
-                                <a target='_blank' data-bind="attr: { href: googleScholarLink() }">
-                                    Search Google Scholar <i class='fa fa-external-link'></i>
-                                </a>
+                            <li class='list-group-item google-blue'>
+                                <i class='fa fa-graduation-cap'></i>
+                                <b>Google Scholar</b>
+                                <div class='btn-group'>
+                                    <span class='btn'>
+                                        <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
+                                            <i class='fa fa-pencil'></i>
+                                            Title Only
+                                        </a>
+                                    </span>
+                                    <span class='btn'>
+                                        <a target='_blank' data-bind="attr: { href: googleScholarAuthorLink() }">
+                                            <i class='fa fa-pencil-square'></i>
+                                            Title and Author
+                                        </a>
+                                    </span>
+                                </div>
                             </li>
-                            <li class='list-group-item'>
-                                <i class='asu-maroon fa fa-university'></i> 
-                                <a target='_blank' data-bind='attr: { href: asuLibraryLink() }'>
-                                    Search ASU Libraries <i class='fa fa-external-link'></i></a>
+                            <li class='list-group-item asu-maroon'>
+                                <i class='fa fa-university'></i> 
+                                <b>ASU Libraries</b>
+                                <div class='btn-group'>
+                                    <span style='margin-left: 10px;' class='btn'>
+                                        <a target='_blank' data-bind='attr: { href: asuLibraryTitleLink() }'>
+                                            <i class='fa fa-pencil'></i>
+                                            Title Only
+                                        </a>
+                                    </span>
+                                    <span class='btn'>
+                                        <a target='_blank' data-bind='attr: { href: asuLibraryAuthorLink() }'>
+                                            <i class='fa fa-pencil-square'></i>
+                                            Title and Author
+                                        </a>
+                                    </span>
+                                </div>
                             </li>
                             <li class='list-group-item'>
                                 {# FIXME: dirty, hard-coded URL #}
@@ -150,15 +175,23 @@
                 self.selectedPlatforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
                 self.selectedSponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));
                 self.journals = ko.observableArray([data.journal || ""]);
-                self.googleScholarLink = ko.pureComputed(function() {
-                    var firstAuthorLastName = self.creators()[0].last_name();
-                    return 'https://scholar.google.com/scholar?as_q=' + encodeURIComponent(self.title()) +
-                        '&as_sauthors=' + encodeURIComponent(firstAuthorLastName);
+                self.authorLastNames = ko.pureComputed(function() {
+                    return ko.utils.arrayMap(self.creators(), function(creator) { return creator.last_name() }).join(' ');
                 });
-                self.asuLibraryLink = ko.pureComputed(function() {
-                    var firstAuthorLastName = self.creators()[0].last_name();
-                    return 'http://asu.summon.serialssolutions.com/search/results?q=' + encodeURIComponent(self.title()
-                        + ' author:' + firstAuthorLastName);
+                self.googleScholarTitleLink = ko.pureComputed(function() {
+                    return 'https://scholar.google.com/scholar?as_q=' + encodeURIComponent(self.title());
+                });
+                self.googleScholarAuthorLink = ko.pureComputed(function() {
+                    return 'https://scholar.google.com/scholar?as_q=' + encodeURIComponent(self.title()) +
+                        '&as_sauthors=' + encodeURIComponent(self.authorLastNames());
+                });
+                self.asuLibraryTitleLink = ko.pureComputed(function() {
+                    return 'http://asu.summon.serialssolutions.com/search/results?q=' + encodeURIComponent(self.title());
+
+                });
+                self.asuLibraryAuthorLink = ko.pureComputed(function() {
+                    return 'http://asu.summon.serialssolutions.com/search/results?q=' + encodeURIComponent(self.title())
+                        +  encodeURIComponent(' AND (AuthorCombined: (' + self.authorLastNames() + '))');
 
                 });
                 self.validCodeArchiveUrl = ko.computed(function() {
