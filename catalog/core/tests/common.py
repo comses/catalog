@@ -9,7 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class BaseTest(TestCase):
-    login_url = reverse('core:login')
+    login_url = reverse('login')
+    logout_url = reverse('logout')
+    index_url = reverse('core:index')
 
     def setUp(self):
         self.user = self.create_user()

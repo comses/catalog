@@ -1,7 +1,7 @@
 {% load tags %}
 {% load static from staticfiles %}
-{% url 'core:login' as login_url %}
-{% url 'core:logout' as logout_url %}
+{% url 'login' as login_url %}
+{% url 'logout' as logout_url %}
 {% url 'core:index' as index_url %}
 {% url 'core:dashboard' as dashboard_url %}
 {% url 'core:user_profile' as user_profile_url %}
@@ -50,7 +50,7 @@
                     <ul class='nav navbar-nav'>
                         {% if user.is_authenticated %}
                             <li class='{{ request|active_re:dashboard_url }}'><a href='{{ dashboard_url }}'><i class='fa fa-tachometer'></i> Dashboard</a></li>
-                            <li class='{{ request|active_re:curator_workflow_url }}'><a href='{{ curator_workflow_url }}'><i class='fa fa-suitcase'></i> Assigned Publications</a></li>
+                            <li class='{{ request|active_re:curator_workflow_url }}'><a href='{{ curator_workflow_url }}'><i class='fa fa-tasks'></i> Assigned Publications</a></li>
                             {% if user.is_superuser %}
                             <li class='{{ request|active_re:publications_url }}'><a href='{{ publications_url }}'><i class='fa fa-newspaper-o'></i> All Publications</a></li>
                             <li class='{{ request|active_re:search_url }}'><a href='{{ search_url }}'><i class='fa fa-search'></i> Search</a></li>
@@ -91,7 +91,7 @@
             {% block footer %}
             <div class='container'>
                 {% block footerlinks %}
-                <ul class='footer nav-footer list-inline hidden-xs'>
+                <ul class='nav-footer list-inline hidden-xs'>
                     <li><a href='http://csid.asu.edu'>Center for Behavior, Institutions, and the Environment</a></li>
                     <li><a href='http://www.comses.net'>Network for Computational Modeling in the Socio-ecological Sciences</a></li>
                     <li><a href='http://www.azregents.edu/'>&copy; 2011-{% now "Y" %} Arizona Board of Regents</a></li>

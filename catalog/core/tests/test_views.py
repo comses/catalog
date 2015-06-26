@@ -33,7 +33,7 @@ class AuthTest(BaseTest):
         self.assertTrue(200, response.status_code)
 
     def test_logout(self):
-        response = self.get(self.reverse('core:logout'))
+        response = self.get(self.logout_url)
         self.assertTrue(302, response.status_code)
 
 
@@ -68,7 +68,7 @@ class ProfileViewTest(BaseTest):
 class IndexViewTest(BaseTest):
 
     def test_index_view(self):
-        self.without_login_and_with_login_test('core:login', before_status=200)
+        self.without_login_and_with_login_test(self.index_url, before_status=200)
 
 
 class DashboardViewTest(BaseTest):

@@ -28,13 +28,14 @@ body {
     color: #ffffff;
     font-size: .8em;
 }
-.footer>li>a {
+.nav-footer>li>a {
     color: #ffffff;
     text-decoration: underline;
 }
 .nav-footer {
     margin-top: 25px;
     text-align: center;
+    color: #ffffff;
 }
 #content {
     margin-top: 60px;

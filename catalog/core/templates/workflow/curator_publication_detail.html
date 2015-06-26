@@ -6,12 +6,11 @@
     <div class="panel panel-default">
         <div class="panel-heading">
             <h4>
-                <a class='btn btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
-                <br>
                 <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
                     <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
                 </a>
             </h4>
+            <a class='btn btn-xs btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-tasks'></i> Your assigned publications</a>
         </div>
         <div class="panel-body clearfix">
             <form id='curatorPublicationDetailForm' method="post" role="form">
@@ -59,7 +58,7 @@
                                         <i class='fa fa-university'></i> 
                                         <b>ASU Libraries</b>
                                         <div class='btn-group'>
-                                            <span style='margin-left: 10px;' class='btn'>
+                                            <span style='margin-left: 13px;' class='btn'>
                                                 <a target='_blank' data-bind='attr: { href: asuLibraryTitleLink() }'>
                                                     <i class='fa fa-pencil'></i>
                                                     Title Only

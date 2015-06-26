@@ -47,20 +47,11 @@
             </table>
         </div>
         {% if page_obj.has_previous or page_obj.has_next %}
-        <div class="clearfix">
+        <div>
             <div class='text-center'>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries</div>
             <div class="text-center">{% bootstrap_pagination page_obj url=request.get_full_path %}</div>
         </div>
         {% endif %}
     </div>
+</div>
 {% endblock content %}
-
-{% block javascript %}
-    {{block.super}}
-
-    <script>
-$(function() {
-
-});
-    </script>
-{% endblock %}

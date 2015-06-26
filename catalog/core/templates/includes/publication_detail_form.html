@@ -10,7 +10,7 @@
             <button type="button" class="pull-right btn btn-xs btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
             </h3>
             {% if pk %}
-            <a href="{% url 'core:curator_publication_detail' pk %}">Curate</a>
+            <a class='btn btn-default' href="{% url 'core:curator_publication_detail' pk %}"><i class='fa fa-edit'></i> Curator View</a>
             {% endif %}
         </div>
         <div class="panel-body clearfix">
