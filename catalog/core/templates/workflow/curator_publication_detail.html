@@ -5,12 +5,12 @@
 {% block content %}
     <div class="panel panel-default">
         <div class="panel-heading">
-            <h4>
+            <h3 class='panel-title'>
                 <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
                     <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
                 </a>
-            </h4>
-            <a class='btn btn-xs btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-tasks'></i> Your assigned publications</a>
+            </h3>
+            <a class='btn btn-xs btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-tasks'></i> Assigned publications</a>
         </div>
         <div class="panel-body clearfix">
             <form id='curatorPublicationDetailForm' method="post" role="form">
@@ -18,17 +18,18 @@
                     <div class="col-md-6">
                         <div class='panel panel-default'>
                             <div class='panel-heading'>
-                                <h3>Assigned to
+                                <h4 class='panel-title'>Assigned to
                                     <mark>
                                         <span data-bind='ifnot: assigned_curator'>nobody</span>
                                         <span data-bind='text: assigned_curator'></span>
                                     </mark>
-                                </h3>
+                                </h4>
                             </div>
                             <div class='panel-body'>
-                                <b>Journal: </b><span data-bind="text: journal.name"></span>
-                                <p><b>Date Published: </b><span data-bind="text: date_published"></span></p>
-                                <div><b>Author(s): </b>
+                                <b>Journal:</b><span data-bind="text: journal.name"></span><br>
+                                <b>Date Published:</b><span data-bind="text: date_published"></span><br>
+                                <b>Last modified:</b> <span data-bind='text:date_modified'></span>
+                                <div><b>Author(s):</b>
                                     <ul class='list-inline' data-bind="foreach: creators">
                                         <li><a target='_blank' data-bind='attr: { href: $root.googleScholarAuthorSearch($data) }'>
                                                 <span data-bind="text: first_name"></span> <span data-bind="text: last_name"></span>
@@ -36,7 +37,6 @@
                                         </li>
                                     </ul>
                                 </div>
-                                <p><b>Last modified: </b> <span data-bind='text:date_modified'></span></p>
                                 <ul class='list-group'>
                                     <li class='list-group-item google-blue'>
                                         <i class='fa fa-graduation-cap'></i>
@@ -55,7 +55,7 @@
                                         </div>
                                     </li>
                                     <li class='list-group-item asu-maroon'>
-                                        <i class='fa fa-university'></i> 
+                                        <i class='fa fa-university'></i>
                                         <b>ASU Libraries</b>
                                         <div class='btn-group'>
                                             <span style='margin-left: 13px;' class='btn'>
@@ -82,10 +82,20 @@
                     </div>
                     <div class="col-md-6">
                         <note-detail params="notes: notes, pub_id: id"></note-detail>
-                        <div class='panel panel-default'>
-                            <div class='panel-heading'><h4>Activity Log</h4></div>
-                            <div class='panel-body'>
-                                Activity..
+                    </div>
+                </div>
+                <div class='row'>
+                    <div class='col-md-12'>
+                        <div class='panel-group' id='activity-accordion' role='tablist' aria-multiselectable='false'>
+                            <div class='panel panel-default'>
+                                <div class='panel-heading'><h5 class='panel-title'><i class='fa fa-history'></i> Activity Log</h5></div>
+                                <div class='panel-body' data-bind='foreach: activity_logs'>
+                                    <p>
+                                    <mark class='bg-info' data-bind='text: date_added'></mark>
+                                    <mark data-bind='text: creator'></mark>
+                                    <span data-bind='text: message'></span>
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -93,7 +103,7 @@
                 <div class="row">
                     <div class='col-md-4 form-group'>
                         <label class="control-label" for="id_model_documentation">Model documentation</label>
-                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: modelDocumentationList, value: model_documentation.name, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocumentationList }"></select>
+                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: modelDocumentationList, value: model_documentation.name, optionsText: 'name', optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocumentationList }"></select>
                     </div>
                     <div class="col-md-8 form-group">
                         <label class="control-label" for="id_platforms">Platforms</label>
@@ -109,17 +119,17 @@
                 <div class='row'>
                     <div class="col-md-12 form-group">
                         <label class="control-label" for="id_tags">Tags</label>
-                        <select multiple="multiple" class="form-control" id="id_tags" name="tags" data-bind="selectize: tags, selectedOptions: selectedTags, optionsText: 'value', optionsValue: 'value', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getTagList }"></select>
+                        <select multiple="multiple" class="form-control" id="id_tags" name="tags" data-bind="selectize: tags, selectedOptions: selectedTags, optionsText: 'name', optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getTagList }"></select>
                     </div>
                 </div>
                 <div class='row'>
                     <div class='col-md-12 form-group'>
-                        <label class="control-label" for="id_code_archive_url">Code url</label>
+                        <label class="control-label" for="id_code_archive_url">Code Archive URL</label>
                         <div class='input-group'>
                             <span class='input-group-addon'><i class='fa fa-code'></i> </span>
                             <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
-                            <span class='input-group-addon' data-bind='if: validCodeArchiveUrl'>
-                                <a data-bind='attr: {href: code_archive_url}' target='_blank'>View code <i class='fa fa-external-link'></i></a>
+                            <span class='input-group-addon'>
+                                <a data-bind='css: { disabled: ! validCodeArchiveUrl() }, attr: {href: codeArchiveUrl()}'>Open <i class='fa fa-external-link'></i></a>
                             </span>
                         </div>
                     </div>
@@ -213,8 +223,15 @@
                         +  encodeURIComponent(' AND (AuthorCombined: (' + self.authorLastNames() + '))');
 
                 });
-                self.validCodeArchiveUrl = ko.computed(function() {
-                    return self.code_archive_url();
+                self.validCodeArchiveUrl = ko.pureComputed(function() {
+                    url = self.code_archive_url();
+                    return url && validator.isURL(url);
+                });
+                self.codeArchiveUrl = ko.pureComputed(function() {
+                    if (self.validCodeArchiveUrl()) {
+                        return self.code_archive_url();
+                    }
+                    return '#id_code_archive_url';
                 });
 
                 self.modelDocumentationList = ko.observableArray([data.model_documentation || ""]);
@@ -254,13 +271,14 @@
                         console.log(result.responseJSON);
                     });
                 }
-
                 self.savePublication = function(data, event) {
+                    {% comment "Add client-side validation eventually" %}
                     var form = $('#curatorPublicationDetailForm');
                     if ( !form.valid() ) {
                         form.showErrors();
                         return false;
                     }
+                    {% endcomment %} 
                     var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
                     data_clone.platforms(ko.utils.arrayMap(data.selectedPlatforms(), function(platform) {
                         return {'name': platform};
@@ -292,7 +310,8 @@
                     }
 
                     self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname).done(function(result) {
-                        humane.log("Data saved successfully.", {timeout: 5000})
+                        ko.mapping.fromJS(result, self);
+                        humane.log("Data saved successfully.", {timeout: 5000});
                     });
                 };
             };

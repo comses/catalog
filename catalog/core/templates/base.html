@@ -10,6 +10,7 @@
 {% url 'core:curator_workflow' as curator_workflow_url %}
 {% url 'core:contact_us' as contact_url %}
 {% url 'core:report_issues' as issues_url %}
+{% url 'core:github' as github_url %}
 
 <!doctype html>
 <html class="no-js" lang="">
@@ -58,6 +59,7 @@
                         {% endif %}
                         <li class='{{ request|active_re:contact_url }}'><a href='{{ contact_url }}'><i class='fa fa-bell-o'></i> Contact us</a></li>
                         <li><a target='_blank' href='{{ issues_url }}'><i class='fa fa-bullhorn'></i> Report a bug</a></li>
+                        <li><a target='_blank' href='{{ github_url }}'><i class='fa fa-github'></i> Develop</a></li>
                     </ul>
                     <ul class="nav navbar-nav pull-right">
                         {% if user.is_authenticated %}    
@@ -122,9 +124,10 @@
         <script src="//cdn.ravenjs.com/{{RAVENJS_VER}}/jquery,native/raven.min.js"></script>
         <script src='//ajax.aspnetcdn.com/ajax/jquery.validate/{{JQUERY_VALIDATE_VER}}/jquery.validate.min.js'></script>
         {# local JS files #}
-        <script type="text/javascript" src="{% static 'js/csrf.js' %}"></script>
-        <script type="text/javascript" src="{% static 'js/ko_custom_bindings.js' %}"></script>
-        <script type='text/javascript' src="{% static 'js/common.js' %}"></script>
+        <script src="{% static 'js/csrf.js' %}"></script>
+        <script src="{% static 'js/ko_custom_bindings.js' %}"></script>
+        <script src="{% static 'js/common.js' %}"></script>
+        <script src="{% static 'js/validator.min.js' %}"></script>
  
         <script>
         (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

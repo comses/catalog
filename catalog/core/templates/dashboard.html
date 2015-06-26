@@ -50,7 +50,7 @@
                 <div class="panel-body">
                     <h1 class="text-center">{{status.NEEDS_AUTHOR_REVIEW|default:"0"}}</h1>
                 </div>
-            </div> 
+            </div>
         </div>
         <div class="col-md-2">
             <div class="panel panel-danger">
@@ -65,15 +65,13 @@
     </div>
     <div class="row">
         <div class="col-md-12">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title"><a href="{{ curator_workflow_url }}">Publications assigned to you for tagging: </a><span class="badge badge-info">{{untagged_publications_count}}</span>
-                    </h3>
-                </div>
+            <div class='well'>
+                <a class='btn btn-primary' href="{{ curator_workflow_url }}"><i class='fa fa-tasks'></i> Publications assigned to you for tagging <span class="badge">{{untagged_publications_count}}</span></a>
+                <a class='btn btn-primary'><i class='fa fa-history'></i> All recently updated publications <span class='badge'>{{ recently_updated_publications_count }}</span></a>
             </div>
         </div>
     </div>
-    <div class="row"> 
+    <div class="row">
         <div class="col-md-12">
             <div class="panel panel-default">
                 <div class="panel-heading">

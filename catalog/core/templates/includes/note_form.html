@@ -1,14 +1,17 @@
 <script type="text/html" id="note_form">
 <div class='panel panel-default'>
     <div class='panel-heading'>
-        <h3>Notes <button type="button" class="btn btn-xs btn-primary" data-bind="click: addNote"><i class="fa fa-plus-square"></i> Add Note </button></h3>
+        <h4 class='panel-title'>Notes <button type="button" class="pull-right btn btn-xs btn-primary" data-bind="click: addNote"><i class="fa fa-plus-square"></i> Add Note </button></h4>
     </div>
     <div class='panel-body' data-bind="foreach: notes">
         <p>
             <mark data-bind='text: added_by'></mark>: 
             <span data-bind="text: text"></span>
-            <a href='#' data-bind='click: editNote'><i class="fa fa-edit"></i></a>
-            <a href='#' data-bind='click: removeNote'><i class="fa fa-times"></i></a>
+            <span class='pull-right'>
+                <mark class='bg-info' data-bind='text: date_added'></mark>
+                <a href='#' data-bind='click: editNote'><i class="fa fa-edit"></i></a>
+                <a href='#' data-bind='click: removeNote'><i class="fa fa-times"></i></a>
+            </span>
         </p>
     </div>
     <div id='noteModal' class="modal fade" data-bind="showModal: activateNoteModal" data-backdrop="static" data-keyboard="false">

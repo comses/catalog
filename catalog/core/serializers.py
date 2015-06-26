@@ -4,6 +4,7 @@ from django.core import signing
 from django.core.mail import send_mass_mail, send_mail
 from django.core.validators import URLValidator
 from django.db.models import F
+from django.db.models.manager import BaseManager
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers, pagination
@@ -11,8 +12,9 @@ from rest_framework.compat import OrderedDict
 from rest_framework.utils import model_meta
 
 from .models import (Tag, Sponsor, Platform, Creator, Publication, Journal, JournalArticle, InvitationEmail,
-                     ModelDocumentation, Note,)
+                     ModelDocumentation, Note, PublicationAuditLog, )
 
+from collections import defaultdict
 from hashlib import sha1
 
 import logging
@@ -22,9 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class CatalogPagination(pagination.PageNumberPagination):
-    """
-    See http://www.django-rest-framework.org/api-guide/pagination/ and clean this up
-    """
+    # FIXME: review & refactor: http://www.django-rest-framework.org/api-guide/pagination/
     def get_paginated_response(self, data):
         return OrderedDict([
             ('start_index', self.page.start_index()),
@@ -44,12 +44,30 @@ class CatalogPagination(pagination.PageNumberPagination):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """
-    Serializes user querysets.
+    Serialize users.
     """
 
     class Meta:
         model = User
         fields = ('id', 'first_name', 'last_name', 'username', 'email')
+
+
+class NoteSerializer(serializers.ModelSerializer):
+    added_by = serializers.StringRelatedField(read_only=True)
+    date_added = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
+
+    class Meta:
+        model = Note
+        fields = ('id', 'text',  'publication', 'added_by', 'date_added')
+
+
+class PublicationAuditLogSerializer(serializers.ModelSerializer):
+    creator = serializers.StringRelatedField(read_only=True)
+    date_added = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
+
+    class Meta:
+        model = PublicationAuditLog
+        read_only_fields = ('id', 'message', 'action', 'date_added', 'publication')
 
 
 class PublicationSerializer(serializers.ModelSerializer):
@@ -60,6 +78,63 @@ class PublicationSerializer(serializers.ModelSerializer):
     curator_detail_url = serializers.CharField(source='get_curator_url', read_only=True)
     assigned_curator = serializers.StringRelatedField()
     date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
+    notes = NoteSerializer(source='note_set', many=True, read_only=True)
+    activity_logs = PublicationAuditLogSerializer(source='audit_log_set', many=True, read_only=True)
+
+    """
+    XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some
+    point. See http://www.django-rest-framework.org/api-guide/serializers/#writable-nested-representations for more
+    details
+    """
+    def update(self, instance, validated_data):
+        self._modified_data = defaultdict(tuple)
+        for attr, value in validated_data.items():
+            modified = False
+            old_value = getattr(instance, attr)
+            if isinstance(old_value, BaseManager):
+                # compare against related manager values converted to string
+                old_values = [str(v) for v in old_value.all()]
+                new_values = [str(v) for v in value]
+                if set(old_values) != set(new_values):
+                    modified = True
+            elif old_value != value:
+                modified = True
+            if modified:
+                self.modified_data[attr] = (old_value, value)
+                setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+    @property
+    def modified_data(self):
+        return getattr(self, '_modified_data', defaultdict(tuple))
+
+    @property
+    def modified_data_text(self):
+        md = self.modified_data
+        md_list = ['{}: {} -> {}'.format('None' if not key else key, pair[0], pair[1]) for key, pair in md.items()]
+        return ', '.join(md_list)
+
+    def create(self, validated_data):
+        ModelClass = self.Meta.model
+
+        # Remove many-to-many relationships from validated_data.
+        # They are not valid arguments to the default `.create()` method,
+        # as they require that the instance has already been saved.
+        info = model_meta.get_field_info(ModelClass)
+        many_to_many = {}
+        for field_name, relation_info in info.relations.items():
+            if relation_info.to_many and (field_name in validated_data):
+                many_to_many[field_name] = validated_data.pop(field_name)
+
+        instance = ModelClass.objects.create(**validated_data)
+
+        # Save many-to-many relationships after the instance is created.
+        if many_to_many:
+            for field_name, value in many_to_many.items():
+                setattr(instance, field_name, value)
+
+        return instance
 
     class Meta:
         model = Publication
@@ -148,15 +223,6 @@ class JournalSerializer(serializers.ModelSerializer):
         return journal
 
 
-class NoteSerializer(serializers.ModelSerializer):
-
-    added_by = serializers.StringRelatedField(read_only=True)
-
-    class Meta:
-        model = Note
-        fields = ('id', 'text',  'publication', 'added_by')
-
-
 class JournalArticleSerializer(PublicationSerializer):
     """
     Serializes journal article querysets
@@ -166,7 +232,6 @@ class JournalArticleSerializer(PublicationSerializer):
     sponsors = SponsorSerializer(many=True)
     journal = JournalSerializer()
     model_documentation = ModelDocumentationSerializer(allow_null=True)
-    notes = NoteSerializer(source='note_set', many=True, read_only=True)
     creators = CreatorSerializer(many=True)
 
     class Meta:
@@ -174,42 +239,6 @@ class JournalArticleSerializer(PublicationSerializer):
         exclude = ('date_added', 'zotero_date_added', 'zotero_date_modified', 'zotero_key',
                    'email_sent_count', 'date_published_text', 'author_comments')
 
-    """
-    XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some
-    point. See http://www.django-rest-framework.org/api-guide/serializers/#writable-nested-representations for more
-    details
-    """
-    def update(self, instance, validated_data):
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
-
-    def create(self, validated_data):
-        ModelClass = self.Meta.model
-
-        # Remove many-to-many relationships from validated_data.
-        # They are not valid arguments to the default `.create()` method,
-        # as they require that the instance has already been saved.
-        info = model_meta.get_field_info(ModelClass)
-        many_to_many = {}
-        for field_name, relation_info in info.relations.items():
-            if relation_info.to_many and (field_name in validated_data):
-                many_to_many[field_name] = validated_data.pop(field_name)
-
-        instance = ModelClass.objects.create(**validated_data)
-
-        # Save many-to-many relationships after the instance is created.
-        if many_to_many:
-            for field_name, value in many_to_many.items():
-                setattr(instance, field_name, value)
-
-        return instance
-
-
-############################
-#    Custom Serializers    #
-############################
 
 class ContactFormSerializer(serializers.Serializer):
     name = serializers.CharField()

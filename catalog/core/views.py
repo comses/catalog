@@ -155,7 +155,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, GenericAPIView):
             PublicationAuditLog.objects.log_curator_action(
                 creator=self.request.user,
                 publication=publication,
-                message='Updated publication with data {}'.format(serializer.validated_data)
+                message='Updated publication fields ({})'.format(serializer.modified_data_text)
             )
             return Response(serializer.data)
         logger.warn("serializer failed validation: %s", serializer.errors)

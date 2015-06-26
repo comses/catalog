@@ -1,6 +1,5 @@
 from rest_framework.urlpatterns import format_suffix_patterns
 from django.conf.urls import url
-from django.contrib.auth import views as auth_views
 from django.views.generic import RedirectView, TemplateView
 
 from .views import (DashboardView, PublicationDetail, PublicationList, EmailPreview, ContactAuthor, UpdateModelUrlView,
@@ -26,8 +25,10 @@ urlpatterns += [
     url(r'^$', TemplateView.as_view(template_name='index.html'), name='index'),
     url(r'^dashboard/$', DashboardView.as_view(), name='dashboard'),
     url(r'^accounts/profile/$', UserProfileView.as_view(), name='user_profile'),
-    url(r'^bug-report/$', RedirectView.as_view(url='https://gitreports.com/issue/comses/catalog'),
+    url(r'^bug-report/$', RedirectView.as_view(url='https://gitreports.com/issue/comses/catalog', permanent=False),
         name='report_issues'),
+    url(r'^github/$', RedirectView.as_view(url='https://github.com/comses/catalog', permanent=False),
+        name='github'),
     url(r'^publication/workflow/$', CuratorWorkflowView.as_view(), name='curator_workflow'),
     url(r'^search/$', CatalogSearchView.as_view(), name='haystack_search'),
     url(r'^search/platform/$', PlatformSearchView.as_view(), name="platform_search"),

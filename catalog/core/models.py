@@ -225,11 +225,23 @@ class PublicationAuditLog(models.Model):
                      ('CURATOR_EDIT', _('Curator edit')))
     date_added = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=32, choices=Action, default=Action.SYSTEM_LOG)
-    publication = models.ForeignKey(Publication)
+    publication = models.ForeignKey(Publication, related_name='audit_log_set')
     message = models.TextField(blank=True)
     creator = models.ForeignKey(User, null=True, blank=True, help_text=_('The user who initiated this action, if any.'))
 
     objects = PublicationAuditLogManager.for_queryset_class(PublicationAuditLogQuerySet)()
+
+    def __unicode__(self):
+        return u"{} - {} performed {} on {}: {}".format(
+            self.date_added,
+            self.creator,
+            self.action,
+            self.publication,
+            self.message
+        )
+
+    class Meta:
+        ordering = ['-date_added']
 
 """
 class Book(Publication):
