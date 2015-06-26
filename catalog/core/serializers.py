@@ -96,6 +96,7 @@ class PublicationSerializer(serializers.ModelSerializer):
                 old_values = [str(v) for v in old_value.all()]
                 new_values = [str(v) for v in value]
                 if set(old_values) != set(new_values):
+                    old_value = old_values
                     modified = True
             elif old_value != value:
                 modified = True
