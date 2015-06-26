@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm
 # from django.utils.translation import ugettext_lazy as _
 
 from .models import Publication, JournalArticle
@@ -8,6 +9,11 @@ from haystack.forms import SearchForm
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class CatalogAuthenticationForm(AuthenticationForm):
+
+    username = forms.CharField(max_length=254, widget=forms.TextInput(attrs={'autofocus': True}))
 
 
 class CatalogSearchForm(SearchForm):

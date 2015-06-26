@@ -15,70 +15,80 @@
         </div>
         <div class="panel-body clearfix">
             <form id='curatorPublicationDetailForm' method="post" role="form">
-                <div class="row well">
+                <div class="row">
                     <div class="col-md-6">
-                        <legend class="scheduler-border">Assigned to
-                            <mark>
-                                <span data-bind='ifnot: assigned_curator'>nobody</span>
-                                <span data-bind='text: assigned_curator'></span>
-                            </mark>
-                        </legend>
-                        <p><b>Journal: </b><span data-bind="text: journal.name"></span></p>
-                        <p><b>Date Published: </b><span data-bind="text: date_published"></span></p>
-                        <div><b>Author(s): </b>
-                        <ul class='list-inline' data-bind="foreach: creators">
-                            <li class='bg-info'>
-                                <span data-bind="text: first_name"></span>
-                                <span data-bind="text: last_name"></span>
-                            </li>
-                        </ul>
+                        <div class='panel panel-default'>
+                            <div class='panel-heading'>
+                                <h3>Assigned to
+                                    <mark>
+                                        <span data-bind='ifnot: assigned_curator'>nobody</span>
+                                        <span data-bind='text: assigned_curator'></span>
+                                    </mark>
+                                </h3>
+                            </div>
+                            <div class='panel-body'>
+                                <b>Journal: </b><span data-bind="text: journal.name"></span>
+                                <p><b>Date Published: </b><span data-bind="text: date_published"></span></p>
+                                <div><b>Author(s): </b>
+                                    <ul class='list-inline' data-bind="foreach: creators">
+                                        <li><a target='_blank' data-bind='attr: { href: $root.googleScholarAuthorSearch($data) }'>
+                                                <span data-bind="text: first_name"></span> <span data-bind="text: last_name"></span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <p><b>Last modified: </b> <span data-bind='text:date_modified'></span></p>
+                                <ul class='list-group'>
+                                    <li class='list-group-item google-blue'>
+                                        <i class='fa fa-graduation-cap'></i>
+                                        <b>Google Scholar</b>
+                                        <div class='btn-group'>
+                                            <span class='btn'>
+                                                <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
+                                                    <i class='fa fa-pencil'></i> Title Only
+                                                </a>
+                                            </span>
+                                            <span class='btn'>
+                                                <a target='_blank' data-bind="attr: { href: googleScholarAuthorLink() }">
+                                                    <i class='fa fa-pencil-square'></i> Title and Author
+                                                </a>
+                                            </span>
+                                        </div>
+                                    </li>
+                                    <li class='list-group-item asu-maroon'>
+                                        <i class='fa fa-university'></i> 
+                                        <b>ASU Libraries</b>
+                                        <div class='btn-group'>
+                                            <span style='margin-left: 10px;' class='btn'>
+                                                <a target='_blank' data-bind='attr: { href: asuLibraryTitleLink() }'>
+                                                    <i class='fa fa-pencil'></i>
+                                                    Title Only
+                                                </a>
+                                            </span>
+                                            <span class='btn'>
+                                                <a target='_blank' data-bind='attr: { href: asuLibraryAuthorLink() }'>
+                                                    <i class='fa fa-pencil-square'></i>
+                                                    Title and Author
+                                                </a>
+                                            </span>
+                                        </div>
+                                    </li>
+                                    <li class='list-group-item'>
+                                        {# FIXME: dirty, hard-coded URL #}
+                                        <a data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic record</a>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
-                        <p>Last modified: <b data-bind='text:date_modified'></b></p>
-                        <ul class='list-group'>
-                            <li class='list-group-item google-blue'>
-                                <i class='fa fa-graduation-cap'></i>
-                                <b>Google Scholar</b>
-                                <div class='btn-group'>
-                                    <span class='btn'>
-                                        <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
-                                            <i class='fa fa-pencil'></i>
-                                            Title Only
-                                        </a>
-                                    </span>
-                                    <span class='btn'>
-                                        <a target='_blank' data-bind="attr: { href: googleScholarAuthorLink() }">
-                                            <i class='fa fa-pencil-square'></i>
-                                            Title and Author
-                                        </a>
-                                    </span>
-                                </div>
-                            </li>
-                            <li class='list-group-item asu-maroon'>
-                                <i class='fa fa-university'></i> 
-                                <b>ASU Libraries</b>
-                                <div class='btn-group'>
-                                    <span style='margin-left: 10px;' class='btn'>
-                                        <a target='_blank' data-bind='attr: { href: asuLibraryTitleLink() }'>
-                                            <i class='fa fa-pencil'></i>
-                                            Title Only
-                                        </a>
-                                    </span>
-                                    <span class='btn'>
-                                        <a target='_blank' data-bind='attr: { href: asuLibraryAuthorLink() }'>
-                                            <i class='fa fa-pencil-square'></i>
-                                            Title and Author
-                                        </a>
-                                    </span>
-                                </div>
-                            </li>
-                            <li class='list-group-item'>
-                                {# FIXME: dirty, hard-coded URL #}
-                                <a data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic record</a>
-                            </li>
-                        </ul>
                     </div>
-                    <div class="col-md-6 form-group">
+                    <div class="col-md-6">
                         <note-detail params="notes: notes, pub_id: id"></note-detail>
+                        <div class='panel panel-default'>
+                            <div class='panel-heading'><h4>Activity Log</h4></div>
+                            <div class='panel-body'>
+                                Activity..
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="row">
@@ -104,12 +114,15 @@
                     </div>
                 </div>
                 <div class='row'>
-                    <div class='col-md-11 form-group'>
+                    <div class='col-md-12 form-group'>
                         <label class="control-label" for="id_code_archive_url">Code url</label>
-                        <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
-                        <span data-bind='if: validCodeArchiveUrl'>
-                            <a data-bind='attr: {href: code_archive_url}' target='_blank'>View code <i class='fa fa-external-link'></i></a>
-                        </span>
+                        <div class='input-group'>
+                            <span class='input-group-addon'><i class='fa fa-code'></i> </span>
+                            <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
+                            <span class='input-group-addon' data-bind='if: validCodeArchiveUrl'>
+                                <a data-bind='attr: {href: code_archive_url}' target='_blank'>View code <i class='fa fa-external-link'></i></a>
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <div class='row'>
@@ -125,10 +138,10 @@
                 <div class='row'>
                     <div class='col-md-12 form-group'>
                         <div class='well'>
-                        <label class="control-label" for="id_status">Current Status: </label>
+                        <label class="control-label">Current Status: </label>
                         <b class='text-warning' data-bind='text:status'></b>
                         <br>
-                        <div class="radio" data-toggle="buttons" id="id_status">
+                        <div class="radio" data-toggle="buttons">
                             <label class="btn btn-info btn-sm">
                                 <input type="radio" name="status" value="UNTAGGED" data-bind="bsChecked: status"> <i class='fa fa-eye-slash'></i> Incomplete
                             </label>
@@ -175,14 +188,21 @@
                 self.selectedPlatforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
                 self.selectedSponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));
                 self.journals = ko.observableArray([data.journal || ""]);
+                self.googleScholarAuthorSearch = function(creator) {
+                    return ko.pureComputed(function() {
+                        return $.urls.SEARCH_GOOGLE_SCHOLAR 
+                            + "&as_sauthors=" 
+                            + encodeURIComponent(creator.first_name() + ' ' + creator.last_name());
+                    });
+                };
                 self.authorLastNames = ko.pureComputed(function() {
                     return ko.utils.arrayMap(self.creators(), function(creator) { return creator.last_name() }).join(' ');
                 });
                 self.googleScholarTitleLink = ko.pureComputed(function() {
-                    return 'https://scholar.google.com/scholar?as_q=' + encodeURIComponent(self.title());
+                    return $.urls.SEARCH_GOOGLE_SCHOLAR + encodeURIComponent(self.title());
                 });
                 self.googleScholarAuthorLink = ko.pureComputed(function() {
-                    return 'https://scholar.google.com/scholar?as_q=' + encodeURIComponent(self.title()) +
+                    return $.urls.SEARCH_GOOGLE_SCHOLAR + encodeURIComponent(self.title()) +
                         '&as_sauthors=' + encodeURIComponent(self.authorLastNames());
                 });
                 self.asuLibraryTitleLink = ko.pureComputed(function() {
@@ -195,7 +215,7 @@
 
                 });
                 self.validCodeArchiveUrl = ko.computed(function() {
-                    return self.code_archive_url() && $('#curatorPublicationDetailForm').valid();
+                    return self.code_archive_url();
                 });
 
                 self.modelDocumentationList = ko.observableArray([data.model_documentation || ""]);
@@ -278,7 +298,6 @@
                 };
             };
             ko.applyBindings(new PublicationDetail(viewModelJson));
-            $('#curatorPublicationDetailForm').validate();
         });
     </script>
 {% endblock javascript %}

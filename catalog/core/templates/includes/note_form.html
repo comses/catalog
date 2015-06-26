@@ -1,6 +1,9 @@
 <script type="text/html" id="note_form">
-    <legend class="scheduler-border">Notes <button type="button" class="btn btn-xs btn-primary" data-bind="click: addNote"><i class="fa fa-plus-square"></i> Add Note </button></legend>
-    <div data-bind="foreach: notes">
+<div class='panel panel-default'>
+    <div class='panel-heading'>
+        <h3>Notes <button type="button" class="btn btn-xs btn-primary" data-bind="click: addNote"><i class="fa fa-plus-square"></i> Add Note </button></h3>
+    </div>
+    <div class='panel-body' data-bind="foreach: notes">
         <p>
             <mark data-bind='text: added_by'></mark>: 
             <span data-bind="text: text"></span>
@@ -25,6 +28,7 @@
             </div>
         </div>
     </div>
+</div>
 </script>
 
 <script type="text/javascript">

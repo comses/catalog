@@ -171,8 +171,14 @@ class Publication(models.Model):
                                          help_text=_("Currently assigned curator"),
                                          related_name='assigned_publication_set')
 
+    def _pk_url(self, name):
+        return reverse(name, args=[self.pk])
+
     def get_absolute_url(self):
-        return reverse('core:publication_detail', args=[self.pk])
+        return self._pk_url('core:publication_detail')
+
+    def get_curator_url(self):
+        return self._pk_url('core:curator_publication_detail')
 
     def __unicode__(self):
         return u'{}'.format(self.title)

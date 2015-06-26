@@ -57,12 +57,14 @@ class PublicationSerializer(serializers.ModelSerializer):
     Serializes publication querysets.
     """
     detail_url = serializers.CharField(source='get_absolute_url', read_only=True)
+    curator_detail_url = serializers.CharField(source='get_curator_url', read_only=True)
     assigned_curator = serializers.StringRelatedField()
     date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
 
     class Meta:
         model = Publication
-        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url', 'assigned_curator', )
+        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url',
+                  'curator_detail_url', 'status', 'assigned_curator', )
 
 
 class TagSerializer(serializers.ModelSerializer):

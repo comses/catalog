@@ -18,3 +18,6 @@ jQuery.validator.setDefaults({
         }
     }
 });
+
+$.urls = {}
+$.urls.SEARCH_GOOGLE_SCHOLAR = 'https://scholar.google.com/scholar?as_q=';
