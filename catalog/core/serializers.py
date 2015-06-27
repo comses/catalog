@@ -112,9 +112,10 @@ class PublicationSerializer(serializers.ModelSerializer):
 
     @property
     def modified_data_text(self):
+        _convert = lambda v: 'None' if not v else v
         md = self.modified_data
-        md_list = ['{}: {} -> {}'.format('None' if not key else key, pair[0], pair[1]) for key, pair in md.items()]
-        return ', '.join(md_list)
+        md_list = ['{}: {} -> {}'.format(key, _convert(pair[0]), _convert(pair[1])) for key, pair in md.items()]
+        return ' | '.join(md_list)
 
     def create(self, validated_data):
         ModelClass = self.Meta.model

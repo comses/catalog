@@ -34,7 +34,7 @@
                 <tbody>
                     {% for result in object_list %}
                     <tr>
-                        <td><mark>{{ result.status }}</mark></td>
+                        <td><span class='label label-as-badge label-primary'>{{ result.status }}</span></td>
                         <td><a href="{% url 'core:curator_publication_detail' result.pk %}">{{ result.title }}</td>
                         <td>{{ result.last_modified }}</td>
                     </tr>

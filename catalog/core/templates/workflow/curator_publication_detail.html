@@ -9,8 +9,8 @@
                 <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
                     <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
                 </a>
+                <span class='label label-as-badge label-primary pull-right'><b>STATUS:</b> <span data-bind='text: status'></span></span>
             </h3>
-            <a class='btn btn-xs btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-tasks'></i> Assigned publications</a>
         </div>
         <div class="panel-body clearfix">
             <form id='curatorPublicationDetailForm' method="post" role="form">
@@ -91,7 +91,7 @@
                                 <div class='panel-heading'><h5 class='panel-title'><i class='fa fa-history'></i> Activity Log</h5></div>
                                 <div class='panel-body' data-bind='foreach: activity_logs'>
                                     <p>
-                                    <mark class='bg-info' data-bind='text: date_added'></mark>
+                                    <span class='pull-right label label-as-badge label-info' data-bind='text: date_added'></span>
                                     <mark data-bind='text: creator'></mark>
                                     <span data-bind='text: message'></span>
                                     </p>
@@ -147,8 +147,7 @@
                 <div class='row'>
                     <div class='col-md-12 form-group'>
                         <div class='well'>
-                        <label class="control-label">Current Status: </label>
-                        <b class='text-warning' data-bind='text:status'></b>
+                        <span class="label label-as-badge-lg label-primary">Current Status: <b data-bind='text:status'></b></span>
                         <br>
                         <div class="radio" data-toggle="buttons">
                             <label class="btn btn-info btn-sm">

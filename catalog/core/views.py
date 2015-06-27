@@ -152,11 +152,14 @@ class CuratorPublicationDetail(LoginRequiredMixin, GenericAPIView):
         serializer = JournalArticleSerializer(publication, data=request.data)
         if serializer.is_valid():
             publication = serializer.save()
-            PublicationAuditLog.objects.log_curator_action(
-                creator=self.request.user,
-                publication=publication,
-                message='Updated publication fields ({})'.format(serializer.modified_data_text)
-            )
+            if serializer.modified_data:
+                PublicationAuditLog.objects.log_curator_action(
+                    creator=self.request.user,
+                    publication=publication,
+                    message='Updated publication fields: {}'.format(serializer.modified_data_text)
+                )
+            else:
+                logger.debug("no changes detected, not creating audit log")
             return Response(serializer.data)
         logger.warn("serializer failed validation: %s", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
