@@ -51,7 +51,7 @@
                     <ul class='nav navbar-nav'>
                         {% if user.is_authenticated %}
                             <li class='{{ request|active_re:dashboard_url }}'><a href='{{ dashboard_url }}'><i class='fa fa-tachometer'></i> Dashboard</a></li>
-                            <li class='{{ request|active_re:curator_workflow_url }}'><a href='{{ curator_workflow_url }}'><i class='fa fa-tasks'></i> Assigned Publications</a></li>
+                            <li class='{{ request|active_re:curator_workflow_url }}'><a href='{{ curator_workflow_url }}'><i class='fa fa-tasks'></i> Curate</a></li>
                             {% if user.is_superuser %}
                             <li class='{{ request|active_re:publications_url }}'><a href='{{ publications_url }}'><i class='fa fa-newspaper-o'></i> All Publications</a></li>
                             <li class='{{ request|active_re:search_url }}'><a href='{{ search_url }}'><i class='fa fa-search'></i> Search</a></li>
@@ -64,9 +64,7 @@
                     <ul class="nav navbar-nav pull-right">
                         {% if user.is_authenticated %}    
                             <li class="dropdown pull-right">            
-                                <a data-toggle="dropdown" class="dropdown-toggle" href="#">
-                                <i class="fa fa-user"></i> {{ user.username }}<b class="caret"></b>
-                                </a> 
+                                <a data-toggle="dropdown" class="dropdown-toggle" href="#">{{ user.username }}<b class="caret"></b></a> 
                                 <!-- Dropdown menu -->
                                 <ul class="dropdown-menu">
                                     <li><a href="{{ user_profile_url }}"><i class="fa fa-user"></i> Profile</a></li>

@@ -140,8 +140,8 @@ class PublicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Publication
-        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url',
-                  'curator_detail_url', 'status', 'assigned_curator', )
+        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url', 'curator_detail_url', 'status',
+                  'assigned_curator', 'activity_logs', 'notes', )
 
 
 class TagSerializer(serializers.ModelSerializer):
