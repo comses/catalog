@@ -93,15 +93,16 @@ class PublicationSerializer(serializers.ModelSerializer):
             old_value = getattr(instance, attr)
             if isinstance(old_value, BaseManager):
                 # compare against related manager values converted to string
-                old_values = [str(v) for v in old_value.all()]
-                new_values = [str(v) for v in value]
+                old_values = [unicode(v) for v in old_value.all()]
+                new_values = [unicode(v) for v in value]
                 if set(old_values) != set(new_values):
                     old_value = old_values
                     modified = True
             elif old_value != value:
+                logger.debug("setting %s to %s", old_value, value)
                 modified = True
             if modified:
-                self.modified_data[attr] = (old_value, value)
+                self._modified_data[attr] = (old_value, value)
                 setattr(instance, attr, value)
         instance.save()
         return instance
@@ -112,10 +113,10 @@ class PublicationSerializer(serializers.ModelSerializer):
 
     @property
     def modified_data_text(self):
-        _convert = lambda v: 'None' if not v else v
+        _convert = lambda v: u'None' if not v else unicode(v)
         md = self.modified_data
-        md_list = ['{}: {} -> {}'.format(key, _convert(pair[0]), _convert(pair[1])) for key, pair in md.items()]
-        return ' | '.join(md_list)
+        md_list = [u'{}: {} -> {}'.format(key, _convert(pair[0]), _convert(pair[1])) for key, pair in md.items()]
+        return u" | ".join(md_list)
 
     def create(self, validated_data):
         ModelClass = self.Meta.model

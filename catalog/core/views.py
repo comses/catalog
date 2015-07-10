@@ -156,7 +156,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, GenericAPIView):
                 PublicationAuditLog.objects.log_curator_action(
                     creator=self.request.user,
                     publication=publication,
-                    message='Updated publication fields: {}'.format(serializer.modified_data_text)
+                    message=u"Update: {0}".format(serializer.modified_data_text)
                 )
             else:
                 logger.debug("no changes detected, not creating audit log")

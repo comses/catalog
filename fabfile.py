@@ -145,6 +145,18 @@ def setup():
     execute(rebuild_index)
 
 
+@task(alias='rdb')
+def reset_db(dumpfile='catalog.sql'):
+    local('dropdb --if-exists %(db_name)s -U %(db_user)s' % env)
+    local('createdb %(db_name)s -U %(db_user)s' % env)
+    if os.path.isfile(dumpfile):
+        logger.debug("loading data from %s", dumpfile)
+        env.dumpfile = dumpfile
+        local('psql %(db_name)s %(db_user)s < %(dumpfile)s' % env)
+    local("find . -name '00*.py' -print -delete")
+    execute(initialize_database_schema)
+
+
 @task(aliases=['idb', 'init_db'])
 def initialize_database_schema():
     local('python manage.py makemigrations')
@@ -169,11 +181,11 @@ def rebuild_index():
 @roles('localhost')
 @task
 def setup_postgres():
-    local("psql -c 'create user %(db_user)s CREATEDB' -U postgres" % env)
-    local("psql -c 'create database %(db_name)s OWNER=%(db_user)s' -U postgres" % env)
+    local("createuser %(db_user)s -d -U postgres" % env)
+    local("createdb %(db_name)s -U %(db_user)s" % env)
 
 
-@task(alias='reload')
+@task(alias='relu')
 def reload_uwsgi():
     status_line = sudo("supervisorctl status")
     m = re.search('RUNNING(?:\s+)pid\s(\d+)', status_line)
@@ -212,7 +224,7 @@ def deploy(branch, user):
                 env.vcs_command,
                 'chmod g+s logs',
                 'chmod -R g+rw logs/',
-                user=env.deploy_user, pty=True)
+                user=user, pty=True)
             env.static_root = catalog_settings.STATIC_ROOT
             if confirm("Update pip dependencies?"):
                 _virtualenv(sudo, 'pip install -Ur requirements.txt', user=user)
