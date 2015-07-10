@@ -181,7 +181,7 @@ def rebuild_index():
 @roles('localhost')
 @task
 def setup_postgres():
-    local("createuser %(db_user)s -d -U postgres" % env)
+    local("createuser %(db_user)s -S -d -U postgres" % env)
     local("createdb %(db_name)s -U %(db_user)s" % env)
 
 
