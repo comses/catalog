@@ -1,7 +1,6 @@
 from fabric.api import local, sudo, cd, env, lcd, execute, hosts, roles, task, run
 from fabric.context_managers import prefix
-from fabric.contrib.console import confirm
-from fabric.contrib import django
+from fabric.contrib import django, console
 from fabric.contrib.project import rsync_project
 import logging
 import os
@@ -20,7 +19,7 @@ sys.path.append(env.abs_project_path)
 env.roledefs = {
     'localhost': ['localhost'],
     'staging': ['dev-catalog.comses.net'],
-    'prod': ['alee14@catalog.comses.net'],
+    'prod': ['catalog.comses.net'],
 }
 env.python = 'python'
 env.project_name = 'catalog'
@@ -153,8 +152,9 @@ def reset_db(dumpfile='catalog.sql'):
         logger.debug("loading data from %s", dumpfile)
         env.dumpfile = dumpfile
         local('psql %(db_name)s %(db_user)s < %(dumpfile)s' % env)
-    local("find . -name '00*.py' -print -delete")
-    execute(initialize_database_schema)
+    if console.confirm("recreate migrations?"):
+        local("find . -name '00*.py' -print -delete")
+        execute(initialize_database_schema)
 
 
 @task(aliases=['idb', 'init_db'])
@@ -214,11 +214,12 @@ def deploy(branch, user):
     """ deploy to an already setup environment """
     if user is None:
         user = env.deploy_user
+    env.user = user
     env.deploy_dir = env.deploy_parent_dir + env.project_name
     env.branch = branch
     env.virtualenv_path = '/comses/virtualenvs/{}'.format(env.project_name)
     env.vcs_command = 'export GIT_WORK_TREE={} && git checkout -f {} && git pull'.format(env.deploy_dir, env.branch)
-    if confirm("Deploying '%(branch)s' branch to host %(host)s : \n\r%(vcs_command)s\nContinue? " % env):
+    if console.confirm("Deploying '%(branch)s' branch to host %(host)s : \n\r%(vcs_command)s\nContinue? " % env):
         with cd(env.deploy_dir):
             sudo_chain(
                 env.vcs_command,
@@ -226,9 +227,9 @@ def deploy(branch, user):
                 'chmod -R g+rw logs/',
                 user=user, pty=True)
             env.static_root = catalog_settings.STATIC_ROOT
-            if confirm("Update pip dependencies?"):
+            if console.confirm("Update pip dependencies?"):
                 _virtualenv(sudo, 'pip install -Ur requirements.txt', user=user)
-            if confirm("Run database migrations?"):
+            if console.confirm("Run database migrations?"):
                 _virtualenv(sudo, '%(python)s manage.py migrate' % env, user=user)
             _virtualenv(sudo, '%(python)s manage.py collectstatic' % env, user=user)
             sudo_chain(

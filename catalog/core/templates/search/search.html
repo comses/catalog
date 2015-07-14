@@ -45,13 +45,14 @@
             <h3>Results</h3>
             <table class="table table-striped">
                 <thead>
-                    <tr><th class='col-md-9'>Title</th><th class='col-md-3'>Last Modified</th></tr>
+                    <tr><th class='col-md-1'>Curator</th> <th class='col-md-8'>Title</th><th class='col-md-3'>Last Modified</th></tr>
                 </thead>
                 <tbody>
-                    {% for row in object_list %}
+                    {% for publication in object_list %}
                         <tr>
-                            <td><a href="{% url 'core:curator_publication_detail' row.pk %}">{{ row.title }}</td>
-                            <td>{{ row.last_modified }}</td>
+                            <td><mark>{{ publication.assigned_curator }}</mark></td>
+                            <td><span class='label label-as-badge label-primary'>{{ publication.status }}</span> <a href="{% url 'core:curator_publication_detail' publication.pk %}">{{ publication.title }}</td>
+                            <td>{{ publication.last_modified }}</td>
                         </tr>
                     {% empty %}
                         <tr>
@@ -94,7 +95,7 @@
                     <p>Email Preview Section.</p>
                     <p>Fill out the details in the form provided on the left and press preview invitation email to preview the final email content.</p>
                 </div>
-            </fieldset> 
+            </fieldset>
         </div>
     </script>
 
@@ -164,7 +165,7 @@
                             contentType: "application/json; charset=utf-8",
                             data: ko.toJSON(self.currentStep().model()),
                             dataType:"json",
-                            success: function(result){ 
+                            success: function(result){
                                 self.currentStep(self.stepModels()[self.currentIndex() + 1]);
                             },
                             error: function(result) {

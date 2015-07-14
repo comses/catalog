@@ -18,9 +18,10 @@ from datetime import datetime, timedelta
 
 from .forms import CatalogSearchForm
 from .models import (Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation, Note,
-                     PublicationAuditLog)
+                     PublicationAuditLog,)
 from .serializers import (PublicationSerializer, CatalogPagination, JournalArticleSerializer, InvitationSerializer,
-                          UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer, NoteSerializer, )
+                          UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer, NoteSerializer,
+                          ModelDocumentationSerializer)
 
 import logging
 import markdown
@@ -142,7 +143,19 @@ class CuratorPublicationDetail(LoginRequiredMixin, GenericAPIView):
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
         serializer = JournalArticleSerializer(publication)
-        return Response({'json': dumps(serializer.data), 'pk': pk},
+        model_documentation_serializer = ModelDocumentationSerializer(ModelDocumentation.objects.all(), many=True)
+        model_documentation_categories = [
+            {'category': 'Narrative',
+             'modelDocumentationList': [{'name': 'ODD'}, {'name': 'Other Narrative'}]},
+            {'category': 'Visual Relationships',
+             'modelDocumentationList': [{'name': 'UML'}, {'name': 'Flow charts'}, {'name': 'Ontologies'}]},
+            {'category': 'Code and formal descriptions',
+             'modelDocumentationList': [{'name': 'Source code'}, {'name': 'Pseudocode'}, {'name': 'Mathematical description'}]},
+        ]
+
+        return Response({'json': dumps(serializer.data), 'pk': pk,
+                         'model_documentation_categories_json': dumps(model_documentation_categories),
+                         'model_documentation_list_json': dumps(model_documentation_serializer.data)},
                         template_name='workflow/curator_publication_detail.html')
 
     def put(self, request, pk):

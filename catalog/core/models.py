@@ -152,7 +152,7 @@ class Publication(models.Model):
     contact_email = models.EmailField(blank=True)
     platforms = models.ManyToManyField(Platform, blank=True)
     sponsors = models.ManyToManyField(Sponsor, blank=True)
-    model_documentation = models.ForeignKey(ModelDocumentation, null=True, blank=True)
+    model_documentation = models.ManyToManyField(ModelDocumentation, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     added_by = models.ForeignKey(User, related_name='added_publication_set')
 

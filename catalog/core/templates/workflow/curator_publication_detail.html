@@ -6,10 +6,10 @@
     <div class="panel panel-default">
         <div class="panel-heading">
             <h3 class='panel-title'>
+                <span class='label label-as-badge label-primary'><b>STATUS:</b> <span data-bind='text: status'></span></span>
                 <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
                     <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
                 </a>
-                <span class='label label-as-badge label-primary pull-right'><b>STATUS:</b> <span data-bind='text: status'></span></span>
             </h3>
         </div>
         <div class="panel-body clearfix">
@@ -101,25 +101,33 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class='col-md-4 form-group'>
+                    <div class='col-md-6 form-group'>
                         <label class="control-label" for="id_model_documentation">Model documentation</label>
-                        <select class="form-control" id="id_model_documentation" name="model_documentation" data-bind="selectize: modelDocumentationList, value: model_documentation.name, optionsText: 'name', optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getModelDocumentationList }"></select>
+                        <select multiple class="form-control" id="id_model_documentation" name="model_documentation"
+                            data-bind="selectize: modelDocumentationList, selectedOptions: selectedModelDocumentations, optionsValue: 'name', options: { sortField: 'name' }">
+                        </select>
                     </div>
-                    <div class="col-md-8 form-group">
+                    <div class="col-md-6 form-group">
                         <label class="control-label" for="id_platforms">Platforms</label>
-                        <select multiple="multiple" class="form-control" id="id_platforms" name="platforms" data-bind="selectize: platforms, selectedOptions: selectedPlatforms, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}"></select>
+                        <select multiple class="form-control" id="id_platforms" name="platforms"
+                            data-bind="selectize: platforms, selectedOptions: selectedPlatforms, optionsValue: 'name', options: { create: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}">
+                        </select>
                     </div>
                 </div>
                 <div class='row'>
                     <div class="col-md-12 form-group">
                         <label class="control-label" for="id_sponsors">Sponsors</label>
-                        <select multiple="multiple" class="form-control" id="id_sponsors" name="sponsors" data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getSponsorList }"></select>
+                        <select multiple class="form-control" id="id_sponsors" name="sponsors"
+                            data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList }">
+                        </select>
                     </div>
                 </div>
                 <div class='row'>
                     <div class="col-md-12 form-group">
                         <label class="control-label" for="id_tags">Tags</label>
-                        <select multiple="multiple" class="form-control" id="id_tags" name="tags" data-bind="selectize: tags, selectedOptions: selectedTags, optionsText: 'name', optionsValue: 'name', options: { dropdownParent: 'body', create: true, closeAfterSelect: true, load: getTagList }"></select>
+                        <select multiple class="form-control" id="id_tags" name="tags"
+                            data-bind="selectize: tags, selectedOptions: selectedTags, optionsValue: 'name', options: { create: true, load: getTagList }">
+                        </select>
                     </div>
                 </div>
                 <div class='row'>
@@ -129,7 +137,7 @@
                             <span class='input-group-addon'><i class='fa fa-code'></i> </span>
                             <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
                             <span class='input-group-addon'>
-                                <a data-bind='css: { disabled: ! validCodeArchiveUrl() }, attr: {href: codeArchiveUrl()}'>Open <i class='fa fa-external-link'></i></a>
+                                <a target='_blank' data-bind='css: { disabled: ! validCodeArchiveUrl() }, attr: {href: codeArchiveUrl()}'>Open <i class='fa fa-external-link'></i></a>
                             </span>
                         </div>
                     </div>
@@ -145,7 +153,7 @@
                     </div>
                 </div>
                 <div class='row'>
-                    <div class='col-md-12 form-group'>
+                    <div class='col-sm-12 form-group'>
                         <div class='well'>
                         <span class="label label-as-badge-lg label-primary">Current Status: <b data-bind='text:status'></b></span>
                         <br>
@@ -192,9 +200,14 @@
                 var self = this;
                 ko.mapping.fromJS(data, {}, self);
 
+                self.modelDocumentationCategories = ko.observableArray({{model_documentation_categories_json|safe}});
+                self.modelDocumentationList = ko.observableArray({{model_documentation_list_json|safe}});
                 self.selectedTags = ko.observableArray(ko.utils.arrayMap(self.tags(), function(tag) { return tag.name(); }));
                 self.selectedPlatforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
                 self.selectedSponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));
+                self.selectedModelDocumentations = ko.observableArray(ko.utils.arrayMap(self.model_documentation(), function(md) { 
+                    return md.name(); 
+                }));
                 self.journals = ko.observableArray([data.journal || ""]);
                 self.googleScholarAuthorSearch = function(creator) {
                     return ko.pureComputed(function() {
@@ -233,7 +246,6 @@
                     return '#id_code_archive_url';
                 });
 
-                self.modelDocumentationList = ko.observableArray([data.model_documentation || ""]);
                 self.getPlatformList = function(query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'core:platform_search' %}");
                 };
@@ -271,13 +283,13 @@
                     });
                 }
                 self.savePublication = function(data, event) {
-                    {% comment "Add client-side validation eventually" %}
+                    {% comment "FIXME: Add client-side validation " %}
                     var form = $('#curatorPublicationDetailForm');
                     if ( !form.valid() ) {
                         form.showErrors();
                         return false;
                     }
-                    {% endcomment %} 
+                    {% endcomment %}
                     var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
                     data_clone.platforms(ko.utils.arrayMap(data.selectedPlatforms(), function(platform) {
                         return {'name': platform};
@@ -288,7 +300,9 @@
                     data_clone.tags(ko.utils.arrayMap(data.selectedTags(), function(tag) {
                         return {'name': tag};
                     }));
-
+                    data_clone.model_documentation(ko.utils.arrayMap(data.selectedModelDocumentations(), function(md) {
+                        return {'name': md};
+                    }));
                     if (data_clone.journal.name() == undefined) {
                         if (data.journals()[0].name) {
                             data_clone.journal.name = ko.observable(data.journals()[0].name);
@@ -298,16 +312,6 @@
                     } else if (data_clone.journal.name() == "") {
                         data_clone.journal = null
                     }
-                    if (data_clone.model_documentation.name() == undefined) {
-                        if (data.modelDocumentationList()[0].name) {
-                            data_clone.model_documentation.name = ko.observable(data.modelDocumentationList()[0].name);
-                        } else {
-                            data_clone.model_documentation = null;
-                        }
-                    } else if (data_clone.model_documentation.name() == "") {
-                        data_clone.model_documentation = null;
-                    }
-
                     self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname).done(function(result) {
                         ko.mapping.fromJS(result, self);
                         humane.log("Data saved successfully.", {timeout: 5000});

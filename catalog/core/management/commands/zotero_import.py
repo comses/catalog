@@ -109,7 +109,7 @@ class Command(BaseCommand):
                 item.contact_email = value
             # match for docs
             elif sliced_key == 'doc':
-                item.model_documentation = ModelDocumentation.objects.get_or_create(name=value)[0]
+                item.model_documentation.add(ModelDocumentation.objects.get_or_create(name=value)[0])
             # match for platform
             elif sliced_key == 'pla':
                 platform = Platform.objects.get_or_create(name=value)[0]

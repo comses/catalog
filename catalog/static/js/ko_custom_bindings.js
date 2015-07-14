@@ -13,14 +13,13 @@ var injectBinding = function (allBindings, key, value) {
         }
     };
 }
-
 ko.bindingHandlers.selectize = {
     init: function (element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
         if (!allBindingsAccessor.has('optionsText'))
             allBindingsAccessor = injectBinding(allBindingsAccessor, 'optionsText', 'name');
         if (!allBindingsAccessor.has('optionsValue'))
             allBindingsAccessor = injectBinding(allBindingsAccessor, 'optionsValue', 'id');
-        if (typeof allBindingsAccessor.get('optionsCaption') == 'undefined')
+        if (typeof allBindingsAccessor.get('optionsCaption') === 'undefined')
             allBindingsAccessor = injectBinding(allBindingsAccessor, 'optionsCaption', 'Choose...');
 
         ko.bindingHandlers.options.update(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext);
@@ -28,7 +27,7 @@ ko.bindingHandlers.selectize = {
         var options = {
             valueField: allBindingsAccessor.get('optionsValue'),
             labelField: allBindingsAccessor.get('optionsText'),
-            searchField: allBindingsAccessor.get('optionsText')
+            searchField: [allBindingsAccessor.get('optionsText')]
         }
 
         if (allBindingsAccessor.has('options')) {
@@ -81,7 +80,7 @@ ko.bindingHandlers.selectize = {
         if (typeof valueAccessor().subscribe == 'function') {
             valueAccessor().subscribe(function (changes) {
                 // To avoid having duplicate keys, all delete operations will go first
-                var addedItems = new Array();
+                var addedItems = [];
                 changes.forEach(function (change) {
                     switch (change.status) {
                         case 'added':

@@ -145,7 +145,22 @@ class PublicationSerializer(serializers.ModelSerializer):
                   'assigned_curator', 'activity_logs', 'notes', )
 
 
-class TagSerializer(serializers.ModelSerializer):
+class SemiControlledNameSerializer(serializers.ModelSerializer):
+
+    def validate(self, data):
+        name = data['name'].strip()
+        if name:
+            obj, created = self.Meta.model.objects.get_or_create(name=name)
+            return obj
+        else:
+            raise serializers.ValidationError("No name specified: {}".format(data))
+
+    class Meta:
+        abstract = True
+
+
+class TagSerializer(SemiControlledNameSerializer):
+
     class Meta:
         model = Tag
         extra_kwargs = {
@@ -154,12 +169,8 @@ class TagSerializer(serializers.ModelSerializer):
             },
         }
 
-    def validate(self, data):
-        tag, created = Tag.objects.get_or_create(name=data['name'])
-        return tag
 
-
-class PlatformSerializer(serializers.ModelSerializer):
+class PlatformSerializer(SemiControlledNameSerializer):
     class Meta:
         model = Platform
         extra_kwargs = {
@@ -168,9 +179,38 @@ class PlatformSerializer(serializers.ModelSerializer):
             },
         }
 
-    def validate(self, data):
-        platform, created = Platform.objects.get_or_create(name=data['name'])
-        return platform
+
+class SponsorSerializer(SemiControlledNameSerializer):
+
+    class Meta:
+        model = Sponsor
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
+
+
+class ModelDocumentationSerializer(SemiControlledNameSerializer):
+
+    class Meta:
+        model = ModelDocumentation
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
+
+
+class JournalSerializer(SemiControlledNameSerializer):
+
+    class Meta:
+        model = Journal
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
 
 
 class CreatorSerializer(serializers.ModelSerializer):
@@ -184,48 +224,6 @@ class CreatorSerializer(serializers.ModelSerializer):
         return creator
 
 
-class SponsorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Sponsor
-        extra_kwargs = {
-            "name": {
-                "validators": [],
-            },
-        }
-
-    def validate(self, data):
-        sponsor, created = Sponsor.objects.get_or_create(name=data['name'])
-        return sponsor
-
-
-class ModelDocumentationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ModelDocumentation
-        extra_kwargs = {
-            "name": {
-                "validators": [],
-            },
-        }
-
-    def validate(self, data):
-        model_doc, created = ModelDocumentation.objects.get_or_create(name=data['name'])
-        return model_doc
-
-
-class JournalSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Journal
-        extra_kwargs = {
-            "name": {
-                "validators": [],
-            },
-        }
-
-    def validate(self, data):
-        journal, created = Journal.objects.get_or_create(name=data['name'])
-        return journal
-
-
 class JournalArticleSerializer(PublicationSerializer):
     """
     Serializes journal article querysets
@@ -234,7 +232,7 @@ class JournalArticleSerializer(PublicationSerializer):
     platforms = PlatformSerializer(many=True)
     sponsors = SponsorSerializer(many=True)
     journal = JournalSerializer()
-    model_documentation = ModelDocumentationSerializer(allow_null=True)
+    model_documentation = ModelDocumentationSerializer(many=True)
     creators = CreatorSerializer(many=True)
 
     class Meta:
