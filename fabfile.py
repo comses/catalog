@@ -187,7 +187,7 @@ def setup_postgres():
 
 @task(alias='relu')
 def reload_uwsgi():
-    status_line = sudo("supervisorctl status")
+    status_line = sudo("supervisorctl status | grep %(project_name)s" % env)
     m = re.search('RUNNING(?:\s+)pid\s(\d+)', status_line)
     if m:
         uwsgi_pid = m.group(1)
