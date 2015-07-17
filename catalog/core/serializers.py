@@ -70,81 +70,6 @@ class PublicationAuditLogSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'message', 'action', 'date_added', 'publication')
 
 
-class PublicationSerializer(serializers.ModelSerializer):
-    """
-    Serializes publication querysets.
-    """
-    detail_url = serializers.CharField(source='get_absolute_url', read_only=True)
-    curator_detail_url = serializers.CharField(source='get_curator_url', read_only=True)
-    assigned_curator = serializers.StringRelatedField()
-    date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
-    notes = NoteSerializer(source='note_set', many=True, read_only=True)
-    activity_logs = PublicationAuditLogSerializer(source='audit_log_set', many=True, read_only=True)
-
-    """
-    XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some
-    point. See http://www.django-rest-framework.org/api-guide/serializers/#writable-nested-representations for more
-    details
-    """
-    def update(self, instance, validated_data):
-        self._modified_data = defaultdict(tuple)
-        for attr, value in validated_data.items():
-            modified = False
-            old_value = getattr(instance, attr)
-            if isinstance(old_value, BaseManager):
-                # compare against related manager values converted to string
-                old_values = [unicode(v) for v in old_value.all()]
-                new_values = [unicode(v) for v in value]
-                if set(old_values) != set(new_values):
-                    old_value = old_values
-                    modified = True
-            elif old_value != value:
-                logger.debug("setting %s to %s", old_value, value)
-                modified = True
-            if modified:
-                self._modified_data[attr] = (old_value, value)
-                setattr(instance, attr, value)
-        instance.save()
-        return instance
-
-    @property
-    def modified_data(self):
-        return getattr(self, '_modified_data', defaultdict(tuple))
-
-    @property
-    def modified_data_text(self):
-        _convert = lambda v: u'None' if not v else unicode(v)
-        md = self.modified_data
-        md_list = [u'{}: {} -> {}'.format(key, _convert(pair[0]), _convert(pair[1])) for key, pair in md.items()]
-        return u" | ".join(md_list)
-
-    def create(self, validated_data):
-        ModelClass = self.Meta.model
-
-        # Remove many-to-many relationships from validated_data.
-        # They are not valid arguments to the default `.create()` method,
-        # as they require that the instance has already been saved.
-        info = model_meta.get_field_info(ModelClass)
-        many_to_many = {}
-        for field_name, relation_info in info.relations.items():
-            if relation_info.to_many and (field_name in validated_data):
-                many_to_many[field_name] = validated_data.pop(field_name)
-
-        instance = ModelClass.objects.create(**validated_data)
-
-        # Save many-to-many relationships after the instance is created.
-        if many_to_many:
-            for field_name, value in many_to_many.items():
-                setattr(instance, field_name, value)
-
-        return instance
-
-    class Meta:
-        model = Publication
-        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url', 'curator_detail_url', 'status',
-                  'assigned_curator', 'activity_logs', 'notes', )
-
-
 class SemiControlledNameSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
@@ -224,16 +149,91 @@ class CreatorSerializer(serializers.ModelSerializer):
         return creator
 
 
-class JournalArticleSerializer(PublicationSerializer):
+class PublicationSerializer(serializers.ModelSerializer):
     """
-    Serializes journal article querysets
+    Serializes publication querysets.
     """
+    detail_url = serializers.CharField(source='get_absolute_url', read_only=True)
+    curator_detail_url = serializers.CharField(source='get_curator_url', read_only=True)
+    assigned_curator = serializers.StringRelatedField()
+    date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
+    notes = NoteSerializer(source='note_set', many=True, read_only=True)
+    activity_logs = PublicationAuditLogSerializer(source='audit_log_set', many=True, read_only=True)
     tags = TagSerializer(many=True)
     platforms = PlatformSerializer(many=True)
     sponsors = SponsorSerializer(many=True)
     journal = JournalSerializer()
     model_documentation = ModelDocumentationSerializer(many=True)
     creators = CreatorSerializer(many=True)
+
+    """
+    XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some
+    point. See http://www.django-rest-framework.org/api-guide/serializers/#writable-nested-representations for more
+    details
+    """
+    def update(self, instance, validated_data):
+        self._modified_data = defaultdict(tuple)
+        for attr, value in validated_data.items():
+            modified = False
+            old_value = getattr(instance, attr)
+            if isinstance(old_value, BaseManager):
+                # compare against related manager values converted to string
+                old_values = [unicode(v) for v in old_value.all()]
+                new_values = [unicode(v) for v in value]
+                if set(old_values) != set(new_values):
+                    old_value = old_values
+                    modified = True
+            elif old_value != value:
+                logger.debug("setting %s to %s", old_value, value)
+                modified = True
+            if modified:
+                self._modified_data[attr] = (old_value, value)
+                setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+    @property
+    def modified_data(self):
+        return getattr(self, '_modified_data', defaultdict(tuple))
+
+    @property
+    def modified_data_text(self):
+        _convert = lambda v: u'None' if not v else unicode(v)
+        md = self.modified_data
+        md_list = [u'{}: {} -> {}'.format(key, _convert(pair[0]), _convert(pair[1])) for key, pair in md.items()]
+        return u" | ".join(md_list)
+
+    def create(self, validated_data):
+        ModelClass = self.Meta.model
+
+        # Remove many-to-many relationships from validated_data.
+        # They are not valid arguments to the default `.create()` method,
+        # as they require that the instance has already been saved.
+        info = model_meta.get_field_info(ModelClass)
+        many_to_many = {}
+        for field_name, relation_info in info.relations.items():
+            if relation_info.to_many and (field_name in validated_data):
+                many_to_many[field_name] = validated_data.pop(field_name)
+
+        instance = ModelClass.objects.create(**validated_data)
+
+        # Save many-to-many relationships after the instance is created.
+        if many_to_many:
+            for field_name, value in many_to_many.items():
+                setattr(instance, field_name, value)
+
+        return instance
+
+    class Meta:
+        model = Publication
+        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url', 'curator_detail_url', 'status',
+                  'assigned_curator', 'activity_logs', 'notes', )
+
+
+class JournalArticleSerializer(PublicationSerializer):
+    """
+    Serializes journal article querysets
+    """
 
     class Meta:
         model = JournalArticle

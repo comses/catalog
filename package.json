@@ -1,0 +1,23 @@
+{
+    "name": "@comses/catalog",
+    "version": "v0.5.1",
+    "dependencies": {
+        "react": "latest",
+        "react-select": "latest"
+    },
+    "browserify": {
+        "transform": [
+            ["reactify", {"es6": true}]
+        ]
+    },
+    "devDependencies": {
+        "jshint": "latest",
+        "browserify": "latest",
+        "reactify": "latest",
+        "mocha": "latest"
+    },
+    "scripts": {
+        "lint": "jshint **.js",
+        "test": "mocha catalog/static/js/tests/"
+    }
+}

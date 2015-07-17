@@ -45,6 +45,10 @@ DATABASES = {
     }
 }
 
+PIPELINE_COMPILERS = (
+    'react.utils.pipeline.JSXCompiler',
+)
+
 # Haystack settings
 HAYSTACK_CONNECTIONS = {
     'default': {

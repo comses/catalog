@@ -171,6 +171,10 @@ class Publication(models.Model):
                                          help_text=_("Currently assigned curator"),
                                          related_name='assigned_publication_set')
 
+    def is_editable_by(self, user):
+        # eventually consider having permission groups or per-object permissions
+       return self.assigned_curator == user
+
     def _pk_url(self, name):
         return reverse(name, args=[self.pk])
 
