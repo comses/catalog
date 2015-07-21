@@ -103,8 +103,11 @@
                 <div class="row">
                     <div class='col-md-6 form-group'>
                         <label class="control-label" for="id_model_documentation">Model documentation</label>
+                        <label for='model_documentation_none'>
+                            <input type='checkbox' id='model_documentation_none' data-bind='click: clearModelDocumentation, checked: hasNoModelDocumentation'>None
+                        </label>
                         <select multiple class="form-control" id="id_model_documentation" name="model_documentation"
-                            data-bind="selectize: modelDocumentationList, selectedOptions: selectedModelDocumentations, optionsValue: 'name'">
+data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selectedModelDocumentations, optionsValue: 'name', options: { optgroups: modelDocumentationCategories(), optgroupField: 'category', optgroupLabelField: 'category', optgroupValueField: 'category', options: modelDocumentationCategoryLists(), plugins: ['optgroup_columns']}">
                         </select>
                     </div>
                     <div class="col-md-6 form-group">
@@ -200,7 +203,27 @@
                 var self = this;
                 ko.mapping.fromJS(data, {}, self);
 
+                self.hasNoModelDocumentation = ko.observable(false);
+                if (self.model_documentation().length === 1) {
+                    md = self.model_documentation()[0];
+                    console.debug(md.name());
+                    if (md.name() == 'None') {
+                        console.debug("yeah");
+                        self.hasNoModelDocumentation(true);
+                    }
+                }
+                self.clearModelDocumentation = function() {
+                    self.selectedModelDocumentations([]);
+                    return true;
+                };
                 self.modelDocumentationCategories = ko.observableArray({{model_documentation_categories_json|safe}});
+                self.modelDocumentationCategoryLists = ko.pureComputed(function() {
+                    var list = [];
+                    ko.utils.arrayForEach(self.modelDocumentationCategories(), function(mdc) {
+                        list = list.concat(mdc.modelDocumentationList);
+                    });
+                    return list;
+                });
                 self.modelDocumentationList = ko.observableArray({{model_documentation_list_json|safe}});
                 self.selectedTags = ko.observableArray(ko.utils.arrayMap(self.tags(), function(tag) { return tag.name(); }));
                 self.selectedPlatforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
@@ -245,7 +268,6 @@
                     }
                     return '#id_code_archive_url';
                 });
-
                 self.getPlatformList = function(query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'core:platform_search' %}");
                 };
@@ -300,9 +322,15 @@
                     data_clone.tags(ko.utils.arrayMap(data.selectedTags(), function(tag) {
                         return {'name': tag};
                     }));
-                    data_clone.model_documentation(ko.utils.arrayMap(data.selectedModelDocumentations(), function(md) {
-                        return {'name': md};
-                    }));
+                    if (data.selectedModelDocumentations().length > 0) {
+                        data_clone.model_documentation(ko.utils.arrayMap(data.selectedModelDocumentations(), function(md) {
+                            return {'name': md};
+                        }));
+                        data.hasNoModelDocumentation(false);
+                    }
+                    else if (data.hasNoModelDocumentation()) {
+                        data_clone.model_documentation([{'name': 'None'}]);
+                    }
                     if (data_clone.journal.name() == undefined) {
                         if (data.journals()[0].name) {
                             data_clone.journal.name = ko.observable(data.journals()[0].name);
@@ -318,7 +346,8 @@
                     });
                 };
             };
-            ko.applyBindings(new PublicationDetail(viewModelJson));
+            var model = new PublicationDetail(viewModelJson);
+            ko.applyBindings(model);
         });
     </script>
 {% endblock javascript %}

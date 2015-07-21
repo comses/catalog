@@ -145,13 +145,17 @@ class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
         model_documentation_serializer = ModelDocumentationSerializer(ModelDocumentation.objects.all(), many=True)
         model_documentation_categories = [
             {'category': 'Narrative',
-             'modelDocumentationList': [{'name': 'ODD'}, {'name': 'Other Narrative'}]},
+             'modelDocumentationList': [{'category': 'Narrative', 'name': 'ODD'},
+                                        {'category': 'Narrative', 'name': 'Other Narrative'}]},
             {'category': 'Visual Relationships',
-             'modelDocumentationList': [{'name': 'UML'}, {'name': 'Flow charts'}, {'name': 'Ontologies'}]},
+             'modelDocumentationList': [{'category': 'Visual Relationships', 'name': 'UML'},
+                                        {'category': 'Visual Relationships', 'name': 'Flow charts'},
+                                        {'category': 'Visual Relationships', 'name': 'Ontologies'}]},
             {'category': 'Code and formal descriptions',
-             'modelDocumentationList': [{'name': 'Source code'}, {'name': 'Pseudocode'}, {'name': 'Mathematical description'}]},
+             'modelDocumentationList': [{'category': 'Code and formal descriptions', 'name': 'Source code'},
+                                        {'category': 'Code and formal descriptions', 'name': 'Pseudocode'},
+                                        {'category': 'Code and formal descriptions', 'name': 'Mathematical description'}]},
         ]
-
         return Response({'json': dumps(serializer.data), 'pk': pk,
                          'model_documentation_categories_json': dumps(model_documentation_categories),
                          'model_documentation_list_json': dumps(model_documentation_serializer.data)},
@@ -204,11 +208,10 @@ class CuratorWorkflowViewSet(viewsets.ModelViewSet):
         logger.debug("performing update with serializer: %s", serializer)
         user = self.request.user
         publication = serializer.save(user=user)
-        logger.debug("modified data: %s", serializer.modified_data_text)
+        logger.debug("%s modified: %s", publication, serializer.modified_data_text)
 
     def perform_destroy(self, instance):
         instance.deactivate(self.request.user)
-
 
 
 class NoteDetail(LoginRequiredMixin, generics.GenericAPIView):
