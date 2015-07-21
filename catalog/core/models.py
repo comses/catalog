@@ -86,7 +86,7 @@ class Note(models.Model):
     publication = models.ForeignKey('Publication', null=True, blank=True)
 
     def __unicode__(self):
-        return u'{}'.format(self.text)
+        return self.text
 
 
 class Platform(models.Model):
@@ -96,7 +96,7 @@ class Platform(models.Model):
     description = models.TextField(null=True, blank=True)
 
     def __unicode__(self):
-        return u'{}'.format(self.name)
+        return self.name
 
 
 class PlatformVersion(models.Model):
@@ -111,7 +111,7 @@ class Sponsor(models.Model):
     description = models.TextField(null=True, blank=True)
 
     def __unicode__(self):
-        return u'{}'.format(self.name)
+        return self.name
 
 
 class Publication(models.Model):

@@ -199,7 +199,7 @@ LOGGING = {
     'disable_existing_loggers': True,
     'root': {
         'level': 'INFO',
-        'handlers': ['sentry', 'catalog.file'],
+        'handlers': ['sentry', 'catalog.file', 'console'],
     },
     'formatters': {
         'verbose': {
