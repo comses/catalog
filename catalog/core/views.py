@@ -143,21 +143,8 @@ class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
         publication = self.get_object(pk)
         serializer = JournalArticleSerializer(publication)
         model_documentation_serializer = ModelDocumentationSerializer(ModelDocumentation.objects.all(), many=True)
-        model_documentation_categories = [
-            {'category': 'Narrative',
-             'modelDocumentationList': [{'category': 'Narrative', 'name': 'ODD'},
-                                        {'category': 'Narrative', 'name': 'Other Narrative'}]},
-            {'category': 'Visual Relationships',
-             'modelDocumentationList': [{'category': 'Visual Relationships', 'name': 'UML'},
-                                        {'category': 'Visual Relationships', 'name': 'Flow charts'},
-                                        {'category': 'Visual Relationships', 'name': 'Ontologies'}]},
-            {'category': 'Code and formal descriptions',
-             'modelDocumentationList': [{'category': 'Code and formal descriptions', 'name': 'Source code'},
-                                        {'category': 'Code and formal descriptions', 'name': 'Pseudocode'},
-                                        {'category': 'Code and formal descriptions', 'name': 'Mathematical description'}]},
-        ]
         return Response({'json': dumps(serializer.data), 'pk': pk,
-                         'model_documentation_categories_json': dumps(model_documentation_categories),
+                         'model_documentation_categories_json': dumps(ModelDocumentation.CATEGORIES),
                          'model_documentation_list_json': dumps(model_documentation_serializer.data)},
                         template_name='workflow/curator_publication_detail.html')
 

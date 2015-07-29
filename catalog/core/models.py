@@ -65,6 +65,20 @@ class Tag(models.Model):
 
 
 class ModelDocumentation(models.Model):
+    CATEGORIES = [
+        {'category': 'Narrative',
+         'modelDocumentationList': [{'category': 'Narrative', 'name': 'ODD'},
+                                    {'category': 'Narrative', 'name': 'Other Narrative'}]},
+        {'category': 'Visual Relationships',
+         'modelDocumentationList': [{'category': 'Visual Relationships', 'name': 'UML'},
+                                    {'category': 'Visual Relationships', 'name': 'Flow charts'},
+                                    {'category': 'Visual Relationships', 'name': 'Ontologies'},
+                                    {'category': 'Visual Relationships', 'name': 'AORML'}]},
+        {'category': 'Code and formal descriptions',
+         'modelDocumentationList': [{'category': 'Code and formal descriptions', 'name': 'Source code'},
+                                    {'category': 'Code and formal descriptions', 'name': 'Pseudocode'},
+                                    {'category': 'Code and formal descriptions', 'name': 'Mathematical description'}]},
+    ]
     ''' common choices: UML, ODD, Word / PDF doc '''
     name = models.CharField(max_length=255, unique=True)
 
@@ -173,7 +187,7 @@ class Publication(models.Model):
 
     def is_editable_by(self, user):
         # eventually consider having permission groups or per-object permissions
-       return self.assigned_curator == user
+        return self.assigned_curator == user
 
     def _pk_url(self, name):
         return reverse(name, args=[self.pk])
