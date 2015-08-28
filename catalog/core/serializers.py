@@ -55,10 +55,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class NoteSerializer(serializers.ModelSerializer):
     added_by = serializers.StringRelatedField(read_only=True)
     date_added = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
+    deleted_on = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
+    deleted_by = serializers.StringRelatedField(read_only=True)
+    is_deleted = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Note
-        fields = ('id', 'text',  'publication', 'added_by', 'date_added')
+        fields = ('id', 'text',  'publication', 'added_by', 'date_added', 'deleted_on', 'deleted_by', 'is_deleted')
 
 
 class PublicationAuditLogSerializer(serializers.ModelSerializer):

@@ -96,8 +96,11 @@ class Note(models.Model):
     added_by = models.ForeignKey(User, related_name='added_note_set')
     deleted_on = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(User, related_name='deleted_note_set', null=True, blank=True)
-
     publication = models.ForeignKey('Publication', null=True, blank=True)
+
+    @property
+    def is_deleted(self):
+        return bool(self.deleted_on)
 
     def __unicode__(self):
         return self.text

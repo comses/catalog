@@ -14,14 +14,14 @@
 
 <!doctype html>
 <html class="no-js" lang="">
-{% with JQUERY_VER="1.11.3" JQUERY_VALIDATE_VER="1.13.1" KNOCKOUT_VER="3.3.0" KNOCKOUT_MAPPING_VER="2.4.1" BOOTSTRAP_VER="3.3.4" FONTAWESOME_VER="4.3.0" RAVENJS_VER="1.1.16" HUMANE_VER="3.0.6" SELECTIZE_VER="0.12.1"%}
+{% with JQUERY_VER="1.11.3" BOOTSWATCH_THEME="lumen" JQUERY_VALIDATE_VER="1.13.1" KNOCKOUT_VER="3.3.0" KNOCKOUT_MAPPING_VER="2.4.1" BOOTSTRAP_VER="3.3.5" FONTAWESOME_VER="4.3.0" RAVENJS_VER="1.1.16" HUMANE_VER="3.0.6" SELECTIZE_VER="0.12.1"%}
     <head>
     {% block head %}
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <title>{% block title %}CoMSES Catalog{% endblock title %}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootswatch/{{BOOTSTRAP_VER}}/lumen/bootstrap.min.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootswatch/{{BOOTSTRAP_VER}}/{{BOOTSWATCH_THEME}}/bootstrap.min.css">
         <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VER}}/css/bootstrap.min.css"> -->
         <link rel='stylesheet' href="//maxcdn.bootstrapcdn.com/font-awesome/{{FONTAWESOME_VER}}/css/font-awesome.min.css">
         <link rel='stylesheet' href="//cdnjs.cloudflare.com/ajax/libs/humane-js/{{HUMANE_VER}}/themes/jackedup.min.css">

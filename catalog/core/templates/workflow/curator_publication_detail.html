@@ -229,13 +229,13 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                 self.selectedPlatforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
                 self.selectedSponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));
                 self.selectedModelDocumentations = ko.observableArray(ko.utils.arrayMap(self.model_documentation(), function(md) { 
-                    return md.name(); 
+                    return md.name();
                 }));
                 self.journals = ko.observableArray([data.journal || ""]);
                 self.googleScholarAuthorSearch = function(creator) {
                     return ko.pureComputed(function() {
-                        return $.urls.SEARCH_GOOGLE_SCHOLAR 
-                            + "&as_sauthors=" 
+                        return $.urls.SEARCH_GOOGLE_SCHOLAR
+                            + "&as_sauthors="
                             + encodeURIComponent(creator.first_name() + ' ' + creator.last_name());
                     });
                 };

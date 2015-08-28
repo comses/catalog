@@ -5,8 +5,17 @@
     </div>
     <div class='panel-body' data-bind="foreach: notes">
         <p>
-            <mark data-bind='text: added_by'></mark>: 
+            <!-- ko if: is_deleted -->
+            <small>archived</small>
+            <del>
+            <mark data-bind='text: added_by'></mark>:
             <span data-bind="text: text"></span>
+            </del>
+            <!-- /ko -->
+            <!-- ko ifnot: is_deleted -->
+            <mark data-bind='text: added_by'></mark>:
+            <span data-bind="text: text"></span>
+            <!-- /ko -->
             <span class='pull-right'>
                 <mark class='bg-info' data-bind='text: date_added'></mark>
                 <a href='#' data-bind='click: editNote'><i class="fa fa-edit"></i></a>
@@ -61,7 +70,7 @@
            var note = this;
             self.makeRequest("DELETE", ko.toJSON(note), "/note/"+note.id())
                 .done(function(result) {
-                    self.notes.remove(note);
+                    note.is_deleted(true);
                 });
         };
         self.saveNote = function(data, event) { 
