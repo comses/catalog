@@ -29,6 +29,6 @@ ZOTERO_API_KEY = None
 
 # Raven DSN access to sentry server, customize
 RAVEN_CONFIG = {
-    'dsn': 'https://public:secret@vcsentry.asu.edu/2',
+    'dsn': 'https://public:secret@sentry.commons.asu.edu/4',
     # 'release': raven.fetch_git_sha(BASE_DIR),
 }
