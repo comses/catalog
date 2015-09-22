@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Exports data to a csv file'
+    help = '''Exports data to a csv file. '''
 
     def find_max(self, attribute):
         return Publication.objects.annotate(num=Count(attribute)).order_by('-num')[0].num
@@ -31,7 +31,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         logger.debug("Starting to export data. Hang tight, this may take a while.")
-        header = ["Publication Year", "Publication Title", "Journal Title", "Primary Author", "Code Url", "Docs"]
+        header = ["Status", "Publication Title", "Code Url", "Publication Year", "Journal Title", "Primary Author", "Docs"]
         max_platforms = self.find_max('platforms')
         max_sponsors = self.find_max('sponsors')
         header.extend(self.get_attribute_headers("Platform", max_platforms))
@@ -43,8 +43,8 @@ class Command(BaseCommand):
             writer = csv.writer(csvfile, delimiter=',')
             writer.writerow(header)
             for pub in publications:
-                row = [pub.date_published.year or pub.date_published_text, pub.title, str(pub.journal),
-                        str(pub.creators.all()[0]), pub.code_archive_url, str(pub.model_documentation)]
+                row = [pub.status, pub.title, pub.code_archive_url, pub.date_published.year or pub.date_published_text,
+                       str(pub.journal), str(pub.creators.all()[0]), str(pub.model_documentation)]
                 row.extend(self.get_attribute_values(pub.platforms.all(), max_platforms))
                 row.extend(self.get_attribute_values(pub.sponsors.all(), max_sponsors))
                 writer.writerow(row)
