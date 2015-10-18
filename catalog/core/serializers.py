@@ -176,22 +176,26 @@ class PublicationSerializer(serializers.ModelSerializer):
     """
     def update(self, instance, validated_data):
         self._modified_data = defaultdict(tuple)
-        for attr, value in validated_data.items():
+        for attr, updated_data_value in validated_data.items():
             modified = False
             old_value = getattr(instance, attr)
             new_value = None
             if isinstance(old_value, BaseManager):
                 # compare against related manager values converted to string
                 old_value = map(unicode, old_value.all())
-                new_value = map(unicode, value)
+                new_value = map(unicode, updated_data_value)
+                # NOTE: quick and dirty string set comparison to determine difference, so assumes that the string
+                # serialization of each Model instance must match the string output serialization. always need some way
+                # of testing whether incoming string matches an existing entity
                 if set(old_value) != set(new_value):
                     modified = True
-            elif old_value != value:
+            elif old_value != updated_data_value:
+                new_value = updated_data_value
                 modified = True
             if modified:
                 # logger.debug("setting %s: %s => %s", attr, old_value, value)
                 self._modified_data[attr] = (old_value, new_value)
-                setattr(instance, attr, value)
+                setattr(instance, attr, updated_data_value)
         instance.save()
         return instance
 
