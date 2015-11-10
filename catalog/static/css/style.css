@@ -80,8 +80,20 @@ body {
 .pagination {
   text-align: center;
 }
-
+.label-untagged {
+    background-color: #e76b00;
+}
+.label-needs_author_review {
+    background-color: #ff851b;
+}
+.label-invalid, .label-flagged {
+    background-color: #ff4136;
+}
+.label-complete {
+    background-color: #28b62c;
+}
 /* Honeypot Field */
 input#id_contact_number {
     display: none;
 }
+

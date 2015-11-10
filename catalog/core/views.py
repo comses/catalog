@@ -181,7 +181,7 @@ class CuratorWorkflowViewSet(viewsets.ModelViewSet):
         return 'workflow/curator/{}'.format(self.action)
 
     def get_queryset(self):
-        return JournalArticle.objects.viewable(self.request.user)
+        return JournalArticle.objects.filter(assigned_curator=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
@@ -337,7 +337,7 @@ class CuratorWorkflowView(LoginRequiredMixin, SearchView):
 
     def get_queryset(self):
         sqs = super(CuratorWorkflowView, self).get_queryset()
-        return sqs.filter(assigned_curator=self.request.user).order_by('-last_modified')
+        return sqs.filter(assigned_curator=self.request.user).order_by('-last_modified', '-status')
 
 
 class ContactAuthor(LoginRequiredMixin, generics.GenericAPIView):

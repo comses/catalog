@@ -8,7 +8,7 @@ from django.db.models.manager import BaseManager
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers, pagination
-from rest_framework.compat import OrderedDict
+from collections import OrderedDict
 from rest_framework.utils import model_meta
 
 from .models import (Tag, Sponsor, Platform, Creator, Publication, Journal, JournalArticle, InvitationEmail,
