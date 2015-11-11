@@ -233,8 +233,6 @@ def deploy(branch, user):
         with cd(env.deploy_dir):
             sudo_chain(
                 env.vcs_command,
-                'chmod g+s logs',
-                'chmod -R g+rw logs/',
                 user=user, pty=True)
             env.static_root = catalog_settings.STATIC_ROOT
             if console.confirm("Update pip dependencies?"):
