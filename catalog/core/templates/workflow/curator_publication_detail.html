@@ -140,7 +140,12 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                             <span class='input-group-addon'><i class='fa fa-code'></i> </span>
                             <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
                             <span class='input-group-addon'>
-                                <a target='_blank' data-bind='css: { disabled: ! validCodeArchiveUrl() }, attr: {href: codeArchiveUrl()}'>Open <i class='fa fa-external-link'></i></a>
+                                <!-- ko if: validCodeArchiveUrl -->
+                                <strong><a target='_blank' data-bind='attr: {href: codeArchiveUrl()}'>View <i class='fa fa-external-link'></i></a></strong>
+                                <!-- /ko -->
+                                <!-- ko ifnot: validCodeArchiveUrl -->
+                                <span>View <i class='fa fa-external-link'></i></span>
+                                <!-- /ko -->
                             </span>
                         </div>
                     </div>
@@ -158,8 +163,8 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                 <div class='row'>
                     <div class='col-sm-12 form-group'>
                         <div class='well'>
-                        <span class="label label-as-badge-lg label-primary">Current Status: <b data-bind='text:status'></b></span>
-                        <br>
+                            <h4>Current Status: <b data-bind='css: "label-" + status().toLowerCase(), text: status' class="label label-as-badge-lg"></b></h4>
+                            <hr>
                         <div class="radio" data-toggle="buttons">
                             <label class="btn btn-info btn-sm">
                                 <input type="radio" name="status" value="UNTAGGED" data-bind="bsChecked: status"> <i class='fa fa-eye-slash'></i> Incomplete
@@ -181,7 +186,7 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                     </div>
                 </div>
                 <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
-                <a class='btn btn-default' href='{% url 'core:curator_workflow' %}'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
+                <a class='btn btn-default' href='{% url 'core:curator_workflow'%}?status=UNTAGGED'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
             </form>
         </div>
     </div>
