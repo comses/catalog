@@ -8,7 +8,7 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 
 from model_utils import Choices
-from model_utils.managers import InheritanceManager, PassThroughManager
+from model_utils.managers import InheritanceManager
 
 
 class InvitationEmail(object):
@@ -90,7 +90,7 @@ class Note(models.Model):
     text = models.TextField()
     date_added = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
-    zotero_key = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    zotero_key = models.CharField(max_length=64, null=True, unique=True, blank=True)
     zotero_date_added = models.DateTimeField(null=True, blank=True)
     zotero_date_modified = models.DateTimeField(null=True, blank=True)
     added_by = models.ForeignKey(User, related_name='added_note_set')
@@ -124,8 +124,8 @@ class PlatformVersion(models.Model):
 class Sponsor(models.Model):
     """ funding agency sponsoring this research """
     name = models.CharField(max_length=255, unique=True)
-    url = models.URLField(null=True, blank=True)
-    description = models.TextField(null=True, blank=True)
+    url = models.URLField(blank=True)
+    description = models.TextField(blank=True)
 
     def __unicode__(self):
         return self.name
@@ -146,8 +146,8 @@ class Publication(models.Model):
     title = models.TextField()
     abstract = models.TextField(blank=True)
     short_title = models.CharField(max_length=255, blank=True)
-    zotero_key = models.CharField(max_length=64, unique=True, null=True, blank=True)
-    url = models.URLField(null=True, blank=True)
+    zotero_key = models.CharField(max_length=64, null=True, unique=True, blank=True)
+    url = models.URLField(blank=True)
     date_published_text = models.CharField(max_length=32, blank=True)
     date_published = models.DateField(null=True, blank=True)
     date_accessed = models.DateField(null=True, blank=True)
@@ -164,7 +164,7 @@ class Publication(models.Model):
 
 # custom incoming tags set by zotero data entry to mark the code archive url, contact author's email, the ABM platform
 # used, research sponsors (funding agencies, etc.), documentation, and other research keyword tags
-    code_archive_url = models.URLField(max_length=255, null=True, blank=True)
+    code_archive_url = models.URLField(max_length=255, blank=True)
     contact_author_name = models.CharField(max_length=255, blank=True)
     contact_email = models.EmailField(blank=True)
     platforms = models.ManyToManyField(Platform, blank=True)
@@ -207,7 +207,7 @@ class Publication(models.Model):
 
 class Journal(models.Model):
     name = models.CharField(max_length=255, unique=True)
-    url = models.URLField(max_length=255, null=True, blank=True)
+    url = models.URLField(max_length=255, blank=True)
     abbreviation = models.CharField(max_length=255, blank=True)
 
     def __unicode__(self):
@@ -230,7 +230,7 @@ class PublicationAuditLogQuerySet(models.query.QuerySet):
     pass
 
 
-class PublicationAuditLogManager(PassThroughManager):
+class PublicationAuditLogManager(models.Manager):
 
     def log_curator_action(self, message=None, creator=None, publication=None):
         if not all([message, creator, publication]):
@@ -250,7 +250,7 @@ class PublicationAuditLog(models.Model):
     message = models.TextField(blank=True)
     creator = models.ForeignKey(User, null=True, blank=True, help_text=_('The user who initiated this action, if any.'))
 
-    objects = PublicationAuditLogManager.for_queryset_class(PublicationAuditLogQuerySet)()
+    objects = PublicationAuditLogManager.from_queryset(PublicationAuditLogQuerySet)()
 
     def __unicode__(self):
         return u"{} - {} performed {} on {}: {}".format(

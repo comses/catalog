@@ -12,15 +12,28 @@ class BaseTest(TestCase):
     login_url = reverse('login')
     logout_url = reverse('logout')
     index_url = reverse('core:index')
+    default_username = 'testcase'
+    default_email = 'testcase@mailinator.com'
+    default_password = 'testing'
 
     def setUp(self):
         self.user = self.create_user()
 
-    def create_user(self, username='temporary', email='temporary@gmail.com', password='temporary', **kwargs):
+    def create_user(self, username=None, email=None, password=None, **kwargs):
+        if username is None:
+            username = self.default_username
+        if email is None:
+            email = self.default_email
+        if password is None:
+            password = self.default_password
         return User.objects.create_user(username=username, email=email, password=password, **kwargs)
 
-    def login(self):
-        return self.client.login(username='temporary', password='temporary')
+    def login(self, username=None, password=None):
+        if username is None:
+            username = self.default_username
+        if password is None:
+            password = self.default_password
+        return self.client.login(username=username, password=password)
 
     def logout(self):
         return self.client.logout()

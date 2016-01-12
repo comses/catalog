@@ -21,15 +21,14 @@ class AuthTest(BaseTest):
         self.assertTrue('Please enter a correct username and password.' in response.content)
 
     def test_login_with_good_credentials(self):
-        response = self.post(self.login_url, {'username': 'temporary', 'password': 'temporary'})
+        response = self.post(self.login_url, {'username': self.default_username, 'password': self.default_password})
         self.assertTrue(200, response.status_code)
         self.assertTrue(self.reverse('core:dashboard') in response['Location'])
 
     def test_login_with_inactive_user(self):
         self.user.is_active = False
         self.user.save()
-        response = self.post(
-            self.login_url, {'username': 'temporary', 'password': 'temporary'})
+        response = self.post(self.login_url, {'username': self.default_username, 'password': self.default_password})
         self.assertTrue(200, response.status_code)
 
     def test_logout(self):
