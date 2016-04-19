@@ -144,8 +144,8 @@ def setup():
     execute(rebuild_index)
 
 
-@task(alias='rdb')
-def reset_db(dumpfile='catalog.sql'):
+@task(alias='rfd')
+def restore_from_dump(dumpfile='catalog.sql'):
     local('dropdb --if-exists %(db_name)s -U %(db_user)s' % env)
     local('createdb %(db_name)s -U %(db_user)s' % env)
     if os.path.isfile(dumpfile):
@@ -153,7 +153,6 @@ def reset_db(dumpfile='catalog.sql'):
         env.dumpfile = dumpfile
         local('psql %(db_name)s %(db_user)s < %(dumpfile)s' % env)
     if console.confirm("recreate migrations?"):
-        local("find . -name '00*.py' -print -delete")
         execute(initialize_database_schema)
 
 
