@@ -1,5 +1,4 @@
 {% load i18n %}
-{% load url from future %}
 {% blocktrans %}Hi,{% endblocktrans %}
 
 {% blocktrans %} {{ invitation_text }}{% endblocktrans %}

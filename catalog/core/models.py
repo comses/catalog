@@ -1,5 +1,5 @@
 from django.contrib.auth.models import User
-from django.contrib.sites.models import RequestSite
+from django.contrib.sites.requests import RequestSite
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError
 from django.db import models
