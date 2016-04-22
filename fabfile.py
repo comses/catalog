@@ -145,14 +145,14 @@ def setup():
 
 
 @task(alias='rfd')
-def restore_from_dump(dumpfile='catalog.sql'):
+def restore_from_dump(dumpfile='catalog.sql', init_db_schema=True):
     local('dropdb --if-exists %(db_name)s -U %(db_user)s' % env)
     local('createdb %(db_name)s -U %(db_user)s' % env)
     if os.path.isfile(dumpfile):
         logger.debug("loading data from %s", dumpfile)
         env.dumpfile = dumpfile
         local('psql %(db_name)s %(db_user)s < %(dumpfile)s' % env)
-    if console.confirm("recreate migrations?"):
+    if init_db_schema:
         execute(initialize_database_schema)
 
 

@@ -6,3 +6,9 @@ htmlcov
 *.log
 schema.xml
 tags
+
+# Temporary Files
+*.sql
+solr*
+zotero_data.json
+.vagrant
