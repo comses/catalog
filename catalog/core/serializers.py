@@ -11,7 +11,7 @@ from rest_framework import serializers, pagination
 from collections import OrderedDict
 from rest_framework.utils import model_meta
 
-from .models import (Tag, Sponsor, Platform, Creator, Publication, Journal, JournalArticle, InvitationEmail,
+from .models import (Tag, Sponsor, Platform, Creator, Publication, Journal, InvitationEmail,
                      ModelDocumentation, Note, PublicationAuditLog, )
 
 from collections import defaultdict
@@ -233,18 +233,7 @@ class PublicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publication
         fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url', 'curator_detail_url', 'status',
-                  'assigned_curator', 'activity_logs', 'notes', )
-
-
-class JournalArticleSerializer(PublicationSerializer):
-    """
-    Serializes journal article querysets
-    """
-
-    class Meta:
-        model = JournalArticle
-        exclude = ('date_added', 'zotero_date_added', 'zotero_date_modified', 'zotero_key',
-                   'email_sent_count', 'date_published_text', 'author_comments')
+                  'assigned_curator', 'activity_logs', 'notes', 'model_documentation', 'sponsors', 'platforms', 'journal', 'tags', 'creators', )
 
 
 class ContactFormSerializer(serializers.Serializer):

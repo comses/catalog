@@ -128,7 +128,15 @@ class Sponsor(models.Model):
     description = models.TextField(blank=True)
 
     def __unicode__(self):
-        return self.name
+	return self.name 
+
+class Journal(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    url = models.URLField(max_length=255, blank=True)
+    abbreviation = models.CharField(max_length=255, blank=True)
+
+    def __unicode__(self):
+        return u'{}'.format(self.name)
 
 
 class Publication(models.Model):
@@ -139,6 +147,9 @@ class Publication(models.Model):
         ('AUTHOR_UPDATED', _('Updated by author, needs CoMSES review')),
         ('INVALID', _('Publication record is not applicable or invalid')),
         ('COMPLETE', _('Reviewed and verified by CoMSES')),
+    )
+    ResourceType = Choices(
+        ('JOURNAL_ARTICLE', _('Journal Article')),
     )
     objects = InheritanceManager()
 
@@ -188,6 +199,21 @@ class Publication(models.Model):
                                          help_text=_("Currently assigned curator"),
                                          related_name='assigned_publication_set')
 
+# type fields
+#    resource_type = models.CharField(choices=ResourceType, default=ResourceType.JOURNAL_ARTICLE)
+#    from_citation = models.BooleanField(default=False)
+
+# journal specific fields
+    journal = models.ForeignKey(Journal, null=True, blank=True)
+    pages = models.CharField(max_length=255, null=True, blank=True)
+    issn = models.CharField(max_length=255, null=True, blank=True)
+    volume = models.CharField(max_length=255, null=True, blank=True)
+    issue = models.CharField(max_length=255, null=True, blank=True)
+    series = models.CharField(max_length=255, null=True, blank=True)
+    series_title = models.CharField(max_length=255, null=True, blank=True)
+    series_text = models.CharField(max_length=255, null=True, blank=True)
+    doi = models.CharField(max_length=255, null=True, blank=True)
+
     def is_editable_by(self, user):
         # eventually consider having permission groups or per-object permissions
         return self.assigned_curator == user
@@ -203,27 +229,6 @@ class Publication(models.Model):
 
     def __unicode__(self):
         return u'{}'.format(self.title)
-
-
-class Journal(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    url = models.URLField(max_length=255, blank=True)
-    abbreviation = models.CharField(max_length=255, blank=True)
-
-    def __unicode__(self):
-        return u'{}'.format(self.name)
-
-
-class JournalArticle(Publication):
-    journal = models.ForeignKey(Journal)
-    pages = models.CharField(max_length=255, blank=True)
-    issn = models.CharField(max_length=255, blank=True)
-    volume = models.CharField(max_length=255, blank=True)
-    issue = models.CharField(max_length=255, blank=True)
-    series = models.CharField(max_length=255, blank=True)
-    series_title = models.CharField(max_length=255, blank=True)
-    series_text = models.CharField(max_length=255, blank=True)
-    doi = models.CharField(max_length=255, blank=True)
 
 
 class PublicationAuditLogQuerySet(models.query.QuerySet):

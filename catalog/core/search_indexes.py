@@ -1,5 +1,5 @@
 from haystack import indexes
-from .models import JournalArticle, Platform, Sponsor, Tag, Journal, ModelDocumentation
+from .models import Publication, Platform, Sponsor, Tag, Journal, ModelDocumentation
 
 
 ##########################################
@@ -15,14 +15,8 @@ class PublicationIndex(indexes.SearchIndex):
     status = indexes.CharField(model_attr='status', faceted=True)
     assigned_curator = indexes.CharField(model_attr='assigned_curator', null=True)
 
-    class Meta:
-        abstract = True
-
-
-class JournalArticleIndex(PublicationIndex, indexes.Indexable):
     def get_model(self):
-        return JournalArticle
-
+        return Publication
 
 ##########################################
 #       AutoComplete Index Fields        #

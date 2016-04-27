@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from lxml import html
 from pyzotero import zotero
 
-from catalog.core.models import (Creator, Publication, JournalArticle, Tag, Note, Platform, Sponsor, Journal,
+from catalog.core.models import (Creator, Publication, Tag, Note, Platform, Sponsor, Journal,
                                  ModelDocumentation)
 
 import json
@@ -174,11 +174,11 @@ class Command(BaseCommand):
     def create_journal_article(self, data, meta):
         zotero_key = data['key']
         try:
-            article = JournalArticle.objects.get(zotero_key=zotero_key)
+            article = Publication.objects.get(zotero_key=zotero_key)
             logger.debug("article with key %s already present %s", zotero_key, article)
             return article
-        except JournalArticle.DoesNotExist:
-            article = JournalArticle(zotero_key=zotero_key)
+        except Publication.DoesNotExist:
+            article.zotero_key = zotero_key
 
         article = self.set_common_fields(article, data, meta)
         article.journal = Journal.objects.get_or_create(

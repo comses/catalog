@@ -16,9 +16,9 @@ from datetime import datetime, timedelta
 
 from .forms import CatalogSearchForm
 from .models import (Publication, InvitationEmail, Platform, Sponsor, Tag, Journal, ModelDocumentation, Note,
-                     PublicationAuditLog, JournalArticle, )
+                     PublicationAuditLog)
 from .permissions import CanViewReadOnlyOrEditPublication
-from .serializers import (PublicationSerializer, CatalogPagination, JournalArticleSerializer, InvitationSerializer,
+from .serializers import (PublicationSerializer, CatalogPagination, InvitationSerializer,
                           UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer, NoteSerializer,
                           ModelDocumentationSerializer)
 
@@ -98,8 +98,8 @@ class PublicationList(LoginRequiredMixin, generics.GenericAPIView):
     def post(self, request, format=None):
         # adding current user to added_by field
         request.data.update({'added_by': request.user.id})
-        # FIXME: hard coded JournalArticleSerializer should instead depend on incoming data
-        serializer = JournalArticleSerializer(data=request.data)
+        # FIXME: hard coded PublicationSerializer should instead depend on incoming data
+        serializer = PublicationSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -117,13 +117,13 @@ class PublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
 
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
-        serializer = JournalArticleSerializer(publication)
+        serializer = PublicationSerializer(publication)
         return Response({'json': dumps(serializer.data), 'pk': publication.pk},
                         template_name='publication/detail.html')
 
     def put(self, request, pk):
         publication = self.get_object(pk)
-        serializer = JournalArticleSerializer(publication, data=request.data)
+        serializer = PublicationSerializer(publication, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -141,7 +141,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
 
     def get(self, request, pk, format=None):
         publication = self.get_object(pk)
-        serializer = JournalArticleSerializer(publication)
+        serializer = PublicationSerializer(publication)
         model_documentation_serializer = ModelDocumentationSerializer(ModelDocumentation.objects.all(), many=True)
         return Response({'json': dumps(serializer.data), 'pk': pk,
                          'model_documentation_categories_json': dumps(ModelDocumentation.CATEGORIES),
@@ -152,7 +152,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
         publication = self.get_object(pk)
         # FIXME: need to revisit this if we ever have other Publication Types - Books or Book Chapters may also refer to
         # computational models.
-        serializer = JournalArticleSerializer(publication, data=request.data)
+        serializer = PublicationSerializer(publication, data=request.data)
         if serializer.is_valid():
             publication = serializer.save()
             if serializer.modified_data:
@@ -169,10 +169,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
 
 
 class CuratorWorkflowViewSet(viewsets.ModelViewSet):
-    # FIXME: defaults to JournalArticleSerializer but this should be dynamic based on the type of the incoming
-    # publication. It may be better to just have Publication with all fields and a type field instead of subtypes in the
-    # ORM
-    serializer_class = JournalArticleSerializer
+    serializer_class = PublicationSerializer
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
     permission_classes = (CanViewReadOnlyOrEditPublication,)
 
@@ -181,7 +178,7 @@ class CuratorWorkflowViewSet(viewsets.ModelViewSet):
         return 'workflow/curator/{}'.format(self.action)
 
     def get_queryset(self):
-        return JournalArticle.objects.filter(assigned_curator=self.request.user)
+        return Publication.objects.filter(assigned_curator=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
