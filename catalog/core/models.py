@@ -200,8 +200,8 @@ class Publication(models.Model):
                                          related_name='assigned_publication_set')
 
 # type fields
-#    resource_type = models.CharField(choices=ResourceType, default=ResourceType.JOURNAL_ARTICLE)
-#    from_citation = models.BooleanField(default=False)
+    resource_type = models.CharField(choices=ResourceType, max_length=127, default=ResourceType.JOURNAL_ARTICLE)
+    from_citation = models.BooleanField(default=False)
 
 # journal specific fields
     journal = models.ForeignKey(Journal, null=True, blank=True)
