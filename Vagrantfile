@@ -12,7 +12,7 @@ Vagrant.configure(2) do |config|
 
 	# Every Vagrant development environment requires a box. You can search for
 	# boxes at https://atlas.hashicorp.com/search.
-	config.vm.box = "ubuntu/trusty64"
+	config.vm.box = "ubuntu/xenial64"
 
 	# Disable automatic box update checking. If you disable this, then
 	# boxes will only be checked for updates when the user runs
@@ -45,7 +45,7 @@ Vagrant.configure(2) do |config|
 	# the path on the host to the actual folder. The second argument is
 	# the path on the guest to mount the folder. And the optional third
 	# argument is a set of non-required options.
-	# config.vm.synced_folder "../data", "/vagrant_data"
+	config.vm.synced_folder ".", "/vagrant"
 
 	# Provider-specific configuration so you can fine-tune various
 	# backing providers for Vagrant. These expose provider-specific options.
@@ -74,24 +74,25 @@ Vagrant.configure(2) do |config|
 	# documentation for more information about their specific syntax and use.
 	config.vm.provision "shell", inline: <<-SHELL
 		sudo apt-get update
-		sudo apt-get install -y postgresql postgresql-client-common postgresql-server-dev-9.3 \
+		sudo apt-get install -y postgresql postgresql-client-common postgresql-server-dev-9.5 \
 		solr-tomcat git \
 		libxml2 libxml2-dev \
 		libxslt1.1 libxslt1-dev \
-		python-pip python-dev python-libxml2 python-libxslt1
+		python3-pip python3-dev python-libxml2 python-libxslt1 python-pip
 
-		HOME=/home/vagrant
+		HOME=/home/ubuntu
 		BASEDIR=/vagrant
 		SETTINGSDIR=${BASEDIR}/catalog/settings
 
-		SOLR_VERSION="6.0.0"
+		SOLR_VERSION="4.9.1"
 
 
 		echo "BASEDIR $BASEDIR"
 		echo "SETTINGSDIR $SETTINGSDIR"
 
 		prepare_python() {
-			sudo pip install virtualenv fabric
+			sudo pip3 install virtualenv
+			sudo pip install fabric
 			mkdir -p $HOME/.virtualenvs
 			virtualenv $HOME/.virtualenvs/catalog
 			. $HOME/.virtualenvs/catalog/bin/activate
@@ -114,7 +115,7 @@ Vagrant.configure(2) do |config|
 		install_java
 
 		# Replace postgres settings file
-		cp $BASEDIR/pg_hba.conf "/etc/postgresql/9.3/main/pg_hba.conf"
+		cp $BASEDIR/pg_hba.conf "/etc/postgresql/9.5/main/pg_hba.conf"
 		sudo service postgresql restart
 
 		# Create a local settings file
@@ -123,7 +124,7 @@ Vagrant.configure(2) do |config|
 		install_solr() {
 			SOLR_TGZ="solr-${SOLR_VERSION}.tgz"
 			if [ ! -f $SOLR_TGZ ]; then
-				wget http://apache.cs.utah.edu/lucene/solr/${SOLR_VERSION}/solr-${SOLR_VERSION}.tgz
+				wget http://archive.apache.org/dist/lucene/solr/{SOLR_VERSION}/solr-{SOLR_VERSION}.tgz
 			fi
 			if [ -f $SOLR_TGZ ]; then
 				tar xzf solr-${SOLR_VERSION}.tgz

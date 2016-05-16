@@ -4,6 +4,11 @@
 -- 3. Run `./manage.py migrate core --fake-initial
 
 -- Add the missing columns
+ALTER TABLE core_publication
+  ADD COLUMN resource_type varchar(255) DEFAULT 'Journal Article' NOT NULL;
+ALTER TABLE core_publication
+  ADD COLUMN is_primary boolean DEFAULT TRUE NOT NULL;
+
 ALTER TABLE core_publication 
 	ADD COLUMN journal_id int;
 ALTER TABLE core_publication 
@@ -65,7 +70,7 @@ ALTER TABLE core_publication
 	ADD CONSTRAINT core_publication_fk_journal_id 
 		FOREIGN KEY (journal_id) REFERENCES core_journal(id) 
 		DEFERRABLE INITIALLY DEFERRED;
-ALTER TABLE core_publication ADD CONSTRAINT core_publication_fk_journal_id  FOREIGN KEY (journal_id) REFERENCES core_journal(id) DEFERRABLE INITIALLY DEFERRED;
+
 -- Delete the old Journal Article Table
 DROP TABLE core_journalarticle;
 

@@ -53,7 +53,7 @@ PIPELINE_COMPILERS = (
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
-        'URL': 'http://localhost:8983/solr/catalog_core0'
+        'URL': 'http://localhost:8983/solr/catalog'
     },
 }
 

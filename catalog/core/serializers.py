@@ -265,7 +265,7 @@ class ContactFormSerializer(serializers.Serializer):
         timestamp = str(data['timestamp'])
 
         info = (timestamp, settings.SECRET_KEY)
-        new_security_hash = sha1("".join(info)).hexdigest()
+        new_security_hash = sha1("".join(info).encode("ascii")).hexdigest()
         if security_hash == new_security_hash:
             return data
         logger.warn("timestamp was altered, flagging as invalid")

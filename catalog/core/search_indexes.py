@@ -6,7 +6,7 @@ from .models import Publication, Platform, Sponsor, Tag, Journal, ModelDocumenta
 #  Publication query seach/filter index  #
 ##########################################
 
-class PublicationIndex(indexes.SearchIndex):
+class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document=True, use_template=True)
     title = indexes.CharField(model_attr='title')
     date_published = indexes.DateField(model_attr='date_published', null=True)
@@ -17,6 +17,7 @@ class PublicationIndex(indexes.SearchIndex):
 
     def get_model(self):
         return Publication
+
 
 ##########################################
 #       AutoComplete Index Fields        #
@@ -43,11 +44,6 @@ class SponsorIndex(NameAutocompleteIndex, indexes.Indexable):
 class TagIndex(NameAutocompleteIndex, indexes.Indexable):
     def get_model(self):
         return Tag
-
-
-class JournalIndex(NameAutocompleteIndex, indexes.Indexable):
-    def get_model(self):
-        return Journal
 
 
 class ModelDocumentationIndex(NameAutocompleteIndex, indexes.Indexable):

@@ -1,5 +1,5 @@
 Django==1.9.5
-Fabric==1.11.1
+#Fabric==1.11.1
 Markdown==2.6.6
 PyYAML==3.11
 Pyzotero==1.1.15
@@ -16,6 +16,8 @@ django-kronos==0.9
 django-model-utils==2.5
 djangorestframework==3.3.3
 feedparser==5.2.1
+fuzzywuzzy=0.10.0
+invoke==0.12.2
 ipython
 lxml==3.6.0
 psycopg2==2.6.1
@@ -24,6 +26,7 @@ python-coveralls==2.7.0
 raven==5.12.0
 requests==2.9.1
 sh==1.11
+Unidecode==0.4.19
 uWSGI==2.0.12
 unicodecsv==0.14.1
 django-pipeline==1.6.8

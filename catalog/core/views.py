@@ -359,7 +359,7 @@ class ContactFormView(generics.GenericAPIView):
     def get(self, request):
         timestamp = str(time.time())
         info = (timestamp, settings.SECRET_KEY)
-        security_hash = sha1("".join(info)).hexdigest()
+        security_hash = sha1("".join(info).encode("ascii"),).hexdigest()
 
         data = {'contact_number': '',
                 'name': '',

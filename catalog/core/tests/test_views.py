@@ -18,7 +18,7 @@ class AuthTest(BaseTest):
         response = self.post(
             self.login_url, {'username': 'wrong_username', 'password': 'temporary'})
         self.assertTrue(200, response.status_code)
-        self.assertTrue('Please enter a correct username and password.' in response.content)
+        self.assertTrue(b'Please enter a correct username and password.' in response.content)
 
     def test_login_with_good_credentials(self):
         response = self.post(self.login_url, {'username': self.default_username, 'password': self.default_password})
@@ -92,7 +92,7 @@ class PublicationDetailView(BaseTest):
 
     def test_publication_detail_view(self):
         management.call_command('zotero_import', test=True)
-        url = self.reverse('core:publication_detail', kwargs={'pk': Publication.objects.all()[0].pk})
+        url = self.reverse('core:publication_detail', kwargs={'pk': Publication.objects.first().pk})
         self.without_login_and_with_login_test(url)
 
         self.logout()
