@@ -11,3 +11,9 @@ tags
 solr*
 zotero_data.json
 .vagrant
+
+# IDE Files
+.idea
+
+# Dumps
+catalog.sql
