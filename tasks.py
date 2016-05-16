@@ -29,7 +29,7 @@ env = {'python': 'python3',
        'ignored_coverage': ('test', 'settings', 'migrations', 'wsgi', 'management'),
        'solr_version': '4.9.1',
        'vcs': 'git'}
-env['solr_conf_dir'] = 'solr-{}/example/solr/catalog_core0/conf'.format(env['solr_version'])
+env['solr_conf_dir'] = 'solr-{}/example/solr/catalog/conf'.format(env['solr_version'])
 env['virtualenv_path'] = '%s/.virtualenvs/%s' % (os.getenv('HOME'), env['project_name'])
 
 
@@ -92,14 +92,16 @@ def server(ip="0.0.0.0", port=8000):
 
 @task
 def start_solr():
-    run("./solr-6.0.0/bin/solr start")
+    run("./solr-{solr_version}/bin/solr start".format(**env))
 
 
 @task
 def setup_solr():
     if not os.path.exists(env['solr_conf_dir']):
-        os.makedirs(env['solr_conf_dir'])
-        shutil.copytree('solr-4.9.1/example/solr/collection1/conf', env['solr_conf_dir'])
+        os.makedirs(env['solr_conf_dir'], exist_ok=True)
+        run_chain(
+            'cp core.properties solr-{solr_version}/example/solr/catalog/.'.format(**env),
+            'cp -r solr-{solr_version}/example/solr/collection1/conf solr-{solr_version}/example/solr/catalog'.format(**env))
     run_chain('{python} manage.py build_solr_schema > schema.xml'.format(**env),
               'sudo cp schema.xml {solr_conf_dir}/.'.format(**env))
 
