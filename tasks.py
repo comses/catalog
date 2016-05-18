@@ -96,14 +96,21 @@ def start_solr():
 
 
 @task
-def setup_solr():
-    if not os.path.exists(env['solr_conf_dir']):
-        os.makedirs(env['solr_conf_dir'], exist_ok=True)
+def setup_solr(travis=False):
+    if travis:
+        path = 'solr-{solr_version}/example/multicore'.format(**env)
+    else:
+        path = 'solr-{solr_version}/example/solr'.format(**env)
+    catalog_path = '{}/catalog'.format(path)
+    collection1_path = 'solr-{solr_version}/example/solr/collection1'.format(**env)
+    if not os.path.exists('{}/conf'.format(catalog_path)):
+        os.makedirs('{}/conf'.format(catalog_path), exist_ok=True)
         run_chain(
-            'cp deploy/vagrant/core.properties solr-{solr_version}/example/solr/catalog/.'.format(**env),
-            'cp -r solr-{solr_version}/example/solr/collection1/conf solr-{solr_version}/example/solr/catalog'.format(**env))
+            'cp deploy/vagrant/core.properties {}/.'.format(catalog_path),
+            'cp -r {collection1_path}/conf {catalog_path}'.format(collection1_path=collection1_path,
+                                                                  catalog_path=catalog_path))
     run_chain('{python} manage.py build_solr_schema > schema.xml'.format(**env),
-              'sudo cp schema.xml {solr_conf_dir}/.'.format(**env))
+              'cp schema.xml {catalog_path}/conf/.'.format(catalog_path=catalog_path))
 
 
 @task
