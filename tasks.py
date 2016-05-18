@@ -27,7 +27,7 @@ env = {'python': 'python3',
        'db_name': 'comses_catalog',
        'database': 'default',
        'ignored_coverage': ('test', 'settings', 'migrations', 'wsgi', 'management'),
-       'solr_version': '4.9.1',
+       'solr_version': '4.10.4',
        'vcs': 'git'}
 env['solr_conf_dir'] = 'solr-{}/example/solr/catalog/conf'.format(env['solr_version'])
 env['virtualenv_path'] = '%s/.virtualenvs/%s' % (os.getenv('HOME'), env['project_name'])
@@ -100,7 +100,7 @@ def setup_solr():
     if not os.path.exists(env['solr_conf_dir']):
         os.makedirs(env['solr_conf_dir'], exist_ok=True)
         run_chain(
-            'cp core.properties solr-{solr_version}/example/solr/catalog/.'.format(**env),
+            'cp deploy/vagrant/core.properties solr-{solr_version}/example/solr/catalog/.'.format(**env),
             'cp -r solr-{solr_version}/example/solr/collection1/conf solr-{solr_version}/example/solr/catalog'.format(**env))
     run_chain('{python} manage.py build_solr_schema > schema.xml'.format(**env),
               'sudo cp schema.xml {solr_conf_dir}/.'.format(**env))

@@ -30,7 +30,7 @@ Vagrant.configure(2) do |config|
 	config.vm.network "forwarded_port", guest: 8000, host: 8000
 
 	# postgresql
-	config.vm.network "forwarded_port", guest: 5432, host: 15432
+	config.vm.network "forwarded_port", guest: 5432, host: 5432
 
 	# Create a private network, which allows host-only access to the machine
 	# using a specific IP.
@@ -84,7 +84,7 @@ Vagrant.configure(2) do |config|
 		BASEDIR=/vagrant
 		SETTINGSDIR=${BASEDIR}/catalog/settings
 
-		SOLR_VERSION="4.9.1"
+		SOLR_VERSION="4.10.4"
 
 
 		echo "BASEDIR $BASEDIR"
@@ -115,7 +115,7 @@ Vagrant.configure(2) do |config|
 		install_java
 
 		# Replace postgres settings file
-		cp $BASEDIR/pg_hba.conf "/etc/postgresql/9.5/main/pg_hba.conf"
+		cp $BASEDIR/deploy/vagrant/pg_hba.conf "/etc/postgresql/9.5/main/pg_hba.conf"
 		sudo service postgresql restart
 
 		# Create a local settings file
@@ -124,7 +124,7 @@ Vagrant.configure(2) do |config|
 		install_solr() {
 			SOLR_TGZ="solr-${SOLR_VERSION}.tgz"
 			if [ ! -f $SOLR_TGZ ]; then
-				wget http://archive.apache.org/dist/lucene/solr/{SOLR_VERSION}/solr-{SOLR_VERSION}.tgz
+				wget http://archive.apache.org/dist/lucene/solr/${SOLR_VERSION}/solr-${SOLR_VERSION}.tgz
 			fi
 			if [ -f $SOLR_TGZ ]; then
 				tar xzf solr-${SOLR_VERSION}.tgz
@@ -136,7 +136,7 @@ Vagrant.configure(2) do |config|
 		install_solr
 
 		. $HOME/.virtualenvs/catalog/bin/activate
-		fab setup_postgres
-		fab initialize_database_schema
+		invoke setup_postgres
+		invoke initialize_database_schema
 	SHELL
 end
