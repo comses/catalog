@@ -1,7 +1,7 @@
 language: python
 sudo: false
 python:
-    - "2.7"
+    - "3.5"
 notifications:
     email: comses-dev@googlegroups.com
 env: DB=postgres
@@ -9,7 +9,7 @@ services:
     - memcached
     - redis
 before_script:
-    - curl -sSL https://raw.githubusercontent.com/moliware/travis-solr/master/travis-solr.sh | SOLR_VERSION=4.10.3 bash
+    - curl -sSL https://raw.githubusercontent.com/moliware/travis-solr/master/travis-solr.sh | SOLR_VERSION=4.10.4 bash
     - cp catalog/settings/local.py.example catalog/settings/local.py
     - fab setup_postgres
     - fab initialize_database_schema
