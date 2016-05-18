@@ -5,8 +5,7 @@ python:
 notifications:
     email: comses-dev@googlegroups.com
 env: 
-    - DB=postgres
-    - SOLR_VERSION=4.10.4
+    - DB=postgres SOLR_VERSION=4.10.4
 services:
     - redis
 before_script:
