@@ -4,16 +4,18 @@ python:
     - "3.5"
 notifications:
     email: comses-dev@googlegroups.com
-env: DB=postgres
+env: 
+    - DB=postgres
+    - SOLR_VERSION=4.10.4
 services:
     - redis
 before_script:
-    - curl -sSL https://raw.githubusercontent.com/moliware/travis-solr/master/travis-solr.sh | SOLR_VERSION=4.10.4 bash
+    - curl -sSL https://raw.githubusercontent.com/moliware/travis-solr/master/travis-solr.sh | bash
     - cp catalog/settings/local.py.example catalog/settings/local.py
     - invoke setup_postgres
     - invoke initialize_database_schema
     - python manage.py build_solr_schema > ./schema.xml
-    - cp ./schema.xml ./solr-4.10.3/example/solr/collection1/conf/schema.xml
+    - cp ./schema.xml ./solr-${SOLR_VERSION}/example/solr/collection1/conf/schema.xml
     - curl http://localhost:8983/solr/admin/cores?action=RELOAD&core=core0
     - yes | python manage.py rebuild_index
 install: "pip install -r requirements.txt"
