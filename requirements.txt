@@ -1,5 +1,4 @@
-Django==1.9.5
-#Fabric==1.11.1
+Django==1.9.6
 Markdown==2.6.6
 PyYAML==3.11
 Pyzotero==1.1.15
@@ -10,25 +9,28 @@ django-autocomplete-light==2.3.1
 django-bootstrap3==7.0.1
 django-contact-form==1.2
 django-debug-toolbar==1.4
-django-extensions==1.6.1
+django-extensions==1.6.7
 django-haystack==2.4.1
 django-kronos==0.9
 django-model-utils==2.5
 djangorestframework==3.3.3
 feedparser==5.2.1
-fuzzywuzzy=0.10.0
+fuzzywuzzy==0.10.0
 invoke==0.12.2
 ipython
 lxml==3.6.0
 psycopg2==2.6.1
 pysolr==3.4.0
 python-coveralls==2.7.0
-raven==5.12.0
-requests==2.9.1
+raven==5.17.0
+requests==2.10.0
 sh==1.11
 Unidecode==0.4.19
-uWSGI==2.0.12
+uWSGI==2.0.13.1
 unicodecsv==0.14.1
 django-pipeline==1.6.8
 nodeenv==0.13.6
-pytz==2016.3
+pytz==2016.4
+# disabled for Python 3
+# Fabric==1.11.1
+
