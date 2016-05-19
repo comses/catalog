@@ -68,7 +68,7 @@ def host_type():
 
 @task
 def coverage():
-    run(test, coverage=True)
+    test(coverage=True)
     ignored = ['*{0}*'.format(ignored_pkg) for ignored_pkg in env['ignored_coverage']]
     run('coverage html --omit=' + ','.join(ignored))
 
