@@ -15,7 +15,7 @@ before_script:
     - invoke setup_postgres
     - invoke initialize_database_schema
     - curl http://localhost:8983/solr/admin/cores?action=RELOAD&core=catalog
-    - invoke rebuild_index
+    - invoke rebuild_index --noinput
 install: "pip install -r requirements.txt"
 script: invoke coverage
 after_success:

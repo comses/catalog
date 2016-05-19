@@ -158,8 +158,11 @@ def zotero_import(group=None, collection=None):
 
 
 @task(aliases=['ri'])
-def rebuild_index():
-    run('python manage.py rebuild_index')
+def rebuild_index(noinput=False):
+    cmd = 'python manage.py rebuild_index'
+    if noinput:
+        cmd += ' --noinput'
+    run(cmd)
 
 
 @task
