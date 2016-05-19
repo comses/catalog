@@ -108,9 +108,7 @@ def setup_solr(travis=False):
         run_chain(
             'cp deploy/vagrant/core.properties {}/.'.format(catalog_path),
             'cp -r {collection1_path}/conf {catalog_path}'.format(collection1_path=collection1_path,
-                                                                  catalog_path=catalog_path),
-            'echo "Copied collection1 to catalog {catalog_path}'.format(catalog_path=catalog_path),
-            'ls {catalog_path}/conf'.format(catalog_path=catalog_path))
+                                                                  catalog_path=catalog_path))
     run_chain('{python} manage.py build_solr_schema > schema.xml'.format(**env),
               'cp schema.xml {catalog_path}/conf/.'.format(catalog_path=catalog_path))
 

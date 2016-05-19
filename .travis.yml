@@ -5,15 +5,15 @@ python:
 notifications:
     email: comses-dev@googlegroups.com
 env: 
-    - DB=postgres SOLR_VERSION=4.10.4 SOLR_CORE=catalog
+    - DB=postgres SOLR_VERSION=4.10.4 SOLR_CORE=catalog SOLR_CONFS="schema.xml deploy/travis/solrconfig.xml"
 services:
     - redis
 before_script:
-    - curl -sSL https://raw.githubusercontent.com/moliware/travis-solr/master/travis-solr.sh | bash
+    - python manage.py build_solr_schema > schema.xml
+    - bash deploy/travis/travis-solr.sh # edited from https://github.com/moliware/travis-solr
     - cp catalog/settings/local.py.example catalog/settings/local.py
     - invoke setup_postgres
     - invoke initialize_database_schema
-    - invoke setup_solr --travis
     - curl http://localhost:8983/solr/admin/cores?action=RELOAD&core=catalog
     - yes | invoke rebuild_index
 install: "pip install -r requirements.txt"
