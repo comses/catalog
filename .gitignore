@@ -8,7 +8,7 @@ schema.xml
 tags
 
 # Temporary Files
-solr*
+solr-*
 zotero_data.json
 .vagrant
 
