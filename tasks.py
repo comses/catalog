@@ -81,8 +81,10 @@ def test(name=None, coverage=False):
         apps = ''
     if coverage:
         ignored = ['*{0}*'.format(ignored_pkg) for ignored_pkg in env['ignored_coverage']]
-        env.python = "coverage run --source='.' --omit=" + ','.join(ignored)
-    run('{python} manage.py test {apps}'.format(apps=apps, **env))
+        coverage_cmd = "coverage run --source='.' --omit=" + ','.join(ignored)
+    else:
+        coverage_cmd = env['python']
+    run('{coverage_cmd} manage.py test {apps}'.format(apps=apps, coverage_cmd=coverage_cmd))
 
 
 @task
