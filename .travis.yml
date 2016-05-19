@@ -9,7 +9,7 @@ env:
 services:
     - redis
 before_script:
-    - python manage.py build_solr_schema > schema.xml
+    - ./manage.py build_solr_schema > schema.xml
     - bash deploy/travis/travis-solr.sh # edited from https://github.com/moliware/travis-solr
     - cp catalog/settings/local.py.example catalog/settings/local.py
     - invoke setup_postgres
