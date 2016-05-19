@@ -9,9 +9,9 @@ env:
 services:
     - redis
 before_script:
-    - ./manage.py build_solr_schema > schema.xml
-    - bash deploy/travis/travis-solr.sh # edited from https://github.com/moliware/travis-solr
     - cp catalog/settings/local.py.example catalog/settings/local.py
+    - python manage.py build_solr_schema > schema.xml
+    - bash deploy/travis/travis-solr.sh # edited from https://github.com/moliware/travis-solr
     - invoke setup_postgres
     - invoke initialize_database_schema
     - curl http://localhost:8983/solr/admin/cores?action=RELOAD&core=catalog
@@ -20,6 +20,3 @@ install: "pip install -r requirements.txt"
 script: invoke coverage
 after_success:
     - coveralls
-after_failure:
-    - ls solr-${SOLR_VERSION}/example/multicore/catalog/conf
-    - ls solr-${SOLR_VERSION}/example/solr/collection1/conf
