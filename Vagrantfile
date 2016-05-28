@@ -86,7 +86,6 @@ Vagrant.configure(2) do |config|
 
 		SOLR_VERSION="4.10.4"
 
-
 		echo "BASEDIR $BASEDIR"
 		echo "SETTINGSDIR $SETTINGSDIR"
 
