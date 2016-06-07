@@ -1,4 +1,17 @@
+-- Before Check
+-- COPY
+-- (SELECT c_pub.id, max(title) AS title, array_agg(DISTINCT c_plat.name ORDER BY c_plat.name) AS platforms, array_agg(DISTINCT c_spons.name ORDER BY c_spons.name) AS sponsors
+-- FROM core_publication AS c_pub
+--   LEFT JOIN core_publication_platforms AS c_pub_plat ON c_pub.id = c_pub_plat.publication_id
+--   LEFT JOIN core_platform AS c_plat ON c_pub_plat.platform_id = c_plat.id
+--   LEFT JOIN core_publication_sponsors AS c_pub_spons ON c_pub.id = c_pub_spons.publication_id
+--   LEFT JOIN core_sponsor AS c_spons ON c_pub_spons.sponsor_id = c_spons.id
+-- GROUP BY c_pub.id)
+-- TO '/home/ubuntu/postgres/old_publication_summary.csv'
+-- WITH (FORMAT csv, HEADER TRUE, DELIMITER ',');
+
 BEGIN;
+SET CONSTRAINTS ALL IMMEDIATE;
 CREATE OR REPLACE FUNCTION split_platform(_val TEXT, _new_vals TEXT[]) RETURNS VOID AS
   $$
     DECLARE
@@ -7,7 +20,6 @@ CREATE OR REPLACE FUNCTION split_platform(_val TEXT, _new_vals TEXT[]) RETURNS V
       _platform_id INT;
       _new_platform_id INT;
       _new_val TEXT;
-      _old_val_is_a_new_val BOOL := FALSE;
     BEGIN
       SELECT id
       INTO _platform_id
@@ -22,38 +34,25 @@ CREATE OR REPLACE FUNCTION split_platform(_val TEXT, _new_vals TEXT[]) RETURNS V
       RAISE NOTICE 'platform_id: %', _platform_id;
       RAISE NOTICE 'publication_ids: %', array_to_string(_publication_ids, ',', 'NULL');
 
-      FOREACH _new_val IN ARRAY _new_vals
-      LOOP
-        SELECT id INTO _new_platform_id FROM core_platform WHERE name = _new_val;
-        IF _new_platform_id = _platform_id THEN
-          _old_val_is_a_new_val := TRUE;
-        END IF;
-        IF _new_platform_id IS NULL THEN
-          SELECT nextval('core_platform_id_seq') INTO _new_platform_id;
-          RAISE NOTICE 'inserted %, % into core_platform', _new_platform_id, _new_val;
-          INSERT INTO core_platform (id, name) VALUES (_new_platform_id, _new_val);
-
-        ELSE
-          RAISE NOTICE 'name % already exists, using associated id %', _new_val, _new_platform_id;
-          RAISE NOTICE 'updating ''%'' to ''%''', _val, _new_val;
-
-        END IF;
-
-        IF NOT _old_val_is_a_new_val THEN
-          INSERT INTO core_publication_platforms (publication_id, platform_id)
-          SELECT unnest(_publication_ids), _new_platform_id;
-        END IF;
-      END LOOP;
-
       RAISE NOTICE 'deleting old core_platform %', _platform_id;
 
-      IF NOT _old_val_is_a_new_val THEN
-        DELETE FROM core_publication_platforms
-        WHERE platform_id = _platform_id;
+      DELETE FROM core_publication_platforms
+      WHERE platform_id = _platform_id OR platform_id IN
+        (SELECT id FROM core_platform WHERE "name" = ANY(_new_vals));
 
-        DELETE FROM core_platform
-        WHERE id = _platform_id;
-      END IF;
+      DELETE FROM core_platform
+      WHERE id = _platform_id OR "name" = ANY(_new_vals);
+
+      FOREACH _new_val IN ARRAY _new_vals
+      LOOP
+        SELECT nextval('core_platform_id_seq') INTO _new_platform_id;
+
+        RAISE NOTICE 'inserted %, % into core_platform', _new_platform_id, _new_val;
+        INSERT INTO core_platform (id, "name") VALUES (_new_platform_id, _new_val);
+
+        INSERT INTO core_publication_platforms (publication_id, platform_id)
+        SELECT unnest(_publication_ids), _new_platform_id;
+      END LOOP;
     END;
   $$ LANGUAGE plpgsql VOLATILE;
 
@@ -143,13 +142,16 @@ SELECT merge_platform(ARRAY[
     'Repast 2.0',
     'Repast Simphony',
     'Repast Simphony 2.0'], 'Repast');
-SELECT merge_platform(ARRAY[
-    'RepastJ',
-    'Repast J 3.1'], 'RepastJ');
-SELECT merge_platform(ARRAY[
-    'Unknown',
-    'unknown'], '');
 SELECT merge_platform(ARRAY['Visual Basic', 'VB (Visual Basic)', 'MS VB (Visual Basic)'], 'MS VB (Visual Basic)');
+
+DELETE FROM core_publication_platforms
+  WHERE platform_id =
+        (SELECT id
+        FROM core_platform
+        WHERE "name" = ANY(ARRAY['None', 'Unknown', 'unknown', '']));
+
+DELETE FROM core_platform
+WHERE "name" = ANY(ARRAY['None', 'Unknown', 'unknown', '']);
 
 CREATE OR REPLACE FUNCTION split_sponsor(_val TEXT, _new_vals TEXT[]) RETURNS VOID AS
   $$
@@ -159,7 +161,6 @@ CREATE OR REPLACE FUNCTION split_sponsor(_val TEXT, _new_vals TEXT[]) RETURNS VO
       _sponsor_id INT;
       _new_sponsor_id INT;
       _new_val TEXT;
-      _old_val_is_a_new_val BOOL := FALSE;
     BEGIN
       SELECT id
       INTO _sponsor_id
@@ -174,38 +175,25 @@ CREATE OR REPLACE FUNCTION split_sponsor(_val TEXT, _new_vals TEXT[]) RETURNS VO
       RAISE NOTICE 'sponsor_id: %', _sponsor_id;
       RAISE NOTICE 'publication_ids: %', array_to_string(_publication_ids, ',', 'NULL');
 
-      FOREACH _new_val IN ARRAY _new_vals
-      LOOP
-        SELECT id INTO _new_sponsor_id FROM core_sponsor WHERE name = _new_val;
-        IF _new_sponsor_id = _sponsor_id THEN
-          _old_val_is_a_new_val := TRUE;
-        END IF;
-        IF _new_sponsor_id IS NULL THEN
-          SELECT nextval('core_sponsor_id_seq') INTO _new_sponsor_id;
-          RAISE NOTICE 'inserted %, % into core_platform', _new_sponsor_id, _new_val;
-          INSERT INTO core_sponsor (id, name) VALUES (_new_sponsor_id, _new_val);
-
-        ELSE
-          RAISE NOTICE 'name % already exists, using associated id %', _new_val, _new_sponsor_id;
-          RAISE NOTICE 'updating ''%'' to ''%''', _val, _new_val;
-
-        END IF;
-
-        IF NOT _old_val_is_a_new_val THEN
-          INSERT INTO core_publication_sponsors (publication_id, sponsor_id)
-          SELECT unnest(_publication_ids), _new_sponsor_id;
-        END IF;
-      END LOOP;
-
       RAISE NOTICE 'deleting old core_sponsor %', _sponsor_id;
 
-      IF NOT _old_val_is_a_new_val THEN
-        DELETE FROM core_publication_sponsors
-        WHERE sponsor_id = _sponsor_id;
+      DELETE FROM core_publication_sponsors
+      WHERE sponsor_id = _sponsor_id OR sponsor_id IN
+        (SELECT id FROM core_sponsor WHERE "name" = ANY(_new_vals));
 
-        DELETE FROM core_sponsor
-        WHERE id = _sponsor_id;
-      END IF;
+      DELETE FROM core_sponsor
+      WHERE id = _sponsor_id OR "name" = ANY(_new_vals);
+
+      FOREACH _new_val IN ARRAY _new_vals
+      LOOP
+        SELECT nextval('core_sponsor_id_seq') INTO _new_sponsor_id;
+
+        RAISE NOTICE 'inserted %, % into core_platform', _new_sponsor_id, _new_val;
+        INSERT INTO core_sponsor (id, "name") VALUES (_new_sponsor_id, _new_val);
+
+        INSERT INTO core_publication_sponsors (publication_id, sponsor_id)
+        SELECT unnest(_publication_ids), _new_sponsor_id;
+      END LOOP;
     END;
   $$ LANGUAGE plpgsql VOLATILE;
 
@@ -296,6 +284,13 @@ SELECT split_sponsor(
   ]
 );
 SELECT split_sponsor(
+  'National Natural Science Foundation of China, National Social Science Foundation of China',
+  ARRAY[
+    'National Natural Science Foundation of China',
+    'National Social Science Foundation of China'
+  ]
+);
+SELECT split_sponsor(
   'UK ESRC/NERC Interdisciplinary Studentship',
   ARRAY[
   'United Kingdom Economic and Social Research Council (ESRC)',
@@ -303,6 +298,16 @@ SELECT split_sponsor(
   ]
 );
 
+
+SELECT merge_sponsor(
+  ARRAY[
+    'Air Force Office of Scientific Research',
+    'Air Force Office of Sponsored Research',
+    'Air Force Research Laboratories Human Effectiveness Directorate',
+    'Air Force Research Laboratory'
+  ],
+  'United States Air Force'
+);
 SELECT merge_sponsor(
   ARRAY[
   'Australian Research Council',
@@ -356,7 +361,15 @@ SELECT merge_sponsor(
 );
 SELECT merge_sponsor(
   ARRAY[
+    'CNCSIS -UEFISCSU',
+    'CNCSIS–UEFISCSU'
+  ],
+  'Romanian National Council of Scientific Research (Consiliul National al Cercetarii Stiintifice din Invatamantul Superior CNCSIS)'
+);
+SELECT merge_sponsor(
+  ARRAY[
   'Brazilian Research CNPq',
+  'CNPq',
   'Conselho Nacional de Desenvolvimento Cientí¯co e Tecnologico',
   'Conselho Nacional de Desenvolvimento Científico e Tecnológico',
   'Conselho Nacional de Desenvolvimento Científico e Tecnológico (CNPq)'
@@ -439,6 +452,7 @@ SELECT merge_sponsor(
   ARRAY[
     'European Commission',
     'European Community',
+    'European Community''s Human Potential Programs',
     'European Community Seventh Framework Programme',
     'European Community’s Human Potential Programme',
     'European Community’s Human Potential Programs',
@@ -457,13 +471,21 @@ SELECT merge_sponsor(
   'BMBF (Federal Ministry of Education and Research)',
   'Federal Ministry of Education and Research (BMBF), Germany',
   'Federal Ministry of Education and Research of the Federal Republic of Germany',
-  'German Federal Ministry for Education and Research (BMBF)'
+  'German Federal Ministry for Education and Research (BMBF)',
   'German Federal Ministry of Education and Research',
   'German Federal Ministry of Education and Research (BMBF)',
   'German Ministry of Education and Research',
   'German Ministryof Education and Research in the framework of BIOTA Southern Africa'
   ],
   'German Federal Ministry of Education and Research (BMBF)'
+);
+SELECT merge_sponsor(
+  ARRAY[
+    'German Research Foundation (Deutsche Forschungsgemeinschaft, DFG)',
+    'German Research Foundation (DFG)',
+    'Deutsches Forschungsgemeinschaft (DFG)'
+  ],
+  'German Research Foundation (Deutsche Forschungsgemeinschaft, DFG)'
 );
 SELECT merge_sponsor(
   ARRAY[
@@ -477,12 +499,6 @@ SELECT merge_sponsor(
   'FONDECYT'
   ],
   'Chile National Fund for Scientific and Technological Development (FONDECYT)'
-);
-SELECT merge_sponsor(
-  ARRAY[
-  'Foundation for Science and Technology of Portugal'
-  ],
-  'Portugal Foundation for Science and Technology'
 );
 SELECT merge_sponsor(
   ARRAY[
@@ -500,11 +516,15 @@ SELECT merge_sponsor(
 );
 SELECT merge_sponsor(
   ARRAY[
-  'Fundação para a Ciência e a Tecnologia',
-  'Fundacao para a Ciencia e a Tecnologia-FCT',
-  'Fundacao para a Ciencia e a Tecnologia under Bolsa de Investigacao'
+    'Fundação para a Ciência e a Tecnologia',
+    'Fundacao para a Ciencia e a Tecnologia-FCT',
+    'Fundacao para a Ciencia e a Tecnologia under Bolsa de Investigacao',
+    'Foundation for Science and Technology of Portugal',
+    'Portugal Foundation for Science and Technology',
+    'Portugal Foundation for Science and Technology (FCT)',
+    'Portuguese Foundation for Science and Technology (FCT)'
   ],
-  'Portugal Foundation for Science and Technology (FCT)'
+  'Portuguese Foundation for Science and Technology (FCT)'
 );
 SELECT merge_sponsor(
   ARRAY[
@@ -634,6 +654,15 @@ SELECT merge_sponsor(
 );
 SELECT merge_sponsor(
   ARRAY[
+    'National Health and Medical Research Council',
+    'NHMRC',
+    'NHMRC Principal Research Fellowship',
+    'National Health and Medical Research Council (NHMRC)'
+  ],
+  'Australian National Health and Medical Research Council (NHMRC)'
+);
+SELECT merge_sponsor(
+  ARRAY[
     'National Institute of Allergy and Infectious Diseases',
     'National Institute Of Allergy And Infectious Diseases'
   ],
@@ -668,6 +697,20 @@ SELECT merge_sponsor(
 );
 SELECT merge_sponsor(
   ARRAY[
+    'National Research Council',
+    'National Research Council of Canada (NRC)'
+  ],
+  'National Research Council of Canada (NRC)'
+);
+SELECT merge_sponsor(
+  ARRAY[
+    'National Research Foundation of Korea',
+    'National Research Foundation of Korea (NRF)'
+  ],
+  'National Research Foundation of Korea (NRF)'
+);
+SELECT merge_sponsor(
+  ARRAY[
     'National Science Council in Taiwan',
     'National Science Council of Taiwan',
     'National Science Council Taiwan'
@@ -690,6 +733,27 @@ SELECT merge_sponsor(
     'United Kingdom Natural Environment Research Council (NERC)'
   ],
   'United Kingdom Natural Environment Research Council (NERC)'
+);
+SELECT merge_sponsor(
+  ARRAY[
+    'National Institute of Dental and Craniofacial Research',
+    'National Institute of Dental & Craniofacial Research'
+  ],
+  'National Institute of Dental & Craniofacial Research'
+);
+SELECT merge_sponsor(
+  ARRAY[
+    'National Institute of General Medical Sciences',
+    'National Institute of General Medical Sciences Models of Infectious Disease Agent Study (MIDAS)'
+  ],
+  'National Institute of General Medical Sciences'
+);
+SELECT merge_sponsor(
+  ARRAY[
+    'national Key Technology R&D Program',
+    'National Key Technology R&D Program of China'
+  ],
+  'National Key Technology R&D Program of China'
 );
 SELECT merge_sponsor(
   ARRAY[
@@ -782,15 +846,6 @@ SELECT merge_sponsor(
 );
 SELECT merge_sponsor(
   ARRAY[
-  'Social Sciences and Humanities Research Council (SSHRC) of Canada',
-  'Social Sciences and Humanities Research Council of Canada',
-  'Social Sciences and Humanities Research Council',
-  'Social Science and Humanities Research Council of Canada (SSHRC)'
-  ],
-  'SSHRC (Social Sciences and Humanities Research Council of Canada'
-);
-SELECT merge_sponsor(
-  ARRAY[
     'SEP-CONACYT',
     'CONACYT',
     'CONACyT (México)',
@@ -834,6 +889,20 @@ SELECT merge_sponsor(
     'Center for Advanced Study of International Development at Michigan State University'
   ],
   'Center for Advanced Study of International Development at Michigan State University'
+);
+SELECT merge_sponsor(
+  ARRAY[
+    'The University of Tennessee',
+    'University of Tennessee'
+  ],
+  'University of Tennessee'
+);
+SELECT merge_sponsor(
+  ARRAY[
+    'Turkish Academy of Sciences',
+    'Turkish Academy of Sciences (TUBA)'
+  ],
+  'Turkish Academy of Sciences (TUBA)'
 );
 SELECT merge_sponsor(
   ARRAY[
@@ -901,7 +970,8 @@ SELECT merge_sponsor(
     'US Department of Energy’s National Nuclear Security Administration',
     'U.S. DOE',
     'department of energy',
-    'Department of Energy'
+    'Department of Energy',
+    'United States Department of Energy'
   ],
   'United States Department of Energy (DOE)'
 );
@@ -959,6 +1029,22 @@ SELECT merge_sponsor(
 );
 SELECT merge_sponsor(
   ARRAY[
+    'National Science Council', -- All authors are from Taiwan so I assumed it was not funded by the PRC version
+    'National Science Council of Taiwan'
+  ],
+  'National Science Council of Taiwan'
+);
+SELECT merge_sponsor(
+  ARRAY[
+    'National Science Foundation',
+    'National Science Foundation Award',
+    'National Science Foundation Biocomplexity in the Environment Programme',
+    'National Science Foundation Graduate Research Fellowship',
+    'National Science Foundation Grant 0921904 (to ML)',
+    'NSF',
+    'NSF Graduate Research Fellowship',
+    'NSF Grant',
+    'NSF Virgin Islands Experimental Program to Stimulate Competitive Research',
     'U.S. National Science Foundation',
     'U.S. NationalScience Foundation',
     'US National Science Foundation',
@@ -972,6 +1058,13 @@ SELECT merge_sponsor(
     'VEGA (Scientific Grant Agency)'
   ],
   'VEGA (Scientific Grant Agency)'
+);
+SELECT merge_sponsor(
+  ARRAY[
+    'Volkswagen Foundation',
+    'Volkswagenstiftung'
+  ],
+  'Volkswagen Foundation (Volkswagenstiftung)'
 );
 SELECT merge_sponsor(
   ARRAY[
@@ -1007,3 +1100,15 @@ DELETE FROM core_publication_sponsors
 DELETE FROM core_sponsor
 WHERE lower(name) in ('none', 'unclear', 'unknown', 'phd grant', 'www.ivv.tuwien.ac.at/forschung/mars-metropolitan-activity-relocation-simulator.html');
 COMMIT;
+
+-- After Check
+-- COPY
+-- (SELECT c_pub.id, max(title) AS title, array_agg(DISTINCT c_plat.name ORDER BY c_plat.name) AS platforms, array_agg(DISTINCT c_spons.name ORDER BY c_spons.name) AS sponsors
+-- FROM core_publication AS c_pub
+--   LEFT JOIN core_publication_platforms AS c_pub_plat ON c_pub.id = c_pub_plat.publication_id
+--   LEFT JOIN core_platform AS c_plat ON c_pub_plat.platform_id = c_plat.id
+--   LEFT JOIN core_publication_sponsors AS c_pub_spons ON c_pub.id = c_pub_spons.publication_id
+--   LEFT JOIN core_sponsor AS c_spons ON c_pub_spons.sponsor_id = c_spons.id
+-- GROUP BY c_pub.id)
+-- TO '/home/ubuntu/postgres/new_publication_summary.csv'
+-- WITH (FORMAT csv, HEADER TRUE, DELIMITER ',');

@@ -15,7 +15,6 @@ import sys
 
 DEBUG = True
 
-
 # tweaking standard BASE_DIR because we're in the settings subdirectory.
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
@@ -109,7 +108,6 @@ TEMPLATES = [
     },
 ]
 
-
 MIDDLEWARE_CLASSES = (
     # 'raven.contrib.django.raven_compat.middleware.Sentry404CatchMiddleware',
     # 'raven.contrib.django.raven_compat.middleware.SentryResponseErrorIdMiddleware',
@@ -144,11 +142,11 @@ THIRD_PARTY_APPS = (
     'bootstrap3',
     'haystack',
     'rest_framework',
-    'django_extensions'
+    'django_extensions',
 )
 
-
-CATALOG_APPS = ('catalog.core',)
+CATALOG_APPS = ('catalog.core',
+                'catalog.citation',)
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + CATALOG_APPS
 
@@ -179,6 +177,7 @@ MEDIA_URL = 'https://catalog.comses.net/uploads/'
 
 def is_accessible(directory_path):
     return os.path.isdir(directory_path) and os.access(directory_path, os.W_OK | os.X_OK)
+
 
 LOG_DIRECTORY = '/opt/catalog/logs'
 

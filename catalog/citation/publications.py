@@ -55,9 +55,9 @@ class PersistentAuthor:
         self.family = family
         self.given = given
         if previous:
-            self.previous = [previous] # type: List[History]
+            self.previous_values = [previous] # type: List[History]
         else:
-            self.previous = []  # type: List[History]
+            self.previous_values = []  # type: List[History]
 
     def __repr__(self):
         if self.family and self.given:
@@ -66,7 +66,7 @@ class PersistentAuthor:
     def __eq__(self, other: "PersistentAuthor"):
         return self.family == other.family and \
                 self.given == other.given and \
-                self.previous == other.previous
+               self.previous_values == other.previous_values
 
     @property
     def fullname(self):
@@ -94,7 +94,7 @@ class PersistentAuthor:
     def update(self, persistent_author: "PersistentAuthor"):
         self.family.update(persistent_author.family)
         self.given.update(persistent_author.given)
-        self.previous.extend(persistent_author.previous)
+        self.previous_values.extend(persistent_author.previous_values)
 
 
 def make_author(family: str, given: Optional[str], previous: Optional[History]):
