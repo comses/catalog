@@ -91,11 +91,6 @@ def server(ip="0.0.0.0", port=8000):
 
 
 @task
-def start_solr():
-    run("./solr-{solr_version}/bin/solr start".format(**env))
-
-
-@task
 def setup_solr(travis=False):
     if travis:
         path = 'solr-{solr_version}/example/multicore'.format(**env)

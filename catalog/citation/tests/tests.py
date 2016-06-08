@@ -87,67 +87,6 @@ class TestNameNormalization(TestCase):
         self.assertEqual(last_name_and_initial_str, "ABBAS A")
 
 
-class TestAuthorAliasMerging(TestCase):
-    def setUp(self):
-        self.raw_bibtex = models.Raw.objects.create(key=models.Raw.BIBTEX_ENTRY, value="")
-        self.raw_crossref = models.Raw.objects.create(key=models.Raw.CROSSREF_DOI_SUCCESS, value="")
-
-        self.pritchard = models.Author.objects.create(type=models.Author.INDIVIDUAL)
-        self.pritchard_alias1 = models.AuthorAlias.objects.create(author=self.pritchard, name="PRITCHARD C")
-        self.pritchard_alias2 = models.AuthorAlias.objects.create(author=self.pritchard, name="PRITCHARD CALVIN")
-
-    def test_add_raw_already_in_db(self):
-        raw_bibtex_pritchard = models.AuthorRaw.objects.create(
-            name="PRITCHARD C",
-            type=models.AuthorRaw.INDIVIDUAL,
-            raw=self.raw_bibtex,
-            publication_raw_id=self.raw_bibtex.id)
-        grouped_authors = merger.group_authors(raw_authors=models.AuthorRaw.objects.all())
-        matched_grouped_authors = merger.match_grouped_authors(grouped_authors)
-        merger.add_grouped_authors(matched_grouped_authors)
-
-        author = models.Author.objects.filter(authoralias__authorraw=raw_bibtex_pritchard).first() # type: models.Author
-        self.assertIsNotNone(author)
-        self.assertEqual(author.authoralias_set.count(), 2)
-        self.assertEqual(self.pritchard_alias1, models.AuthorRaw.objects.first().author_alias)
-
-    def test_add_raw_not_in_db(self):
-        raw_foo = models.AuthorRaw.objects.create(
-            name="Foo, Baz",
-            type=models.AuthorRaw.INDIVIDUAL,
-            raw=self.raw_bibtex,
-            publication_raw_id=self.raw_bibtex.id
-        )
-
-        grouped_authors = merger.group_authors(raw_authors=models.AuthorRaw.objects.all())
-        matched_grouped_authors = merger.match_grouped_authors(grouped_authors)
-        merger.add_grouped_authors(matched_grouped_authors)
-
-        author = models.Author.objects.filter(authoralias__authorraw=raw_foo).first()  # type: models.Author
-        self.assertIsNotNone(author)
-        self.assertEqual(author.authoralias_set.count(), 1)
-        self.assertNotEqual(self.pritchard_alias1, models.AuthorRaw.objects.first().author_alias)
-        self.assertNotEqual(self.pritchard_alias2, models.AuthorRaw.objects.first().author_alias)
-
-    def test_group_authors_different(self):
-        raw_bibtex_foo = models.AuthorRaw.objects.create(
-            name="Foo, Baz",
-            type=models.AuthorRaw.INDIVIDUAL,
-            raw=self.raw_bibtex,
-            publication_raw_id=self.raw_bibtex.id)
-        raw_crossref_foo = models.AuthorRaw.objects.create(
-            name="Foo, B.",
-            type=models.AuthorRaw.INDIVIDUAL,
-            raw=self.raw_crossref,
-            publication_raw_id=self.raw_bibtex.id)
-        grouped_authors = merger.group_authors(raw_authors=models.AuthorRaw.objects.all())
-        self.assertEqual(len(grouped_authors), 1)
-        self.assertListEqual(grouped_authors[0], [raw_bibtex_foo, raw_crossref_foo])
-
-    def test_group_authors_same_raw_type(self):
-        pass
-
-
 class TestGroupAuthors(TestCase):
         def setUp(self):
             self.raw1 = models.Raw.objects.create(key=models.Raw.BIBTEX_ENTRY, value="")

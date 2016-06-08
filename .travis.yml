@@ -2,6 +2,8 @@ language: python
 sudo: false
 python:
     - "3.5"
+addons:
+    postgresql: "9.4"
 notifications:
     email: comses-dev@googlegroups.com
 env: 
