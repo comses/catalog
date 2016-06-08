@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.contrib.postgres.fields import JSONField
 from django.contrib.sites.requests import RequestSite
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError
@@ -201,7 +202,7 @@ class Publication(models.Model):
                                          related_name='assigned_publication_set')
 
 # type fields
-    resource_type = models.CharField(choices=ResourceType, max_length=127, default=ResourceType.JOURNAL_ARTICLE)
+    resource_type = models.CharField(choices=ResourceType, max_length=255, default=ResourceType.JOURNAL_ARTICLE)
     is_primary = models.BooleanField(default=True)
 
 # journal specific fields
@@ -238,12 +239,12 @@ class PublicationAuditLogQuerySet(models.query.QuerySet):
 
 class PublicationAuditLogManager(models.Manager):
 
-    def log_curator_action(self, message=None, creator=None, publication=None):
+    def log_curator_action(self, message=None, creator=None, publication=None, modified_data=None):
         if not all([message, creator, publication]):
             raise ValidationError("Requires valid message [%s], creator [%s], and publication [%s]",
                                   message, creator, publication)
         return self.create(action=PublicationAuditLog.Action.CURATOR_EDIT,
-                           message=message, creator=creator, publication=publication)
+                           message=message, creator=creator, publication=publication, modified_data=modified_data)
 
 
 class PublicationAuditLog(models.Model):
@@ -255,6 +256,7 @@ class PublicationAuditLog(models.Model):
     publication = models.ForeignKey(Publication, related_name='audit_log_set')
     message = models.TextField(blank=True)
     creator = models.ForeignKey(User, null=True, blank=True, help_text=_('The user who initiated this action, if any.'))
+    modified_data = JSONField(blank=True, null=True, help_text=_('A JSON dictionary containing modified fields, if any, for the given publication'))
 
     objects = PublicationAuditLogManager.from_queryset(PublicationAuditLogQuerySet)()
 

@@ -1,10 +1,8 @@
-from invoke import ctask, task, run
+from invoke import task, run
 
 import logging
 import os
-import shutil
 import re
-import sys
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +43,7 @@ def clean_update():
 
 @task
 def sh():
-    dj('shell_plus')
+    dj('shell_plus --ipython', pty=True)
 
 
 def dj(command, **kwargs):
@@ -131,6 +129,7 @@ def restore_from_dump(dumpfile='catalog.sql', init_db_schema=True):
     if os.path.isfile(dumpfile):
         logger.debug("loading data from %s", dumpfile)
         run('psql {db_name} {db_user} < {dumpfile}'.format(dumpfile=dumpfile, **env))
+        refactor()
     if init_db_schema:
         initialize_database_schema()
 

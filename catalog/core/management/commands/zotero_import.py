@@ -178,8 +178,9 @@ class Command(BaseCommand):
             logger.debug("article with key %s already present %s", zotero_key, article)
             return article
         except Publication.DoesNotExist:
-            article.zotero_key = zotero_key
+            article = Publication()
 
+        article.zotero_key = zotero_key
         article = self.set_common_fields(article, data, meta)
         article.journal = Journal.objects.get_or_create(
             name=data['publicationTitle'].strip(),
