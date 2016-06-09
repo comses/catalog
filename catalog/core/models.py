@@ -11,7 +11,6 @@ from django.utils.translation import ugettext_lazy as _
 from model_utils import Choices
 from model_utils.managers import InheritanceManager
 
-from typing import Iterable
 
 class InvitationEmail(object):
 

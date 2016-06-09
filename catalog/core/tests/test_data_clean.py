@@ -28,7 +28,7 @@ class SplitTests(TestCase):
 
     def test_split_platform_different_new_names(self):
         new_names = ["C#", ".NET"]
-        processor = dedupe.DataProcessor('platform.split')
+        processor = dedupe.DataProcessor(models.Platform)
         processor.split_record(name=self.name, new_names=new_names)
 
         self.assertEqual(self.publication_dotnet.platforms.filter(name="C#").count(), 1)
@@ -37,7 +37,7 @@ class SplitTests(TestCase):
 
     def test_split_platform_same_new_name(self):
         new_names = ["C#/.NET", ".NET"]
-        processor = dedupe.DataProcessor('platform.split')
+        processor = dedupe.DataProcessor(models.Platform)
         processor.split_record(name=self.name, new_names=new_names)
 
         self.assertEqual(self.publication_dotnet.platforms.filter(name="C#/.NET").count(), 1)
@@ -69,7 +69,7 @@ class SplitTests(TestCase):
         self.assertEqual(publication_netlogo.platforms.filter(name=self.name).first(), None)
         self.assertEqual(publication_netlogo.platforms.filter(name="NetLogo").first(), platform_netlogo)
 
-        processor = dedupe.DataProcessor('platform.split')
+        processor = dedupe.DataProcessor(models.Platform)
         processor.split_record(name=self.name, new_names=["C#", ".NET"])
 
         self.assertEqual(publication_netlogo_dotnet.platforms.filter(name="C#").count(), 1)
@@ -99,8 +99,7 @@ class MergeTests(TestCase):
                                             email='bob@bob.com',
                                             password='bobsled')
 
-        sponsors = [models.Sponsor.objects.create(name=name)
-                   for name in cls.names]
+        sponsors = [models.Sponsor.objects.create(name=name) for name in cls.names]
         publication = models.Publication.objects.create(title="Foo", added_by=cls.user)
         publication.sponsors.add(*sponsors)
         publication.save()
@@ -110,7 +109,7 @@ class MergeTests(TestCase):
 
     def test_merge_platform_different_new_name(self):
         new_name = "European Commission"
-        processor = dedupe.DataProcessor('sponsor.merge')
+        processor = dedupe.DataProcessor(models.Sponsor)
         new_sponsor = processor.merge_records(names=self.names, new_name=new_name)
 
         self.assertEqual(self.publication.sponsors.filter(name__in=self.names).first(), None)
@@ -118,7 +117,7 @@ class MergeTests(TestCase):
 
     def test_merge_platform_same_new_name(self):
         new_name = "Euro. Commission"
-        processor = dedupe.DataProcessor('sponsor.merge')
+        processor = dedupe.DataProcessor(models.Sponsor)
         new_sponsor = processor.merge_records(names=self.names, new_name=new_name)
 
         self.assertEqual(self.publication.sponsors.filter(name__in=self.names).first(), new_sponsor)
@@ -135,7 +134,7 @@ class MergeTests(TestCase):
         publication_nsf.sponsors.add(sponsor_nsf)
 
         new_name = "Euro. Commission"
-        processor = dedupe.DataProcessor('sponsor.merge')
+        processor = dedupe.DataProcessor(models.Sponsor)
         new_sponsor = processor.merge_records(names=self.names, new_name=new_name)
 
         self.assertEqual(models.Sponsor.objects.filter(name=new_name).first(), new_sponsor)
@@ -143,8 +142,8 @@ class MergeTests(TestCase):
         self.assertEqual(models.Sponsor.objects.filter(name=self.names[1]).first(), None)
 
         self.assertCountEqual(list(publication_euro_commission_nsf.sponsors.all()),
-                             [sponsor_nsf, new_sponsor])
+                              [sponsor_nsf, new_sponsor])
         self.assertCountEqual(list(publication_nsf.sponsors.all()),
-                             [sponsor_nsf])
+                              [sponsor_nsf])
         self.assertCountEqual(list(self.publication.sponsors.all()),
-                             [new_sponsor])
+                              [new_sponsor])
