@@ -206,15 +206,15 @@ class Publication(models.Model):
     is_primary = models.BooleanField(default=True)
 
 # journal specific fields
-    journal = models.ForeignKey(Journal, null=True, blank=True)
-    pages = models.CharField(max_length=255, null=True, blank=True)
-    issn = models.CharField(max_length=255, null=True, blank=True)
-    volume = models.CharField(max_length=255, null=True, blank=True)
-    issue = models.CharField(max_length=255, null=True, blank=True)
-    series = models.CharField(max_length=255, null=True, blank=True)
-    series_title = models.CharField(max_length=255, null=True, blank=True)
-    series_text = models.CharField(max_length=255, null=True, blank=True)
-    doi = models.CharField(max_length=255, null=True, blank=True)
+    journal = models.ForeignKey(Journal, null=True, blank=True, on_delete=models.SET_NULL)
+    pages = models.CharField(max_length=255, default='', blank=True)
+    issn = models.CharField(max_length=255, default='', blank=True)
+    volume = models.CharField(max_length=255, default='', blank=True)
+    issue = models.CharField(max_length=255, default='', blank=True)
+    series = models.CharField(max_length=255, default='', blank=True)
+    series_title = models.CharField(max_length=255, default='', blank=True)
+    series_text = models.CharField(max_length=255, default='', blank=True)
+    doi = models.CharField(max_length=255, default='', blank=True)
 
     def is_editable_by(self, user):
         # eventually consider having permission groups or per-object permissions
