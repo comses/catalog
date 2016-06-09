@@ -1,5 +1,5 @@
 from django.test import TestCase
-from .. import data_clean, models
+from .. import dedupe, models
 from django.contrib.auth.models import User
 
 import logging
@@ -28,7 +28,8 @@ class SplitTests(TestCase):
 
     def test_split_platform_different_new_names(self):
         new_names = ["C#", ".NET"]
-        data_clean.split_record(name=self.name, new_names=new_names, table=models.Platform, related_name="platforms")
+        processor = dedupe.DataProcessor('platform.split')
+        processor.split_record(name=self.name, new_names=new_names)
 
         self.assertEqual(self.publication_dotnet.platforms.filter(name="C#").count(), 1)
         self.assertEqual(self.publication_dotnet.platforms.filter(name=".NET").count(), 1)
@@ -36,7 +37,8 @@ class SplitTests(TestCase):
 
     def test_split_platform_same_new_name(self):
         new_names = ["C#/.NET", ".NET"]
-        data_clean.split_record(name=self.name, new_names=new_names, table=models.Platform, related_name="platforms")
+        processor = dedupe.DataProcessor('platform.split')
+        processor.split_record(name=self.name, new_names=new_names)
 
         self.assertEqual(self.publication_dotnet.platforms.filter(name="C#/.NET").count(), 1)
         self.assertEqual(self.publication_dotnet.platforms.filter(name=".NET").count(), 1)
@@ -67,7 +69,8 @@ class SplitTests(TestCase):
         self.assertEqual(publication_netlogo.platforms.filter(name=self.name).first(), None)
         self.assertEqual(publication_netlogo.platforms.filter(name="NetLogo").first(), platform_netlogo)
 
-        data_clean.split_record(name=self.name, new_names=["C#", ".NET"], table=models.Platform, related_name="platforms")
+        processor = dedupe.DataProcessor('platform.split')
+        processor.split_record(name=self.name, new_names=["C#", ".NET"])
 
         self.assertEqual(publication_netlogo_dotnet.platforms.filter(name="C#").count(), 1)
         self.assertEqual(self.publication_dotnet.platforms.filter(name=".NET").count(), 1)
@@ -107,14 +110,16 @@ class MergeTests(TestCase):
 
     def test_merge_platform_different_new_name(self):
         new_name = "European Commission"
-        new_sponsor = data_clean.merge_sponsors(names=self.names, new_name=new_name)
+        processor = dedupe.DataProcessor('sponsor.merge')
+        new_sponsor = processor.merge_records(names=self.names, new_name=new_name)
 
         self.assertEqual(self.publication.sponsors.filter(name__in=self.names).first(), None)
         self.assertEqual(self.publication.sponsors.get(name=new_name), new_sponsor)
 
     def test_merge_platform_same_new_name(self):
         new_name = "Euro. Commission"
-        new_sponsor = data_clean.merge_sponsors(names=self.names, new_name=new_name)
+        processor = dedupe.DataProcessor('sponsor.merge')
+        new_sponsor = processor.merge_records(names=self.names, new_name=new_name)
 
         self.assertEqual(self.publication.sponsors.filter(name__in=self.names).first(), new_sponsor)
         self.assertEqual(self.publication.sponsors.get(name=new_name), new_sponsor)
@@ -130,15 +135,16 @@ class MergeTests(TestCase):
         publication_nsf.sponsors.add(sponsor_nsf)
 
         new_name = "Euro. Commission"
-        new_sponsor = data_clean.merge_sponsors(names=self.names, new_name=new_name)
+        processor = dedupe.DataProcessor('sponsor.merge')
+        new_sponsor = processor.merge_records(names=self.names, new_name=new_name)
 
         self.assertEqual(models.Sponsor.objects.filter(name=new_name).first(), new_sponsor)
-        self.assertNotEqual(sponsor_euro_commission, new_sponsor)
+        self.assertEqual(sponsor_euro_commission, new_sponsor)
         self.assertEqual(models.Sponsor.objects.filter(name=self.names[1]).first(), None)
 
-        self.assertListEqual(list(publication_euro_commission_nsf.sponsors.all()),
+        self.assertCountEqual(list(publication_euro_commission_nsf.sponsors.all()),
                              [sponsor_nsf, new_sponsor])
-        self.assertListEqual(list(publication_nsf.sponsors.all()),
+        self.assertCountEqual(list(publication_nsf.sponsors.all()),
                              [sponsor_nsf])
-        self.assertListEqual(list(self.publication.sponsors.all()),
+        self.assertCountEqual(list(self.publication.sponsors.all()),
                              [new_sponsor])
