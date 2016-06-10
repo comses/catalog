@@ -124,18 +124,8 @@ def restore_from_dump(dumpfile='catalog.sql', init_db_schema=True):
     if os.path.isfile(dumpfile):
         logger.debug("loading data from %s", dumpfile)
         run('psql {db_name} {db_user} < {dumpfile}'.format(dumpfile=dumpfile, **env))
-        refactor()
     if init_db_schema:
         initialize_database_schema()
-
-
-@task
-def refactor(sqlfile="deploy/db/refactor_publication_model.sql"):
-    run_chain(
-        'psql {db_name} {db_user} -f {sqlfile}'.format(sqlfile=sqlfile, **env),
-        'rm -rf catalog/core/migrations/*',
-        '{python} manage.py makemigrations core'.format(**env),
-        '{python} manage.py migrate core --fake-initial'.format(**env))
 
 
 @task(aliases=['idb', 'init_db'])

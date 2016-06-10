@@ -110,8 +110,8 @@ class Note(models.Model):
 class Platform(models.Model):
     """ model platform, e.g, NetLogo or RePast """
     name = models.CharField(max_length=255, unique=True)
-    url = models.URLField(null=True, blank=True)
-    description = models.TextField(null=True, blank=True)
+    url = models.URLField(default='', blank=True)
+    description = models.TextField(default='', blank=True)
 
     def __unicode__(self):
         return self.name
@@ -125,8 +125,8 @@ class PlatformVersion(models.Model):
 class Sponsor(models.Model):
     """ funding agency sponsoring this research """
     name = models.CharField(max_length=255, unique=True)
-    url = models.URLField(blank=True)
-    description = models.TextField(blank=True)
+    url = models.URLField(default='', blank=True)
+    description = models.TextField(default='', blank=True)
 
     def __unicode__(self):
         return self.name
@@ -182,7 +182,7 @@ class Publication(models.Model):
     contact_email = models.EmailField(blank=True)
     platforms = models.ManyToManyField(Platform, blank=True, related_name='publications')
     sponsors = models.ManyToManyField(Sponsor, blank=True, related_name='publications')
-    model_documentation = models.ManyToManyField(ModelDocumentation, blank=True)
+    model_documentation = models.ManyToManyField(ModelDocumentation, blank=True, related_name='publications')
     tags = models.ManyToManyField(Tag, blank=True)
     added_by = models.ForeignKey(User, related_name='added_publication_set')
 
@@ -271,31 +271,3 @@ class PublicationAuditLog(models.Model):
 
     class Meta:
         ordering = ['-date_added']
-
-"""
-class Book(Publication):
-    series = models.CharField(max_length=255, blank=True)
-    series_number = models.CharField(max_length=32, blank=True)
-    volume = models.CharField(max_length=32, blank=True)
-    num_of_volume = models.CharField(max_length=32, blank=True)
-    edition = models.CharField(max_length=32, blank=True)
-    place = models.CharField(max_length=32, blank=True)
-    publisher = models.CharField(max_length=255, blank=True)
-    num_of_pages = models.CharField(max_length=32, blank=True)
-    isbn = models.CharField(max_length=255, blank=True)
-
-class Report(Publication):
-    report_number = models.PositiveIntegerField(null=True, blank=True)
-    report_type = models.CharField(max_length=255)
-    series_title = models.CharField(max_length=255)
-    place = models.CharField(max_length=255)
-    institution = models.CharField(max_length=255)
-    pages = models.PositiveIntegerField(null=True, blank=True)
-
-
-class Thesis(Publication):
-    thesis_type = models.CharField(max_length=255)
-    university = models.CharField(max_length=255)
-    place = models.CharField(max_length=255)
-    num_of_pages = models.PositiveIntegerField(null=True, blank=True)
-"""

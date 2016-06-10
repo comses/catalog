@@ -12,6 +12,7 @@ class DataProcessor(object):
     model_names = {
         models.Platform: 'platforms',
         models.Sponsor: 'sponsors',
+        models.ModelDocumentation: 'model_documentation'
     }
 
     def __init__(self, model):
@@ -24,8 +25,15 @@ class DataProcessor(object):
                 self.merge(path)
             elif action == '.split':
                 self.split(path)
+            elif action == '.delete':
+                self.delete(path)
             else:
                 raise ValueError("Invalid action extension {0}. Must be '.merge' or '.split'".format(action))
+
+    def delete(self, path):
+        with open(path, "r") as f:
+            names = ast.literal_eval(f.read())
+            self.model.objects.filter(name__in=names).delete()
 
     def split(self, path):
         with open(path, "r") as f:

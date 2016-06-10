@@ -12,20 +12,6 @@ class Command(BaseCommand):
         parser.add_argument('--file',
                             dest='path',
                             help='file to clean data with')
-        """ FIXME: move to dedicated management command
-        parser.add_argument('--table',
-                            dest='table',
-                            help='table to clean data with. Use only with the --delete flag')
-        parser.add_argument('--delete',
-                            nargs="*",
-                            dest="deleted_names",
-                            help="records to delete")
-        """
-
-    @staticmethod
-    def delete_records(table, names):
-        for name in names:
-            table.objects.filter(name__iexact=name).delete()
 
     def parse_path(self, path):
         filename, ext = os.path.splitext(os.path.basename(path))
@@ -34,6 +20,8 @@ class Command(BaseCommand):
             return (models.Platform, ext)
         elif filename == 'sponsor':
             return (models.Sponsor, ext)
+        elif filename == 'model_documentation':
+            return (models.ModelDocumentation, ext)
         else:
             raise ValueError("Unsupported filename '{0}': should be 'platform' or 'sponsor'".format(filename))
 
