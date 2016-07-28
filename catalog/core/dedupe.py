@@ -27,8 +27,16 @@ class DataProcessor(object):
                 self.split(path)
             elif action == '.delete':
                 self.delete(path)
+            elif action == '.insert':
+                self.insert(path)
             else:
                 raise ValueError("Invalid action extension {0}. Must be '.merge' or '.split'".format(action))
+
+    def insert(self, path):
+        with open(path, "r") as f:
+            names = ast.literal_eval(f.read())
+            self.model.objects.bulk_create([
+                self.model(name=name) for name in names])
 
     def delete(self, path):
         with open(path, "r") as f:

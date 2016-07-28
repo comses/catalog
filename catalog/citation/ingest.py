@@ -1,10 +1,12 @@
 import bibtexparser
+import json
+
 from . import merger
+from . import bibtex as bibtex_api
 from .bibtex import entry as bibtex_entry_api
 from .crossref import doi_lookup as crossref_doi_api, author_year_lookup as crossref_search_api
 from . import models
 from django.db import connection
-
 
 from typing import List
 
@@ -12,44 +14,22 @@ from typing import List
 class BadDoiLookup(Exception): pass
 
 
-SLEEP_TIME = 0.1
-
-
-def load_bibtex(file_name):
-    with open(file_name) as f:
-        contents = f.read()
-        bib_db = bibtexparser.loads(contents)
-        return bib_db.entries
-
-
-def display(publication_raw, ind):
-    if publication_raw.primary:
+def display(publication, ind):
+    if publication.is_primary:
         begin = ""
     else:
         begin = "\t"
-    print("{}{} Year: {}; Title: {}; DOI: {}"
+    print("{}{} Date Added: {}; Title: {}; DOI: {}"
           .format(begin,
                   ind,
-                  publication_raw.year,
-                  publication_raw.title,
-                  publication_raw.doi))
+                  publication.date_added,
+                  publication.title,
+                  publication.doi))
+
+SLEEP_TIME = 0.1
 
 
-def ingest(entries: List):
-    publications_raw = []
-    for (ind, entry) in enumerate(entries):
-        publication_raw = bibtex_entry_api.process(entry)
-        publications_raw.append(publication_raw)
-        display(publication_raw, ind)
-    return publications_raw
-
-
-def dedupe_publications_by_doi():
-    mergeset = merger.create_publication_mergeset_by_doi()
-    merger.merge_publications(mergeset)
-
-
-def crossref_dois_lookup(limit=None):
+def ingest_crossref_doi(data_source, limit=None):
     """
     Add missing information with CrossRef DOI search
 
@@ -57,19 +37,18 @@ def crossref_dois_lookup(limit=None):
     """
 
     sql = \
-        """SELECT id, doi
-        FROM citation_publication
-        WHERE doi <> '' AND id IN (
-            SELECT publication_id
-            FROM citation_raw AS raw
-            LEFT JOIN citation_publicationraw AS raw_pub ON raw_pub.raw_id = raw.id
-            INNER JOIN citation_publication AS pub ON pub.id = raw.publication_id
-            GROUP BY publication_id
-            HAVING bool_and(raw.key = 'BIBTEX_ENTRY' OR
-                            raw.key = 'BIBTEX_REF') AND
-                   (bool_and(pub.title = '') OR
-                    bool_and(pub.abstract = '') OR
-                    bool_and(pub.year IS NULL)))"""
+        """
+        SELECT pubs.id, doi
+        FROM citation_publication AS pubs
+        INNER JOIN citation_raw_publications AS raw_pubs ON raw_pubs.publication_id = pubs.id
+        INNER JOIN citation_raw AS raw ON raw.id = raw_pubs.raw_id
+        GROUP BY pubs.id, doi
+        HAVING bool_and(raw.key = 'BIBTEX_ENTRY' OR
+                        raw.key = 'BIBTEX_REF') AND
+               (bool_and(pubs.title = '') OR
+                bool_and(pubs.abstract = '') OR
+                bool_and(pubs.date_published IS NULL))
+        ORDER BY id"""
 
     if isinstance(limit, int) and 1 <= limit:
         sql += "\nLIMIT {};".format(limit)
@@ -81,41 +60,28 @@ def crossref_dois_lookup(limit=None):
     for (ind, publication) in enumerate(publications):
         print("Entry")
         display(publication, ind)
-        other_publication_raw = crossref_doi_api.update(publication)
-        if isinstance(other_publication_raw, models.PublicationRaw):
-            display(other_publication_raw, ind)
+        other_publication = crossref_doi_api.update(publication, data_source)
+        if isinstance(other_publication, models.Publication):
+            display(other_publication, ind)
         else:
-            print("\t{} {}".format(ind, other_publication_raw))
+            print("\t{} {}".format(ind, other_publication))
 
 
-def crossref_year_author_lookup(limit=None):
+def ingest_crossref_search(data_source, limit=None):
     """Add missing information with CrossRef year author search"""
 
     sql = \
-        """SELECT id AS raw_id,
-               publication_id,
-               year,
-               title,
-               doi,
-               raw_authors.names AS names
-        FROM citation_raw AS raw
-        LEFT JOIN citation_publicationraw AS raw_pub ON raw_pub.raw_id = raw.id
-        LEFT JOIN (
-          SELECT raw_id, array_agg(name) AS names
-          FROM citation_authorraw
-          GROUP BY raw_id
-        ) AS raw_authors ON raw_authors.raw_id = raw.id
-        WHERE publication_id IN (
-            SELECT publication_id
-            FROM citation_raw AS raw
-            LEFT JOIN citation_publicationraw AS raw_pub ON raw_pub.raw_id = raw.id
-            LEFT JOIN citation_publication AS pub ON pub.id = raw.publication_id
-            GROUP BY publication_id
-            HAVING bool_and(raw.key = 'BIBTEX_ENTRY' OR
-                            raw.key = 'BIBTEX_REF') AND
-                   (bool_and(pub.title = '') OR
-                    bool_and(pub.abstract = '') OR
-                    bool_and(pub.year IS NULL)))
+        """
+        SELECT pubs.id, title, doi, date_published
+        FROM citation_publication AS pubs
+        INNER JOIN citation_raw_publications AS raw_pubs ON raw_pubs.publication_id = pubs.id
+        INNER JOIN citation_raw AS raw ON raw.id = raw_pubs.raw_id
+        GROUP BY pubs.id, title, doi, date_published
+        HAVING bool_and(raw.key = 'BIBTEX_ENTRY' OR
+                        raw.key = 'BIBTEX_REF') AND
+               (bool_and(pubs.title = '') OR
+                bool_and(pubs.abstract = '') OR
+                bool_and(pubs.date_published IS NULL))
         ORDER BY id"""
 
     if isinstance(limit, int) and 1 <= limit:
@@ -133,6 +99,36 @@ def crossref_year_author_lookup(limit=None):
     for (ind, year_author_result) in enumerate(year_author_results):
         print("Entry")
         print("\t{ind} Year: {year}, Title: {title}, DOI: {doi} ID: {publication_id}".format(ind=ind, **year_author_result))
-        other_publication_raw = crossref_search_api.update(year_author_result)
+        other_publication_raw = crossref_search_api.update(year_author_result, data_source)
         if other_publication_raw:
             display(other_publication_raw, ind)
+
+
+def dedupe_publications_by_doi():
+    mergeset = merger.create_publication_mergeset_by_doi()
+    merger.merge_publications(mergeset)
+
+
+def dedupe_publications_by_title():
+    mergeset = merger.create_publication_mergeset_by_titles()
+    merger.merge_publications(mergeset)
+
+
+def dedupe_containers_by_issn():
+    mergeset = merger.create_container_mergeset_by_issn()
+    merger.merge_containers(mergeset)
+
+
+def dedupe_containers_by_name():
+    mergeset = merger.create_container_mergeset_by_name()
+    merger.merge_containers(mergeset)
+
+
+def dedupe_authors_by_orcid():
+    mergeset = merger.create_author_mergeset_by_orcid()
+    merger.merge_containers(mergeset)
+
+
+def dedupe_authors_by_publication_and_name():
+    mergeset = merger.create_author_mergeset_by_name()
+    merger.merge_authors(mergeset)

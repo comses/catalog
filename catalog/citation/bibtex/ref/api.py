@@ -3,6 +3,7 @@ from typing import List, Optional
 from ... import util
 from ... import models
 
+import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,27 +12,26 @@ logger = logging.getLogger(__name__)
 class NullError(Exception): pass
 
 
-def make_container(raw: models.Raw, container_str: str) -> models.Container:
-    container = models.Container.objects.create()
-    container_alias = models.ContainerAlias.objects.create(container=container,
-                                                           name=container_str)
-    models.ContainerRaw.objects.create(raw=raw,
-                                       publication_raw_id=raw.id,
-                                       name=container_str,
-                                       container_alias=container_alias)
-    return container
+def make_container(container_str: str, audit_command: models.AuditCommand) -> models.Container:
+    container = models.Container.objects.log_create(
+        audit_command=audit_command,
+        payload={})
+    container_alias = models.ContainerAlias.objects.log_create(
+        audit_command=audit_command,
+        payload={'container': container,
+                 'name': container_str})
+    return container, container_alias
 
 
-def make_author(raw: models.Raw, author_str: str) -> models.Author:
+def make_author(author_str: str, audit_command: models.AuditCommand) -> models.Author:
     cleaned_author_str = util.last_name_and_initials(util.normalize_name(author_str))
-    author = models.Author.objects.create(type=models.Author.INDIVIDUAL)
-    author_alias = models.AuthorAlias.objects.create(author=author,
-                                                     name=cleaned_author_str)
-    models.AuthorRaw.objects.create(raw=raw,
-                                    publication_raw_id=raw.id,
-                                    name=cleaned_author_str,
-                                    type=models.AuthorRaw.INDIVIDUAL,
-                                    author_alias=author_alias)
+    author = models.Author.objects.log_create(
+        audit_command=audit_command,
+        payload={'type': models.Author.INDIVIDUAL})
+    author_alias = models.AuthorAlias.objects.log_create(
+        audit_command=audit_command,
+        payload={'author': author,
+                 'name': cleaned_author_str})
     return author
 
 
@@ -48,12 +48,12 @@ def make_doi(ref: str) -> str:
         return ""
 
 
-def make_year(year_str: str) -> int:
-    year = None
+def make_date_published(year_str: str) -> int:
+    date_published = None
     if year_str:
         if year_str.isnumeric():
-            year = int(year_str)
-    return year
+            date_published = datetime.date(int(year_str), 1, 1)
+    return date_published
 
 
 def guess_elements(ref):
@@ -77,7 +77,10 @@ def guess_elements(ref):
     return author_str or "", year_str or "", container_str or ""
 
 
-def process(publication_raw: models.PublicationRaw, ref: str) -> models.PublicationRaw:
+def process(publication: models.Publication,
+            ref: str,
+            raw: models.Raw,
+            audit_command: models.AuditCommand) -> models.Publication:
     author_str = None
     year_str = None
     container_str = None
@@ -87,40 +90,34 @@ def process(publication_raw: models.PublicationRaw, ref: str) -> models.Publicat
 
     doi = make_doi(ref)
 
-    secondary_publication = models.Publication.objects.create(
-        title="",
-        year=make_year(year_str),
-        doi=doi,
-        abstract="",
-        primary=False)
+    secondary_publication = models.Publication.objects.log_create(
+        audit_command=audit_command,
+        payload={'title': '',
+                 'date_published_text': year_str,
+                 'date_published': make_date_published(year_str),
+                 'doi': doi,
+                 'abstract': '',
+                 'is_primary': False,
+                 'added_by': audit_command.creator})
 
-    secondary_raw = models.Raw.objects.create(
-        key=models.Raw.BIBTEX_REF,
-        value=ref,
-        publication=secondary_publication)
+    author = make_author(author_str, audit_command)
+    container = make_container(container_str, audit_command)
 
-    secondary_publication_raw = models.PublicationRaw.objects.create(
-        title=secondary_publication.title,
-        year=secondary_publication.year,
-        doi=doi,
-        abstract=secondary_publication.abstract,
-        primary=False,
-        raw=secondary_raw,
-        referenced_by=publication_raw)
-
-    author = make_author(secondary_raw, author_str)
-    container = make_container(secondary_raw, container_str)
-
-    secondary_publication.authors.add(author)
+    secondary_publication.raw.add(raw)
+    secondary_publication.creators.add(author)
+    secondary_publication.referenced_by.add(publication)
     secondary_publication.container = container
     secondary_publication.save()
 
-    return secondary_publication_raw
+    return secondary_publication
 
 
-def process_many(publication_raw: models.PublicationRaw, refs_str: Optional[str]) -> List[models.PublicationRaw]:
+def process_many(publication: models.Publication,
+                 refs_str: Optional[str],
+                 raw: models.Raw,
+                 audit_command) -> List[models.Publication]:
     if refs_str:
         refs = refs_str.split("\n")
     else:
         refs = []
-    return [process(publication_raw, ref) for ref in refs]
+    return [process(publication, ref, raw, audit_command) for ref in refs]

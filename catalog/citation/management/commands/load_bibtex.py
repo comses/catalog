@@ -1,8 +1,9 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.contrib.auth.models import User
 import os
 
-from ...ingest import ingest, load_bibtex
+from ... import bibtex as bibtex_api
 
 import logging
 
@@ -14,15 +15,16 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--file',
                             dest='file_name',
-                            help='name of file you want to load into the db')
+                            help='settings json file describing how you want to load into the db')
+        parser.add_argument('--username',
+                            dest='user_name',
+                            help='username to load the data into the db as')
 
     def handle(self, *args, **options):
         file_name = options['file_name']
         if not os.path.exists(file_name):
-            logger.error("File '{}' does not exist".format(file_name))
+            logger.error("Settings file '{}' does not exist".format(file_name))
         else:
-            entries = load_bibtex(file_name)
-            logger.info("BibTeX entries processed")
-            with transaction.atomic():
-                ingest(entries)
-            logger.info("BibTeX entries loaded into DB")
+            user_name = options['user_name']
+            user = User.objects.get(username=user_name)
+            bibtex_api.process_entries(file_name, user)

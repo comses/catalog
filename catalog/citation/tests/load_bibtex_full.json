@@ -1,0 +1,10 @@
+{ "file_name": "full.bib"
+, "steps":
+    [ {"table": "project", "strategy": "doi" }
+    , {"table": "author", "strategy": "orcid" }
+    , {"table": "container", "strategy": "issn" }
+    , {"table": "project", "strategy": "title" }
+    , {"table": "author", "strategy": "name"}
+    , {"table": "container", "strategy": "name" }
+    ]
+}

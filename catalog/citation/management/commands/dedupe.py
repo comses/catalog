@@ -1,7 +1,10 @@
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from ...ingest import dedupe_publications_by_doi
+from ...ingest import (dedupe_publications_by_doi,
+                       dedupe_containers_by_issn,
+                       dedupe_containers_by_name,
+                       dedupe_authors_by_publication_and_name)
 from ...crossref.common import fix_raw_authors, fix_raw_containers
 
 import logging
@@ -29,8 +32,12 @@ class Command(BaseCommand):
         'publication': {
             'doi': dedupe_publications_by_doi
         },
-        'fix': {
-            'fix': fix
+        'container': {
+            'issn': dedupe_containers_by_issn,
+            'name': dedupe_containers_by_name
+        },
+        'author': {
+            'publication_and_name': dedupe_authors_by_publication_and_name
         }
     }
 
