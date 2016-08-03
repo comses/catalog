@@ -4,7 +4,7 @@ from django.db.models import Count
 from ...models import PublicationRaw
 import os
 
-from ...ingest import ingest_bibtex, ingest_crossref_doi, ingest_crossref_search
+from ...ingest import ingest_bibtex, ingest_crossref_doi, process_entries
 
 import logging
 
@@ -31,5 +31,5 @@ class Command(BaseCommand):
                 ingest_crossref_doi(options['n_of_entries'])
             logger.info("CrossRef DOI entries loaded into DB")
         elif options['api'] == 'crossref_search_api':
-            ingest_crossref_search(options['n_of_entries'])
+            process_entries(options['n_of_entries'])
             logger.info("CrossRef search entries loaded into DB")

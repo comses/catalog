@@ -1,10 +1,9 @@
+begin;
+
 TRUNCATE TABLE public.citation_author
     RESTART IDENTITY
     CASCADE;
 TRUNCATE TABLE public.citation_authoralias
-    RESTART IDENTITY
-    CASCADE;
-TRUNCATE TABLE public.citation_authorraw
     RESTART IDENTITY
     CASCADE;
 TRUNCATE TABLE public.citation_container
@@ -28,10 +27,10 @@ TRUNCATE TABLE public.citation_platform
 TRUNCATE TABLE public.citation_publication
     RESTART IDENTITY
     CASCADE;
-TRUNCATE TABLE public.citation_publication_citations
+TRUNCATE TABLE public.citation_publicationcitations
     RESTART IDENTITY
     CASCADE;
-TRUNCATE TABLE public.citation_publication_creators
+TRUNCATE TABLE public.citation_publicationauthors
     RESTART IDENTITY
     CASCADE;
 TRUNCATE TABLE public.citation_publication_model_documentation
@@ -59,8 +58,8 @@ TRUNCATE TABLE public.citation_tag
     RESTART IDENTITY
     CASCADE;
 
-insert into citation_author (id, type, creator_type, orcid)
-  select id, 'INDIVIDUAL', creator_type, ''
+insert into citation_author (id, type, creator_type, orcid, date_added, date_modified)
+  select id, 'INDIVIDUAL', creator_type, '', now(), now()
   from core_creator;
 
 insert into citation_authoralias (id, name, author_id)
@@ -68,8 +67,8 @@ insert into citation_authoralias (id, name, author_id)
   from core_creator;
 
 
-insert into citation_container (id, issn, type)
-  select id, '', 'Journal Article'
+insert into citation_container (id, issn, type, date_added, date_modified)
+  select id, '', 'Journal Article', now(), now()
   from core_journal;
 
 insert into citation_containeralias (id, name, container_id)
@@ -107,9 +106,9 @@ insert into citation_note
   select id, text, date_added, date_modified, zotero_key, zotero_date_added, zotero_date_modified, deleted_on, added_by_id, deleted_by_id, publication_id
   from core_note;
 
-insert into citation_publication_creators
-  select *
-  from core_publication_sponsors;
+insert into citation_publicationauthors (id, publication_id, author_id, date_added)
+  select id, publication_id, creator_id as author_id, now()
+  from core_publication_creators;
 
 insert into citation_publication_model_documentation
   select *
@@ -143,11 +142,13 @@ select setval('citation_tag_id_seq', nextval('core_tag_id_seq'));
 
 select setval('citation_publication_id_seq', nextval('core_publication_id_seq'));
 select setval('citation_note_id_seq', nextval('core_note_id_seq'));
-select setval('citation_publication_creators_id_seq', nextval('core_publication_creators_id_seq'));
+select setval('citation_publicationauthors_id_seq', nextval('core_publication_creators_id_seq'));
 select setval('citation_publication_model_documentation_id_seq', nextval('core_publication_model_documentation_m2m_id_seq'));
 select setval('citation_publication_platforms_id_seq', nextval('core_publication_platforms_id_seq'));
 select setval('citation_publication_sponsors_id_seq', nextval('core_publication_sponsors_id_seq'));
 select setval('citation_publication_tags_id_seq', nextval('core_publication_tags_id_seq'));
+
+commit;
 
 -- Another time
 -- insert into citation_publicationauditlog (id, creator_id, action, date_added, message, payload)

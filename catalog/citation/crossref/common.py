@@ -1,4 +1,5 @@
 from .. import models, util
+from django.contrib.auth.models import User
 
 import json
 import requests
@@ -49,50 +50,70 @@ class DetachedPublication:
             publication = models.Publication.objects.get(id=publication_id)
             if match is not None:
                 self.raw.value["match_ids"] = [match]
+
+
+            container, container_alias = update_container(
+                audit_command=self.audit_command,
+                detached_container=self.container,
+                detached_container_alias=self.container_alias,
+                existing_container=publication.journal)
+
+            publication.journal = container
+            update_publication(publication, self.publication, self.audit_command)
+
+            self.raw.publication = publication
+            self.raw.container_alias = container_alias
             self.raw.save()
 
-            self.container.log_save(self.audit_command)
-            self.container_alias.container = self.container
-            self.container_alias.log_save(self.audit_command)
-            self.container_alias.raw.add(self.raw)
-
-            self.publication.journal = self.container
-            self.publication.save()
-            self.publication.raw.add(self.raw)
-
             for (author, author_alias) in self.authors_author_alias_pairs:
-                author.save()
+                author.log_save(self.audit_command)
                 author_alias.author = author
-                author_alias.save()
+                author_alias.log_save(self.audit_command)
 
-                self.publication.authors.add(author)
+                models.AuthorAliasRaws.objects.log_create(
+                    self.audit_command,
+                    payload={'author_alias_id': author_alias.id, 'raw_id': self.raw.id})
 
-                author.raw_id = self.raw.id
-                author.author_alias = author_alias
-                author.save()
 
-            update_publication(publication, self.publication, self.audit_command)
+def update_container(existing_container: Optional[models.Container],
+                     detached_container: models.Container,
+                     detached_container_alias: models.ContainerAlias,
+                     audit_command: models.AuditCommand):
+    if existing_container:
+        if existing_container.issn == '':
+            existing_container.issn = detached_container.issn
+    else:
+        existing_container = detached_container
+
+    existing_container.log_save(audit_command)
+    container_alias, created = models.ContainerAlias.objects.log_get_or_create(
+        audit_command,
+        payload={'container_id': existing_container.id, 'name': detached_container_alias.name},
+        name=detached_container_alias.name,
+        container_id=existing_container.id)
+
+    return existing_container, container_alias
 
 
 def update_publication(
-        publication: models.Publication,
+        existing_publication: models.Publication,
         detached_publication: models.Publication,
         audit_command: models.AuditCommand):
     payload = {}
-    if publication.year is None:
-        publication.year = detached_publication.year
-        payload["year"] = detached_publication.year
-    if not publication.title:
-        publication.title = detached_publication.title
+    if existing_publication.date_published_text is None:
+        existing_publication.date_published_text = detached_publication.date_published_text
+        payload["date_published_text"] = detached_publication.date_published_text
+    if not existing_publication.title:
+        existing_publication.title = detached_publication.title
         payload["title"] = detached_publication.title
-    if not publication.doi:
-        publication.doi = detached_publication.doi
+    if not existing_publication.doi:
+        existing_publication.doi = detached_publication.doi
         payload["doi"] = detached_publication.doi
-    if not publication.abstract:
-        publication.abstract = detached_publication.abstract
+    if not existing_publication.abstract:
+        existing_publication.abstract = detached_publication.abstract
         payload["abstract"] = detached_publication.abstract
 
-    publication.log_save(audit_command=audit_command)
+    existing_publication.log_save(audit_command=audit_command)
 
 
 def get_message(response_json):
@@ -173,34 +194,3 @@ def make_container_container_alias_pair(publication_raw: models.Publication, ite
         container_alias.container = container
         container_alias.save()
     return container, container_alias
-
-
-# def fix_raw_authors():
-#     n = models.RawAuthor.objects.select_related('raw__publication').filter(raw__key__in=[models.Raw.CROSSREF_DOI_FAIL, models.Raw.CROSSREF_DOI_SUCCESS], author_alias__isnull=True).count()
-#     print("Fixing Authors")
-#     for (i, raw_author) in enumerate(models.RawAuthor.objects.select_related('raw__publication').filter(raw__key__in=[models.Raw.CROSSREF_DOI_FAIL, models.Raw.CROSSREF_DOI_SUCCESS], author_alias__isnull=True).iterator()):
-#         print("{}/{} Name: {}, ORCID: {}".format(i, n, raw_author.name, raw_author.orcid))
-#         publication = raw_author.raw.publication
-#         author = models.Author.objects.create(type=raw_author.type, orcid=raw_author.orcid)
-#         publication.authors.add(author)
-#         author_alias = models.AuthorAlias.objects.create(author=author, name=raw_author.name)
-#         models.RawAuthor.objects.filter(raw_id=raw_author.id).update(author_alias=author_alias)
-#
-#
-# def fix_raw_containers():
-#     print("Fixing Containers")
-#     n = models.ContainerRaw.objects.filter(raw__key__in=[models.Raw.CROSSREF_DOI_FAIL, models.Raw.CROSSREF_DOI_SUCCESS], container_alias__isnull=True).order_by('name').count()
-#     for (i, raw_container) in enumerate(models.ContainerRaw.objects.filter(raw__key__in=[models.Raw.CROSSREF_DOI_FAIL, models.Raw.CROSSREF_DOI_SUCCESS], container_alias__isnull=True).order_by('name').iterator()):
-#         print("{}/{} Name: {}, ISSN: {}".format(i, n, raw_container.name, raw_container.issn))
-#         publication = raw_container.raw.publication
-#         container = publication.container
-#         if container is None:
-#             container = models.Container.objects.create(issn=raw_container.issn)
-#             publication.container = container
-#             publication.save()
-#         elif container.issn == '' and raw_container.issn != '':
-#             container.issn = raw_container.issn
-#             container.save()
-#         container_alias, created = models.ContainerAlias.objects.get_or_create(container=container, name=raw_container.name)
-#         raw_container.container_alias = container_alias
-#         raw_container.save()

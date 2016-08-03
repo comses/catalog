@@ -4,15 +4,16 @@ from .. import models
 import bibtexparser
 import json
 from typing import List
+from collections import namedtuple
 
 
 class Settings:
-    def __init__(self, file_name, steps):
+    def __init__(self, file_name: str, steps: List[str]):
         self.file_name = file_name
         self.steps = steps
 
     @classmethod
-    def from_file(cls, file_name):
+    def from_file(cls, file_name: str):
         with open(file_name, "r") as f:
             contents = f.read()
             settings = json.loads(contents)
@@ -26,8 +27,7 @@ def load_bibtex(file_name):
         return bib_db.entries
 
 
-def process_entries(settings_file_name, user):
-    settings = Settings.from_file(file_name=settings_file_name)
+def process_entries(settings, user):
     entries = load_bibtex(settings.file_name)
 
     audit_command = models.AuditCommand.objects.create(

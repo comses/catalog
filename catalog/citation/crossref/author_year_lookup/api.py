@@ -1,13 +1,15 @@
 from ... import models
 from .. import common
 from ... import util
+from django.contrib.auth.models import User
 
 import requests
 from typing import Dict, List, Optional, Set
 from fuzzywuzzy import fuzz
+from django.db import connection
 
 
-def process_item(publication: Dict, response_item: Dict, raw: models.Raw, audit_command: models.AuditCommand) -> common.DetachedPublication:
+def process_item(year_authors_result: Dict, response_item: Dict, raw: models.Raw, audit_command: models.AuditCommand) -> common.DetachedPublication:
     other_publication = models.Publication(
         year=common.get_year(response_item),
         title=common.get_title(response_item),
@@ -22,24 +24,24 @@ def process_item(publication: Dict, response_item: Dict, raw: models.Raw, audit_
                                       audit_command=audit_command)
 
 
-def process(query: Dict, response: requests.Response, audit_command: models.AuditCommand) -> None:
+def process(year_authors_result: Dict, response: requests.Response, audit_command: models.AuditCommand) -> None:
     value = common.ResponseDictEncoder().encode(response)
     raw = models.Raw(key=models.Raw.CROSSREF_SEARCH_SUCCESS,
                      value=value,
                      data_source=audit_command,
-                     publication_id=query["publication_id"])
+                     publication_id=year_authors_result["id"])
 
     other_raw_publication = None
     if response.status_code == 200:
         response_json = response.json()
         response_items = response_json.get("message", {"items": []}).get("items", [])
-        detached_publications = [process_item(query, response_item, raw, audit_command) for response_item in response_items]
+        detached_publications = [process_item(year_authors_result, response_item, raw, audit_command) for response_item in response_items]
 
-        matches = _match_publication(query, detached_publications)
+        matches = _match_publication(year_authors_result, detached_publications)
         if len(matches) == 1:
             match = matches.pop()
             detached_publication = detached_publications[match]
-            detached_publication.attach_to(query["publication_id"], match)
+            detached_publication.attach_to(year_authors_result["id"], match)
             other_raw_publication = detached_publication.publication
         else:
             raw.key = models.Raw.CROSSREF_SEARCH_FAIL_NOT_UNIQUE
@@ -51,14 +53,70 @@ def process(query: Dict, response: requests.Response, audit_command: models.Audi
     return other_raw_publication
 
 
-def update(publication: Dict, audit_command: models.AuditCommand):
-    author_str = "; ".join(publication["names"])
-    year = publication["year"]
+def update(year_authors_result: Dict, audit_command: models.AuditCommand):
+    author_str = "; ".join(year_authors_result["author_names"])
+    year = year_authors_result["date_published_text"]
     if year is not None and author_str:
         response = requests.get("http://api.crossref.org/works?query={}, {}".format(author_str, year))
-        return process(publication, response, audit_command)
+        return process(year_authors_result, response, audit_command)
     else:
         print("Did not lookup")
+
+
+def augment_publications(user: User, limit=None):
+    """Add missing information with CrossRef year author search"""
+
+    sql = \
+        """
+        with publication_ids_with_only_bibtex_raw as (
+            select pubs.id as id
+            from citation_publication as pubs
+            inner join citation_raw as raw on raw.publication_id = pubs.id
+            group by pubs.id, title, doi, date_published
+            having bool_and(raw.key ='BIBTEX_ENTRY' or raw.key = 'BIBTEX_REF') or count(raw.*) = 0
+            order by id
+        ), publication_ids_with_dois_and_missing_data as (
+            select id
+            from citation_publication
+            where doi <> '' and (title = '' or date_published_text = '' or abstract = '')
+        )
+        select pub.id, pub.date_published_text, pub.doi, pub.title, array_agg(name) as author_names
+        from citation_publication as pub
+        left join citation_publicationauthors as pub_creators on pub.id = pub_creators.publication_id
+        left join citation_author as creator on pub_creators.author_id = creator.id
+        left join (
+          select distinct on (author_id) id, name, author_id
+          from citation_authoralias
+        ) as author_names on author_names.author_id = creator.id
+        where pub.id in
+          (select id from publication_ids_with_only_bibtex_raw
+           intersect
+           select id from publication_ids_with_dois_and_missing_data)
+        group by pub.id, pub.date_published_text, pub.doi, pub.title
+        """
+
+    if isinstance(limit, int) and 1 <= limit:
+        sql += "\nLIMIT {};".format(limit)
+    else:
+        sql += ";"
+
+    cursor = connection.cursor()
+    cursor.execute(sql)
+    description = cursor.description
+    columns = [col[0] for col in description]
+
+    # Return rows of  the form {"id": Int, "authors": Array[String]}
+    year_author_results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    for (ind, year_author_result) in enumerate(year_author_results):
+        audit_command = models.AuditCommand.objects.create(
+            creator=user, action="augment data crossref year author search",
+            role=models.AuditCommand.Role.CURATOR_EDIT)
+        print("Entry")
+        print("\t{ind} Year: {year}, Title: {title}, DOI: {doi} ID: {publication_id}".format(ind=ind, **year_author_result))
+        publication = update(year_author_result, audit_command)
+        if publication:
+            print(publication)
 
 
 def _match_author_name(name: str, other_name: str):
@@ -82,7 +140,7 @@ def _match_publication_title(publication, detached_publications: List[common.Det
 
 
 def _match_publication_year(publication, detached_publications: List[common.DetachedPublication], publication_matches: Set[int]) -> Set[int]:
-    if publication["year"] is not None:
+    if publication["date_published_text"] is not None:
         # Determine if years exactly match
         years_matches = set(i for (i, detached_publication) in enumerate(detached_publications)
                             if publication["year"] == detached_publication.publication_raw.year)

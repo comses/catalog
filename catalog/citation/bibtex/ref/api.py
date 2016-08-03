@@ -20,10 +20,11 @@ def make_container(container_str: str, audit_command: models.AuditCommand) -> mo
         audit_command=audit_command,
         payload={'container': container,
                  'name': container_str})
+
     return container, container_alias
 
 
-def make_author(author_str: str, audit_command: models.AuditCommand) -> models.Author:
+def make_author(publication: models.Publication, raw: models.Raw, author_str: str, audit_command: models.AuditCommand) -> models.Author:
     cleaned_author_str = util.last_name_and_initials(util.normalize_name(author_str))
     author = models.Author.objects.log_create(
         audit_command=audit_command,
@@ -32,6 +33,8 @@ def make_author(author_str: str, audit_command: models.AuditCommand) -> models.A
         audit_command=audit_command,
         payload={'author': author,
                  'name': cleaned_author_str})
+    models.AuthorAliasRaws.objects.create(author_alias=author_alias, raw=raw)
+    models.PublicationAuthors.objects.create(publication=publication, author=author)
     return author
 
 
@@ -90,7 +93,8 @@ def process(publication: models.Publication,
 
     doi = make_doi(ref)
 
-    secondary_publication = models.Publication.objects.log_create(
+    container, container_alias = make_container(container_str, audit_command)
+    citation = models.Publication.objects.log_create(
         audit_command=audit_command,
         payload={'title': '',
                  'date_published_text': year_str,
@@ -98,18 +102,20 @@ def process(publication: models.Publication,
                  'doi': doi,
                  'abstract': '',
                  'is_primary': False,
-                 'added_by': audit_command.creator})
+                 'added_by': audit_command.creator,
+                 'journal': container})
 
-    author = make_author(author_str, audit_command)
-    container = make_container(container_str, audit_command)
+    citation_raw = models.Raw.objects.create(
+        key=models.Raw.BIBTEX_REF,
+        value=ref,
+        publication=citation,
+        container_alias=container_alias
+    )
+    make_author(citation, citation_raw, author_str, audit_command)
 
-    secondary_publication.raw.add(raw)
-    secondary_publication.creators.add(author)
-    secondary_publication.referenced_by.add(publication)
-    secondary_publication.container = container
-    secondary_publication.save()
+    models.PublicationCitations.objects.create(publication=publication, citation=citation)
 
-    return secondary_publication
+    return citation
 
 
 def process_many(publication: models.Publication,

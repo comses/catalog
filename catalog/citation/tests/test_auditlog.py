@@ -58,11 +58,13 @@ class TestModelManagers(TestCase):
     def test_author_log_delete(self):
         author = models.Author.objects.create(**self.author_detached)
         author_contents = {'id': author.id, 'orcid': author.orcid, 'creator_type': author.creator_type, 'type': author.type}
-        models.Author.objects.all().trace_delete(audit_command=self.context)
+        models.Author.objects.all().log_delete(audit_command=self.context)
         auditlog = models.AuditLog.objects.first()
         self.assertEqual(auditlog.table, 'citation_author')
         self.assertEqual(auditlog.action, 'INSERT')
         auditlog.payload.pop('id')
+        auditlog.payload.pop('date_added')
+        auditlog.payload.pop('date_modified')
         self.assertEqual(auditlog.payload, self.author_detached)
 
     # def test_undo_author(self):

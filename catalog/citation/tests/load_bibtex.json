@@ -1,10 +1,10 @@
 { "file_name": "catalog/citation/tests/data/entries.bib"
 , "steps":
-    [ {"table": "project", "strategy": "doi" }
-    , {"table": "author", "strategy": "orcid" }
-    , {"table": "container", "strategy": "issn" }
-    , {"table": "project", "strategy": "title" }
-    , {"table": "author", "strategy": "name"}
-    , {"table": "container", "strategy": "name" }
+    [ "dedupe_publications_by_doi"
+    , "dedupe_authors_by_orcid"
+    , "dedupe_containers_by_issn"
+    , "dedupe_publications_by_title"
+    , "dedupe_authors_by_name"
+    , "dedupe_containers_by_name"
     ]
 }
