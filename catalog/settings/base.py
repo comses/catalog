@@ -2,10 +2,10 @@
 Django settings for catalog project.
 
 For more information on this file, see
-https://docs.djangoproject.com/en/1.8/topics/settings/
+https://docs.djangoproject.com/en/1.9/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/1.8/ref/settings/
+https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 from __future__ import print_function
 
@@ -52,7 +52,7 @@ PIPELINE_COMPILERS = (
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
-        'URL': 'http://localhost:8983/solr/catalog'
+        'URL': 'http://localhost:8983/solr/catalog_core'
     },
 }
 
@@ -157,7 +157,7 @@ AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
 )
 
-# static files configuration, see https://docs.djangoproject.com/en/1.8/ref/settings/#static-files
+# static files configuration, see https://docs.djangoproject.com/en/1.9/ref/settings/#static-files
 
 STATIC_URL = '/static/'
 STATIC_ROOT = '/var/www/catalog/static/'

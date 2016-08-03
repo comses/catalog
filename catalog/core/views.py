@@ -236,6 +236,7 @@ class NoteList(LoginRequiredMixin, generics.GenericAPIView):
     Get all the notes or create a note
     """
     renderer_classes = (renderers.JSONRenderer, )
+    serializer_class = NoteSerializer
 
     def get(self, request, format=None):
         note = Note.objects.all()
