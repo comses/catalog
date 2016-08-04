@@ -1,4 +1,5 @@
 from invoke import task, run
+from invoke.tasks import call
 
 import logging
 import os
@@ -37,12 +38,12 @@ env['virtualenv_path'] = '%s/.virtualenvs/%s' % (os.getenv('HOME'), env['project
 
 
 @task
-def clean_update():
-    run("git fetch --all && git reset --hard origin/master")
+def clean_update(ctx):
+    ctx.run("git fetch --all && git reset --hard origin/master")
 
 
 @task
-def sh():
+def sh(ctx):
     dj('shell_plus --ipython', pty=True)
 
 
@@ -60,19 +61,12 @@ def run_chain(*commands, **kwargs):
 
 
 @task
-def host_type():
-    run('uname -a')
+def host_type(ctx):
+    ctx.run('uname -a')
 
 
 @task
-def coverage():
-    test(coverage=True)
-    ignored = ['*{0}*'.format(ignored_pkg) for ignored_pkg in env['ignored_coverage']]
-    run('coverage html --omit=' + ','.join(ignored))
-
-
-@task
-def test(name=None, coverage=False):
+def test(ctx, name=None, coverage=False):
     if name is not None:
         apps = name
     else:
@@ -85,13 +79,19 @@ def test(name=None, coverage=False):
     run('{coverage_cmd} manage.py test {apps}'.format(apps=apps, coverage_cmd=coverage_cmd))
 
 
+@task(pre=[call(test, coverage=True)])
+def coverage(ctx):
+    ignored = ['*{0}*'.format(ignored_pkg) for ignored_pkg in env['ignored_coverage']]
+    ctx.run('coverage html --omit=' + ','.join(ignored))
+
+
 @task
-def server(ip="0.0.0.0", port=8000):
+def server(ctx, ip="0.0.0.0", port=8000):
     dj('runserver {ip}:{port}'.format(ip=ip, port=port), capture=False)
 
 
 @task
-def setup_solr(travis=False):
+def setup_solr(ctx, travis=False):
     if travis:
         path = 'solr-{solr_version}/example/multicore'.format(**env)
     else:
@@ -108,17 +108,8 @@ def setup_solr(travis=False):
               'cp schema.xml {catalog_path}/conf/.'.format(catalog_path=catalog_path))
 
 
-@task
-def setup():
-    setup_postgres()
-    initialize_database_schema()
-    zotero_import()
-    setup_solr()
-    rebuild_index()
-
-
 @task(aliases=['rfd'])
-def restore_from_dump(dumpfile='catalog.sql', init_db_schema=True):
+def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True):
     run_chain('dropdb --if-exists {db_name} -U {db_user}'.format(**env),
               'createdb {db_name} -U {db_user}'.format(**env))
     if os.path.isfile(dumpfile):
@@ -129,12 +120,12 @@ def restore_from_dump(dumpfile='catalog.sql', init_db_schema=True):
 
 
 @task(aliases=['idb', 'init_db'])
-def initialize_database_schema():
+def initialize_database_schema(ctx):
     run_chain('python manage.py makemigrations', 'python manage.py migrate')
 
 
 @task(aliases=['zi'])
-def zotero_import(group=None, collection=None):
+def zotero_import(ctx, group=None, collection=None):
     _command = 'python manage.py zotero_import'
     if group:
         _command += ' --group=%s' % group
@@ -144,36 +135,40 @@ def zotero_import(group=None, collection=None):
 
 
 @task(aliases=['ri'])
-def rebuild_index(noinput=False):
+def rebuild_index(ctx, noinput=False):
     cmd = 'python manage.py rebuild_index'
     if noinput:
         cmd += ' --noinput'
-    run(cmd)
+    ctx.run(cmd)
 
 
 @task
-def setup_postgres():
-    createuser()
-    createdb()
+def createuser(ctx):
+    ctx.run("createuser {db_user} -rd -U postgres".format(**env))
 
 
 @task
-def createuser():
-    run("createuser {db_user} -rd -U postgres".format(**env))
+def createdb(ctx):
+    ctx.run("createdb {db_name} -U {db_user}".format(**env))
 
 
-@task
-def createdb():
-    run("createdb {db_name} -U {db_user}".format(**env))
+@task(createuser, createdb)
+def setup_postgres(ctx):
+    print("Postgres user {db_user} and db {db_name} created.".format(**env))
+
+
+@task(setup_postgres, initialize_database_schema, zotero_import, setup_solr, rebuild_index)
+def setup(ctx):
+    print("Omnibus setup invoked.")
 
 
 @task(aliases=['relu'])
-def reload_uwsgi():
-    status_line = run("sudo supervisorctl status | grep {project_name}".format(**env))
+def reload_uwsgi(ctx):
+    status_line = ctx.run("sudo supervisorctl status | grep {project_name}".format(**env))
     m = re.search('RUNNING(?:\s+)pid\s(\d+)', status_line)
     if m:
         uwsgi_pid = m.group(1)
         logger.debug("sending HUP to %s", uwsgi_pid)
-        run("sudo kill -HUP {}".format(uwsgi_pid))
+        ctx.run("sudo kill -HUP {}".format(uwsgi_pid))
     else:
         logger.warning("No pid found: %s", status_line)
