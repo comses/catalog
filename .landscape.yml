@@ -1,0 +1,7 @@
+python-targets:
+  - 3
+ignore-paths:
+  - deploy
+max-line-length: 120
+uses:
+  - django
