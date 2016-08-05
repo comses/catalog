@@ -58,8 +58,8 @@ def create_author_mergeset_by_name() -> MergeSet:
     cursor.execute(
         """SELECT array_agg(DISTINCT author_id) AS ids
         FROM citation_authoralias AS authoralias
-        WHERE "name" <> ''
-        GROUP BY "name"
+        WHERE "given_name" <> '' AND "family_name" <> ''
+        GROUP BY "given_name", "family_name"
         HAVING count(*) > 1;""")
 
     groups = [row[0] for row in cursor.fetchall()]
@@ -126,7 +126,7 @@ def merge_publications(mergeset: MergeSet,
 
         models.Raw.objects\
             .filter(publication_id__in=ids)\
-            .log_update(audit_command=audit_command, payload={'publication_id': final_publication.id})
+            .log_update(audit_command=audit_command, publication_id=final_publication.id)
 
         authors = models.Author.objects.filter(publications=final_publication).all()
         models.PublicationAuthors.objects\
@@ -134,7 +134,7 @@ def merge_publications(mergeset: MergeSet,
             .log_delete(audit_command)
         models.PublicationAuthors.objects\
             .filter(publication_id__in=ids)\
-            .log_update(audit_command=audit_command, payload={'publication_id': final_publication.id})
+            .log_update(audit_command=audit_command, publication_id=final_publication.id)
 
         citations = models.Publication.objects.filter(Q(citations=final_publication)).all()
         references = models.Publication.objects.filter(Q(referenced_by=final_publication)).all()
@@ -143,12 +143,14 @@ def merge_publications(mergeset: MergeSet,
             .log_delete(audit_command)
         models.PublicationCitations.objects\
             .filter(publication_id__in=ids)\
-            .log_update(audit_command=audit_command, payload={'publication_id': final_publication.id})
+            .log_update(audit_command=audit_command, publication_id=final_publication.id)
 
+        # TODO: remove log_save and track updates here for updating later, create log_update method
         for publication in publications:
             for field in ['date_published_text', 'title', 'doi', 'abstract']:
                 if not getattr(final_publication, field):
                     setattr(final_publication, field, getattr(publication, field))
+
         final_publication.log_save(audit_command)
         publications.log_delete(audit_command)
         display_merge_publications(publications)
@@ -174,10 +176,10 @@ def merge_containers(mergeset: MergeSet, audit_command: models.AuditCommand) -> 
                     select id, name
                     from citation_containeralias
                     where id = any(%s)) as final
-                    inner join
-                    (select id, name
-                        from citation_containeralias
-                        where id = any(%s)) as deleted on deleted.name = final.name
+                inner join (
+                    select id, name
+                    from citation_containeralias
+                    where id = any(%s)) as deleted on deleted.name = final.name
             ) as container_alias_map
             where container_alias_map.source_id = raw.container_alias_id"""
         cursor.execute(raw_update,
@@ -187,9 +189,9 @@ def merge_containers(mergeset: MergeSet, audit_command: models.AuditCommand) -> 
             .filter(container_id__in=ids,
                     name__in=[final_container_alias.name for final_container_alias in final_container_aliases])\
             .log_delete(audit_command)
-        models.ContainerAlias.objects.filter(container_id__in=ids).log_update(audit_command, payload={'container_id': final_container.id})
+        models.ContainerAlias.objects.filter(container_id__in=ids).log_update(audit_command, container_id=final_container.id)
 
-        models.Publication.objects.filter(journal__in=containers).log_update(audit_command, payload={'journal_id': final_container.id})
+        models.Publication.objects.filter(container__in=containers).log_update(audit_command, container_id=final_container.id)
 
         for container in containers:
             for field in ['issn']:
@@ -212,11 +214,13 @@ def merge_authors(mergeset: MergeSet, audit_command: models.AuditCommand) -> Non
 
         author_aliases_to_delete = models.AuthorAlias.objects\
             .filter(author_id__in=ids,
-                    name__in=[final_author_alias.name for final_author_alias in final_author_aliases])
+                    given_name__in=[final_author_alias.given_name for final_author_alias in final_author_aliases],
+                    family_name__in=[final_author_alias.family_name for final_author_alias in final_author_aliases])
         for author_alias_to_delete in author_aliases_to_delete:
             raws = author_alias_to_delete.raw.all()
-            final_author_alias=final_author_aliases.get(name=author_alias_to_delete.name)
-            models.AuthorAliasRaws.objects\
+            final_author_alias=final_author_aliases.get(given_name=author_alias_to_delete.given_name,
+                                                        family_name=author_alias_to_delete.family_name)
+            models.RawAuthors.objects\
                 .filter(author_alias=author_alias_to_delete, raw__in=raws)\
                 .update(author_alias=final_author_alias)
         author_aliases_to_delete.log_delete(audit_command)
@@ -228,7 +232,7 @@ def merge_authors(mergeset: MergeSet, audit_command: models.AuditCommand) -> Non
             .log_delete(audit_command)
         models.PublicationAuthors.objects\
             .filter(author__in=authors)\
-            .log_update(audit_command, {'author_id': final_author.id})
+            .log_update(audit_command, author_id=final_author.id)
 
         for author in authors:
             for field in ['orcid']:

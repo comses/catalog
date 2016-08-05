@@ -13,28 +13,27 @@ class NullError(Exception): pass
 
 
 def make_container(container_str: str, audit_command: models.AuditCommand) -> models.Container:
-    container = models.Container.objects.log_create(
-        audit_command=audit_command,
-        payload={})
-    container_alias = models.ContainerAlias.objects.log_create(
-        audit_command=audit_command,
-        payload={'container': container,
-                 'name': container_str})
+    container = models.Container.objects.create()
+    container_alias = models.ContainerAlias.objects.create(
+        container=container,
+        name=container_str)
 
     return container, container_alias
 
 
-def make_author(publication: models.Publication, raw: models.Raw, author_str: str, audit_command: models.AuditCommand) -> models.Author:
+def make_author(publication: models.Publication, raw: models.Raw, author_str: str,
+                audit_command: models.AuditCommand) -> models.Author:
     cleaned_author_str = util.last_name_and_initials(util.normalize_name(author_str))
     author = models.Author.objects.log_create(
         audit_command=audit_command,
-        payload={'type': models.Author.INDIVIDUAL})
+        kwargs={'type': models.Author.INDIVIDUAL})
     author_alias = models.AuthorAlias.objects.log_create(
         audit_command=audit_command,
-        payload={'author': author,
+        kwargs={'author': author,
                  'name': cleaned_author_str})
     models.AuthorAliasRaws.objects.create(author_alias=author_alias, raw=raw)
-    models.PublicationAuthors.objects.create(publication=publication, author=author)
+    models.PublicationAuthors.objects.create(publication=publication, author=author,
+                                             creator_type=models.PublicationAuthors.RoleChoices.AUTHOR)
     return author
 
 
@@ -94,16 +93,15 @@ def process(publication: models.Publication,
     doi = make_doi(ref)
 
     container, container_alias = make_container(container_str, audit_command)
-    citation = models.Publication.objects.log_create(
-        audit_command=audit_command,
-        payload={'title': '',
-                 'date_published_text': year_str,
-                 'date_published': make_date_published(year_str),
-                 'doi': doi,
-                 'abstract': '',
-                 'is_primary': False,
-                 'added_by': audit_command.creator,
-                 'journal': container})
+    citation = models.Publication.objects.create(
+        title='',
+        date_published_text=year_str,
+        date_published=make_date_published(year_str),
+        doi=doi,
+        abstract='',
+        is_primary=False,
+        added_by=audit_command.creator,
+        container=container)
 
     citation_raw = models.Raw.objects.create(
         key=models.Raw.BIBTEX_REF,

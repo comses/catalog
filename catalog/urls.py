@@ -17,5 +17,6 @@ urlpatterns = [
     url(r'^accounts/password_change/done$', auth_views.password_change_done, name='password_change_done'),
     url(r'^accounts/password_reset/$', auth_views.password_reset, name='password_reset'),
     url(r'^accounts/password_reset_done/$', auth_views.password_reset_done, name='password_reset_done'),
-    url(r'', include('catalog.core.urls', namespace='core')),
+    url(r'', include('catalog.citation.urls', namespace='citation')),
+    url(r'', include('catalog.core.urls', namespace='core'))
 ]

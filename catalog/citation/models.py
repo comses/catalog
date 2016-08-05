@@ -9,6 +9,8 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 from datetime import datetime, date
 from collections import defaultdict
+from django.core import serializers
+import re
 
 from model_utils import Choices
 from model_utils.managers import InheritanceManager
@@ -16,34 +18,39 @@ from typing import Dict, Optional
 
 
 class LogManager(models.Manager):
+    # TODO: add log_bulk_create method
+
     use_for_related_fields = True
 
-    def log_create(self, audit_command, payload):
+    def log_create(self, audit_command, **kwargs):
         with transaction.atomic():
-            instance = self.create(**payload)
-            payload = AuditLog.objects.create(
-                action='DELETE',
+            instance = self.create(**kwargs)
+            AuditLog.objects.create(
+                action='INSERT',
+                row_id=instance.id,
                 table=instance._meta.db_table,
-                message='',
-                payload={'id': instance.id},
+                payload={},
                 audit_command=audit_command)
             return instance
 
-    def log_get_or_create(self, audit_command, payload, **kwargs):
+    def log_get_or_create(self, audit_command, **kwargs):
+        defaults = kwargs.pop('defaults', {})
         with transaction.atomic():
-            instance, created = self.get_or_create(defaults=payload, **kwargs)
+            instance, created = self.get_or_create(defaults=defaults, **kwargs)
             if created:
-                action = 'DELETE'
-                payload = {'id': instance.id}
+                action = 'INSERT'
+                payload = {}
+                row_id = instance.id
             else:
+                defaults.update(kwargs)
                 action = 'UPDATE'
                 payload = {column: getattr(instance, column)
-                           for column in payload.keys()}
-                payload['id'] = instance.id
-            payload = AuditLog.objects.create(
+                           for column in defaults.keys()}
+                row_id = instance.id
+            AuditLog.objects.create(
                 action=action,
+                row_id=row_id,
                 table=instance._meta.db_table,
-                message='',
                 payload=payload,
                 audit_command=audit_command)
 
@@ -85,6 +92,8 @@ def identity_json_serialize(obj):
 
 
 class LogQuerySet(models.query.QuerySet):
+    # TODO: get of serializers and use a custom encode
+    # serializers.serialize('json', [p])
     DISPATCH_JSON_SERIALIZE = defaultdict(lambda: identity_json_serialize,
                                           DateTimeField=datetime_json_serialize,
                                           DateField=date_json_serialize)
@@ -102,71 +111,74 @@ class LogQuerySet(models.query.QuerySet):
                            for field in instance._meta.local_fields}
                 auditlogs.append(
                     AuditLog(
-                        action='INSERT',
+                        action='DELETE',
+                        row_id=instance.id,
                         table=instance._meta.db_table,
-                        message='',
                         payload=payload,
                         audit_command=audit_command))
             AuditLog.objects.bulk_create(auditlogs)
 
-            info = instances.delete()
-            return info
+            return instances.delete()
 
-    def log_update(self, audit_command, payload: Dict):
+    def log_update(self, audit_command, **kwargs):
+        # TODO: call instance.log_update in loop here
         with transaction.atomic():
             instances = self.all()
 
             auditlogs = []
             for instance in instances:
-                old_payload = {column: getattr(instance, column)
-                               for column in payload.keys()}
-                old_payload['id'] = instance.id
+                original_values = {column: getattr(instance, column)
+                                   for column in kwargs.keys()}
+                row_id = instance.id
                 auditlogs.append(
                     AuditLog(
                         action='UPDATE',
+                        row_id=row_id,
                         table=instance._meta.db_table,
-                        message='',
-                        payload=old_payload,
+                        payload=original_values,
                         audit_command=audit_command))
             AuditLog.objects.bulk_create(auditlogs)
 
-            info = self.update(**payload)
-            return info
+            return self.update(**kwargs)
 
 
 class AbstractLogModel(models.Model):
+    def json_serialize(self, field_type, obj):
+        return LogQuerySet.DISPATCH_JSON_SERIALIZE[field_type](obj)
+
     def log_delete(self, audit_command):
         with transaction.atomic():
-            payload = {field.column: getattr(self, field.column)
+            payload = {field.column: self.json_serialize(field.get_internal_type(), getattr(self, field.column))
                        for field in self._meta.local_fields}
             auditlogs = \
                 AuditLog.objects.create(
-                    action='INSERT',
+                    action='DELETE',
+                    row_id=self.id,
                     table=self._meta.db_table,
-                    message='',
                     payload=payload,
                     audit_command=audit_command)
             info = self.delete()
             return info
 
+    # TODO: replace with log_update
     def log_save(self, audit_command, payload: Optional[Dict] = None):
         with transaction.atomic():
             auditlog = AuditLog(
                 table=self._meta.db_table,
-                message='',
                 audit_command=audit_command)
             if payload:
                 assert self.id is not None
-                payload['id'] = self.id
+                auditlog.row_id = self.id
                 auditlog.action = 'UPDATE'
                 auditlog.payload = payload
                 info = self.save()
-                auditlog.save()
             else:
                 info = self.save()
-                auditlog.action = 'DELETE'
-                auditlog.payload = {'id': self.id}
-                auditlog.save()
+                auditlog.action = 'INSERT'
+                auditlog.row_id = self.id
+                auditlog.payload = {}
+
+            auditlog.save()
             return info
 
     objects = LogManager.from_queryset(LogQuerySet)()
@@ -204,23 +216,18 @@ class InvitationEmailTemplate(models.Model):
 
 
 class Author(AbstractLogModel):
+    # TODO: rename primary_* name fields to not start with primary
     INDIVIDUAL = 'INDIVIDUAL'
-    GROUP = 'GROUP'
+    ORGANIZATION = 'ORGANIZATION'
     TYPE_CHOICES = Choices(
         (INDIVIDUAL, _('individual')),
-        (GROUP, _('group')),
-    )
-    CREATOR_CHOICES = Choices(
-        ('AUTHOR', _('author')),
-        ('REVIEWED_AUTHOR', _('reviewed author')),
-        ('CONTRIBUTOR', _('contributor')),
-        ('EDITOR', _('editor')),
-        ('TRANSLATOR', _('translator')),
-        ('SERIES_EDITOR', _('series editor')),
+        (ORGANIZATION, _('organization')),
     )
     type = models.TextField(choices=TYPE_CHOICES, max_length=32)
-    creator_type = models.CharField(choices=CREATOR_CHOICES, max_length=32)
+    primary_given_name = models.CharField(max_length=200)
+    primary_family_name = models.CharField(max_length=200)
     orcid = models.TextField(max_length=200)
+    email = models.EmailField(blank=True)
 
     date_added = models.DateTimeField(auto_now_add=True,
                                       help_text=_('Date this model was imported into this system'))
@@ -228,31 +235,59 @@ class Author(AbstractLogModel):
                                          help_text=_('Date this model was last modified on this system'))
 
     def __repr__(self):
-        return "Author(orcid={orcid}. creator_type={creator_type})" \
-            .format(orcid=self.orcid, creator_type=self.creator_type)
+        return "Author(orcid={orcid}. primary_given_name={primary_given_name}, primary_family_name={primary_family_name})" \
+            .format(orcid=self.orcid, primary_given_name=self.primary_given_name,
+                    primary_family_name=self.primary_family_name)
+
+    @staticmethod
+    def normalize_author_name(author_str: str):
+        normalized_name = author_str.upper()
+        normalized_name = re.sub(r"\n|\r", " ", normalized_name)
+        normalized_name = re.sub(r"\.|,|\{|\}", "", normalized_name)
+        normalized_name_split = normalized_name.split(' ', 1)
+        if len(normalized_name_split) == 2:
+            family, given = normalized_name_split
+        else:
+            family, given = normalized_name, ''
+        return family, given
 
 
 class AuthorAlias(AbstractLogModel):
-    name = models.CharField(max_length=200)
+    # Authors that are not an individual only have a given name
+    given_name = models.CharField(max_length=200)
+    family_name = models.CharField(max_length=200)
 
     author = models.ForeignKey(Author, on_delete=models.PROTECT, related_name="author_aliases")
 
+    @property
+    def name(self):
+        if self.family_name:
+            if self.given_name:
+                return self.given_name + ' ' + self.family_name
+            else:
+                return self.family_name
+        return self.given_name
+
     def __repr__(self):
-        return "AuthorAlias(id={id}, name={name}, author_id={author_id})" \
-            .format(id=self.id, name=self.name, author_id=self.author_id)
+        return "AuthorAlias(id={id}, family_name={family_name}, given_name={given_name}, author_id={author_id})" \
+            .format(id=self.id, family_name=self.family_name, given_name=self.given_name, author_id=self.author_id)
 
     class Meta:
-        unique_together = ('author', 'name')
+        unique_together = ('author', 'given_name', 'family_name')
 
 
-class Tag(models.Model):
+class Tag(AbstractLogModel):
     name = models.CharField(max_length=255, unique=True)
+    date_added = models.DateTimeField(auto_now_add=True,
+                                      help_text=_('Date this model was imported into this system'))
+    date_modified = models.DateTimeField(auto_now=True,
+                                         help_text=_('Date this model was last modified on this system'))
 
     def __unicode__(self):
         return self.name
 
 
-class ModelDocumentation(models.Model):
+class ModelDocumentation(AbstractLogModel):
     CATEGORIES = [
         {'category': 'Narrative',
          'modelDocumentationList': [{'category': 'Narrative', 'name': 'ODD'},
@@ -269,12 +304,16 @@ class ModelDocumentation(models.Model):
     ]
     ''' common choices: UML, ODD, Word / PDF doc '''
     name = models.CharField(max_length=255, unique=True)
+    date_added = models.DateTimeField(auto_now_add=True,
+                                      help_text=_('Date this model was imported into this system'))
+    date_modified = models.DateTimeField(auto_now=True,
+                                         help_text=_('Date this model was last modified on this system'))
 
     def __unicode__(self):
         return self.name
 
 
-class Note(models.Model):
+class Note(AbstractLogModel):
     text = models.TextField()
     date_added = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
@@ -294,21 +333,29 @@ class Note(models.Model):
         return self.text
 
 
-class Platform(models.Model):
+class Platform(AbstractLogModel):
     """ model platform, e.g, NetLogo or RePast """
     name = models.CharField(max_length=255, unique=True)
     url = models.URLField(default='', blank=True)
     description = models.TextField(default='', blank=True)
+    date_added = models.DateTimeField(auto_now_add=True,
+                                      help_text=_('Date this model was imported into this system'))
+    date_modified = models.DateTimeField(auto_now=True,
+                                         help_text=_('Date this model was last modified on this system'))
 
     def __unicode__(self):
         return self.name
 
 
-class Sponsor(models.Model):
+class Sponsor(AbstractLogModel):
     """ funding agency sponsoring this research """
     name = models.CharField(max_length=255, unique=True)
     url = models.URLField(default='', blank=True)
     description = models.TextField(default='', blank=True)
+    date_added = models.DateTimeField(auto_now_add=True,
+                                      help_text=_('Date this model was imported into this system'))
+    date_modified = models.DateTimeField(auto_now=True,
+                                         help_text=_('Date this model was last modified on this system'))
 
     def __unicode__(self):
         return self.name
@@ -318,6 +365,7 @@ class Container(AbstractLogModel):
     """Canonical Container"""
     issn = models.TextField(max_length=500, blank=True, default='')
     type = models.TextField(max_length=1000, blank=True, default='')
+    primary_name = models.CharField(max_length=300)
 
     date_added = models.DateTimeField(auto_now_add=True,
                                       help_text=_('Date this container was imported into this system'))
@@ -350,9 +398,6 @@ class Publication(AbstractLogModel):
         ('INVALID', _('Publication record is not applicable or invalid')),
         ('COMPLETE', _('Reviewed and verified by CoMSES')),
     )
-    ResourceType = Choices(
-        ('JOURNAL_ARTICLE', _('Journal Article')),
-    )
 
     # zotero publication metadata
     title = models.TextField()
@@ -379,10 +424,12 @@ class Publication(AbstractLogModel):
     code_archive_url = models.URLField(max_length=255, blank=True)
     contact_author_name = models.CharField(max_length=255, blank=True)
     contact_email = models.EmailField(blank=True)
-    platforms = models.ManyToManyField(Platform, blank=True, related_name='publications')
-    sponsors = models.ManyToManyField(Sponsor, blank=True, related_name='publications')
-    model_documentation = models.ManyToManyField(ModelDocumentation, blank=True, related_name='publications')
-    tags = models.ManyToManyField(Tag, blank=True)
+    platforms = models.ManyToManyField(Platform, blank=True, through='PublicationPlatforms',
+                                       related_name='publications')
+    sponsors = models.ManyToManyField(Sponsor, blank=True, through='PublicationSponsors', related_name='publications')
+    model_documentation = models.ManyToManyField(ModelDocumentation, through='PublicationModelDocumentations',
+                                                 blank=True, related_name='publications')
+    tags = models.ManyToManyField(Tag, through='PublicationTags', blank=True)
     added_by = models.ForeignKey(User, related_name='citation_added_publication_set')
 
     # custom fields used by catalog internally
@@ -401,11 +448,10 @@ class Publication(AbstractLogModel):
                                          related_name='citation_assigned_publication_set')
 
     # type fields
-    resource_type = models.CharField(choices=ResourceType, max_length=255, default=ResourceType.JOURNAL_ARTICLE)
     is_primary = models.BooleanField(default=True)
 
-    # journal specific fields
-    journal = models.ForeignKey(Container, null=True, blank=True, on_delete=models.SET_NULL)
+    # container specific fields
+    container = models.ForeignKey(Container, null=True, blank=True, on_delete=models.SET_NULL)
     pages = models.CharField(max_length=255, default='', blank=True)
     issn = models.CharField(max_length=255, default='', blank=True)
     volume = models.CharField(max_length=255, default='', blank=True)
@@ -423,6 +469,7 @@ class Publication(AbstractLogModel):
         # eventually consider having permission groups or per-object permissions
         return self.assigned_curator == user
 
+    # TODO: replace primary key lookup with slug
     def _pk_url(self, name):
         return reverse(name, args=[self.pk])
 
@@ -444,45 +491,33 @@ class AuditCommand(models.Model):
     Role = Choices(('AUTHOR_EDIT', _('Author edit')),
                    ('SYSTEM_LOG', _('System log')),
                    ('CURATOR_EDIT', _('Curator edit')))
-    Action = Choices(('MERGE', _('Merge Records')),
+    Action = Choices(('SPLIT', _('Split Record')),
+                     ('MERGE', _('Merge Records')),
                      ('LOAD', _('Load from File')),
-                     ('OTHER', _('Other')))
+                     ('MANUAL', _('User entered changes')))
 
     role = models.CharField(max_length=32, choices=Role)
     action = models.CharField(max_length=32, choices=Action)
     date_added = models.DateTimeField(auto_now_add=True)
     creator = models.ForeignKey(User, null=True, blank=True, related_name="citation_creator_set",
                                 help_text=_('The user who initiated this action, if any.'))
+    message = models.TextField(blank=True, help_text=_('A human readable representation of the change made'))
 
     class Meta:
         ordering = ['-date_added']
 
 
-class AuditLogQuerySet(models.query.QuerySet):
-    pass
-
-
-class AuditLogManager(models.Manager):
-    def log_curator_action(self, message=None, creator=None, publication=None, modified_data=None):
-        if not all([message, creator, publication]):
-            raise ValidationError("Requires valid message [%s], creator [%s], and publication [%s]",
-                                  message, creator, publication)
-        return self.create(action=AuditLog.Action.CURATOR_EDIT,
-                           message=message, creator=creator, publication=publication, modified_data=modified_data)
-
-
 class AuditLog(models.Model):
+    # TODO: may want to add a generic foreign key to table, row_id combination
     Action = Choices(('UPDATE', _('Update')),
                      ('INSERT', _('Insert')),
                      ('DELETE', _('Delete')))
     action = models.CharField(max_length=32, choices=Action)
+    row_id = models.BigIntegerField()
     table = models.CharField(max_length=128)
-    message = models.TextField(blank=True, help_text=_('A human readable representation of the change made'))
     payload = JSONField(blank=True, null=True,
                         help_text=_('A JSON dictionary containing modified fields, if any, for the given publication'))
     audit_command = models.ForeignKey(AuditCommand)
-
-    objects = AuditLogManager.from_queryset(AuditLogQuerySet)()
 
     def __str__(self):
         return u"{} - {} performed {} on {}".format(
@@ -496,11 +531,8 @@ class AuditLog(models.Model):
         ordering = ['-id']
 
 
-class AbstractWithDateAddedModel(models.Model):
+class AbstractWithDateAddedModel:
     date_added = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
 
 
 class Raw(AbstractLogModel, AbstractWithDateAddedModel):
@@ -529,20 +561,70 @@ class Raw(AbstractLogModel, AbstractWithDateAddedModel):
     value = JSONField()
 
     publication = models.ForeignKey(Publication, related_name='raw', on_delete=models.PROTECT)
-    container_alias = models.ForeignKey(ContainerAlias, related_name='raw', on_delete=models.PROTECT)
-    author_aliases = models.ManyToManyField(AuthorAlias, related_name='raw', through='AuthorAliasRaws')
-
-
-class PublicationCitations(AbstractLogModel, AbstractWithDateAddedModel):
-    publication = models.ForeignKey(Publication, related_name='publicationcitations')
-    citation = models.ForeignKey(Publication, related_name='publicationcitations_referenced_by')
+    container = models.ForeignKey(Container, related_name='raw', on_delete=models.PROTECT)
+    authors = models.ManyToManyField(Author, related_name='raw', through='RawAuthors')
 
 
 class PublicationAuthors(AbstractLogModel, AbstractWithDateAddedModel):
-    publication = models.ForeignKey(Publication, related_name='publicationauthors')
-    author = models.ForeignKey(Author, related_name='publicationauthors')
+    RoleChoices = Choices(
+        ('AUTHOR', _('author')),
+        ('REVIEWED_AUTHOR', _('reviewed author')),
+        ('CONTRIBUTOR', _('contributor')),
+        ('EDITOR', _('editor')),
+        ('TRANSLATOR', _('translator')),
+        ('SERIES_EDITOR', _('series editor')),
+    )
+    publication = models.ForeignKey(Publication, related_name='publication_authors')
+    author = models.ForeignKey(Author, related_name='publication_authors')
+    role = models.CharField(choices=RoleChoices, max_length=32)
+
+    class Meta:
+        unique_together = ('publication', 'author')
 
 
-class AuthorAliasRaws(AbstractLogModel, AbstractWithDateAddedModel):
-    author_alias = models.ForeignKey(AuthorAlias, related_name='authoraliasraws')
-    raw = models.ForeignKey(Raw, related_name='authoraliasraws')
+class PublicationCitations(AbstractLogModel, AbstractWithDateAddedModel):
+    publication = models.ForeignKey(Publication, related_name='publication_citations')
+    citation = models.ForeignKey(Publication, related_name='publication_citations_referenced_by')
+
+    class Meta:
+        unique_together = ('publication', 'citation')
+
+
+class PublicationModelDocumentations(AbstractLogModel, AbstractWithDateAddedModel):
+    publication = models.ForeignKey(Publication, related_name='publication_modeldocumentations')
+    model_documentation = models.ForeignKey(ModelDocumentation, related_name='publication_modeldocumentations')
+
+    class Meta:
+        unique_together = ('publication', 'model_documentation')
+
+
+class PublicationPlatforms(AbstractLogModel, AbstractWithDateAddedModel):
+    publication = models.ForeignKey(Publication, related_name='publication_platforms')
+    platform = models.ForeignKey(Platform, related_name='publications_platforms')
+
+    class Meta:
+        unique_together = ('publication', 'platform')
+
+
+class PublicationSponsors(AbstractLogModel, AbstractWithDateAddedModel):
+    publication = models.ForeignKey(Publication, related_name='publication_sponsors')
+    sponsor = models.ForeignKey(Sponsor, related_name='publication_sponsors')
+
+    class Meta:
+        unique_together = ('publication', 'sponsor')
+
+
+class PublicationTags(AbstractLogModel, AbstractWithDateAddedModel):
+    publication = models.ForeignKey(Publication, related_name='publication_tags')
+    tag = models.ForeignKey(Tag, related_name='publication_tags')
+
+    class Meta:
+        unique_together = ('publication', 'tag')
+
+
+class RawAuthors(AbstractLogModel, AbstractWithDateAddedModel):
+    author = models.ForeignKey(Author, related_name='raw_authors')
+    raw = models.ForeignKey(Raw, related_name='raw_authors')
+
+    class Meta:
+        unique_together = ('author', 'raw')

@@ -47,9 +47,9 @@ def last_name_and_initials(name: str) -> str:
         given = " ".join(given_names)
 
     if given is not None:
-        return "{} {}".format(family, given)
+        return family, given
     else:
-        return normalized_name
+        return normalized_name, ''
 
 
 def last_name_and_initial(normalized_name: str) -> str:
@@ -67,22 +67,3 @@ def last_name_and_initial(normalized_name: str) -> str:
         return "{} {}".format(family, given)
     else:
         return normalized_name
-
-
-def merge_dict(d1: Dict, d2: Dict) -> Dict:
-    """Deep merge dictionaries"""
-    new_dict = copy.deepcopy(d1)
-    for k in d2:
-        if k in new_dict:
-            val_type_d1 = type(new_dict[k])
-            val_type_d2 = type(d2[k])
-            if val_type_d1 == list and val_type_d2 == list:
-                new_dict[k].extend(d2[k])
-            elif val_type_d1 == dict and val_type_d2 == dict:
-                new_dict[k] = merge_dict(d1[k], d2[k])
-            else:
-                new_dict[k] = d2[k]
-        else:
-            new_dict[k] = d2[k]
-
-    return new_dict

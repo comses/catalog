@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.core import management
-from catalog.core.models import Publication
+from catalog.citation.models import Publication
 
 from .common import BaseTest
 
@@ -88,34 +88,34 @@ class PublicationsViewTest(BaseTest):
         self.assertEqual(404, response.status_code)
 
 
-# class PublicationDetailView(BaseTest):
-#
-#     def test_publication_detail_view(self):
-#         management.call_command('core_zotero_import', test=True)
-#         url = self.reverse('core:publication_detail', kwargs={'pk': Publication.objects.first().pk})
-#         self.without_login_and_with_login_test(url)
-#
-#         self.logout()
-#         url = self.reverse('core:publication_detail', kwargs={'pk': 999999})
-#         self.without_login_and_with_login_test(url, after_status=404)
-#
-#         self.logout()
-#         url = self.reverse('core:publication_detail',
-#                            query_parameters={'format': 'json'},
-#                            kwargs={'pk': Publication.objects.all()[0].pk})
-#         self.without_login_and_with_login_test(url)
-#
-#         self.logout()
-#         url = self.reverse('core:publication_detail', query_parameters={
-#                            'format': 'json'}, kwargs={'pk': 999999})
-#         self.without_login_and_with_login_test(url, after_status=404)
+class PublicationDetailView(BaseTest):
+
+    def test_publication_detail_view(self):
+        management.call_command('zotero_import', test=True)
+        url = self.reverse('citation:publication_detail', kwargs={'pk': Publication.objects.first().pk})
+        self.without_login_and_with_login_test(url)
+
+        self.logout()
+        url = self.reverse('citation:publication_detail', kwargs={'pk': 999999})
+        self.without_login_and_with_login_test(url, after_status=404)
+
+        self.logout()
+        url = self.reverse('citation:publication_detail',
+                           query_parameters={'format': 'json'},
+                           kwargs={'pk': Publication.objects.all()[0].pk})
+        self.without_login_and_with_login_test(url)
+
+        self.logout()
+        url = self.reverse('citation:publication_detail', query_parameters={
+                           'format': 'json'}, kwargs={'pk': 999999})
+        self.without_login_and_with_login_test(url, after_status=404)
 
 
 class SearchViewTest(BaseTest):
 
     def test_search_with_no_query_parameters(self):
         self.without_login_and_with_login_test(
-            self.reverse('core:haystack_search'))
+            self.reverse('citation:haystack_search'))
 
     def test_search_with_all_query_parameters(self):
         query_parameters = {
@@ -126,7 +126,7 @@ class SearchViewTest(BaseTest):
             'status': 'INCOMPLETE'
         }
         url = self.reverse(
-            'core:haystack_search', query_parameters=query_parameters)
+            'citation:haystack_search', query_parameters=query_parameters)
         self.without_login_and_with_login_test(url)
 
     def test_search_with_few_query_parameters(self):
@@ -149,14 +149,14 @@ class ContactViewTest(BaseTest):
             self.reverse('core:contact_us'), before_status=200)
 
     def test_contact_info_submit_without_timestamp_and_security_hash(self):
-        response = self.post(self.reverse('core:contact_us', query_parameters={'format': 'json'}),
+        response = self.post(self.reverse('citation:contact_us', query_parameters={'format': 'json'}),
                              {'name': 'John Watson', 'email': 'john@watson.com',
                               'message': 'Sherlock want to use this application.'})
         self.assertTrue(400, response.status_code)
 
     def test_contact_info_submit_with_invalid_timestamp(self):
         url = self.reverse(
-            'core:contact_us', query_parameters={'format': 'json'})
+            'citation:contact_us', query_parameters={'format': 'json'})
         response = self.get(url)
         json_data = json.loads(response.data['json'])
         security_hash = json_data['security_hash']
@@ -172,7 +172,7 @@ class ContactViewTest(BaseTest):
 
     def test_contact_info_submit_with_valid_timestamp_and_invalid_security_hash(self):
         url = self.reverse(
-            'core:contact_us', query_parameters={'format': 'json'})
+            'citation:contact_us', query_parameters={'format': 'json'})
         response = self.get(url)
         json_data = json.loads(response.data['json'])
         security_hash = json_data['security_hash'] + 'fake'
@@ -188,7 +188,7 @@ class ContactViewTest(BaseTest):
 
     def test_contact_info_submit_with_honeypot_field(self):
         url = self.reverse(
-            'core:contact_us', query_parameters={'format': 'json'})
+            'citation:contact_us', query_parameters={'format': 'json'})
         response = self.get(url)
         json_data = json.loads(response.data['json'])
         security_hash = json_data['security_hash']
@@ -203,7 +203,7 @@ class ContactViewTest(BaseTest):
         self.assertTrue(400, response.status_code)
 
     def test_contact_info_submit_with_all_valid_fields(self):
-        url = self.reverse('core:contact_us', query_parameters={'format': 'json'})
+        url = self.reverse('citation:contact_us', query_parameters={'format': 'json'})
         response = self.get(url)
         json_data = json.loads(response.data['json'])
         security_hash = json_data['security_hash']
@@ -221,12 +221,12 @@ class EmailPreviewTest(BaseTest):
 
     def test_email_preview_without_query_parameters(self):
         self.login()
-        response = self.get('core:invite_email_preview')
+        response = self.get('citation:invite_email_preview')
         self.assertEqual(400, response.status_code)
 
     def test_email_preview_with_query_parameters(self):
         self.login()
-        url = self.reverse('core:invite_email_preview',
+        url = self.reverse('citation:invite_email_preview',
                            query_parameters={'invitation_subject': 'test', 'invitation_text': 'test'})
         response = self.get(url)
         self.assertEqual(200, response.status_code)

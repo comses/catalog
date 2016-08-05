@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load bootstrap3 %}
+
+{% block content %}
+<div class='row'>
+    <div class='panel panel-default'>
+        <div class='panel-heading'>
+            <h4>Status</h4>
+        </div>
+        <div class='panel-body'>
+            <ul class='list-inline'>
+                <li class='list-group-item'><a href='?status=ALL'>ALL <span class='badge'>{{ total_number_of_records }}</span></a></li>
+                {% if facets.fields.status %}
+                {% for s in facets.fields.status %}
+                <li class='list-group-item'><a href='?status={{s.0|urlencode}}'>{{s.0}} <span class='badge label-{{s.0|lower}}'>{{s.1}}</span></a></li>
+                {% endfor %}
+                {% endif %}
+            </ul>
+            <div class='col-sm-9'>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4>Assigned Publications for {{ request.user.get_full_name }}</h4>
+            <div>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries</div>
+        </div>
+        <div class="panel-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr><th>Status</th><th>Title</th><th class='col-sm-2'>Last Modified</th></tr>
+                </thead>
+                <tbody>
+                    {% for result in object_list %}
+                    <tr>
+                        <td><span class='label label-as-badge label-primary label-{{result.status|lower}}'>{{ result.status }}</span></td>
+                        <td><a href="{% url 'core:curator_publication_detail' result.pk %}">{{ result.title }}</td>
+                        <td>{{ result.last_modified }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2">No assigned publications.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if page_obj.has_previous or page_obj.has_next %}
+        <div>
+            <div class='text-center'>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries</div>
+            <div class="text-center">{% bootstrap_pagination page_obj url=request.get_full_path %}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

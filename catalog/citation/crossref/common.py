@@ -1,11 +1,12 @@
 from .. import models, util
 from django.contrib.auth.models import User
+from unidecode import unidecode
+
 
 import json
 import requests
 from typing import Dict, List, Optional, Tuple
 from django.db import transaction
-
 
 class ResponseDictEncoder:
     def encode(self, o):
@@ -56,9 +57,9 @@ class DetachedPublication:
                 audit_command=self.audit_command,
                 detached_container=self.container,
                 detached_container_alias=self.container_alias,
-                existing_container=publication.journal)
+                existing_container=publication.container)
 
-            publication.journal = container
+            publication.container = container
             update_publication(publication, self.publication, self.audit_command)
 
             self.raw.publication = publication
@@ -72,7 +73,7 @@ class DetachedPublication:
 
                 models.AuthorAliasRaws.objects.log_create(
                     self.audit_command,
-                    payload={'author_alias_id': author_alias.id, 'raw_id': self.raw.id})
+                    kwargs={'author_alias_id': author_alias.id, 'raw_id': self.raw.id})
 
 
 def update_container(existing_container: Optional[models.Container],
@@ -88,7 +89,6 @@ def update_container(existing_container: Optional[models.Container],
     existing_container.log_save(audit_command)
     container_alias, created = models.ContainerAlias.objects.log_get_or_create(
         audit_command,
-        payload={'container_id': existing_container.id, 'name': detached_container_alias.name},
         name=detached_container_alias.name,
         container_id=existing_container.id)
 
@@ -122,20 +122,17 @@ def get_message(response_json):
 
 def make_author_author_alias_pair(publication: models.Publication, item_json: Dict,
                                   create) -> models.Author:
-    family = item_json.get("family")
-    given = item_json.get("given")
+    family = unidecode(item_json.get("family").upper())
+    given = unidecode(item_json.get("given").upper())
     orcid = item_json.get("ORCID", "")
-    if family is None:
-        name = given or ""
-    elif given is None:
-        name = family
-    else:
-        name = "{}, {}".format(family, given)
 
     author = models.Author(type=models.Author.INDIVIDUAL,
-                           orcid=orcid)
+                           orcid=orcid,
+                           primary_given_name=given,
+                           primary_family_name=family)
     author_alias = models.AuthorAlias(author=author,
-                                      name=util.last_name_and_initials(name))
+                                      given_name=given,
+                                      family_name=family)
 
     if create:
         author.save()
@@ -186,7 +183,7 @@ def make_container_container_alias_pair(publication_raw: models.Publication, ite
     container_name = get_container_name(item_json)
     container_type = get_container_type(item_json)
 
-    container = models.Container(type=container_type)
+    container = models.Container(type=container_type, primary_name=container_name)
     container_alias = models.ContainerAlias(name=container_name)
 
     if create:

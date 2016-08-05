@@ -9,7 +9,8 @@ from fuzzywuzzy import fuzz
 from django.db import connection
 
 
-def process_item(year_authors_result: Dict, response_item: Dict, raw: models.Raw, audit_command: models.AuditCommand) -> common.DetachedPublication:
+def process_item(year_authors_result: Dict, response_item: Dict, raw: models.Raw,
+                 audit_command: models.AuditCommand) -> common.DetachedPublication:
     other_publication = models.Publication(
         year=common.get_year(response_item),
         title=common.get_title(response_item),
@@ -35,7 +36,8 @@ def process(year_authors_result: Dict, response: requests.Response, audit_comman
     if response.status_code == 200:
         response_json = response.json()
         response_items = response_json.get("message", {"items": []}).get("items", [])
-        detached_publications = [process_item(year_authors_result, response_item, raw, audit_command) for response_item in response_items]
+        detached_publications = [process_item(year_authors_result, response_item, raw, audit_command) for response_item
+                                 in response_items]
 
         matches = _match_publication(year_authors_result, detached_publications)
         if len(matches) == 1:
@@ -68,31 +70,32 @@ def augment_publications(user: User, limit=None):
 
     sql = \
         """
-        with publication_ids_with_only_bibtex_raw as (
-            select pubs.id as id
-            from citation_publication as pubs
-            inner join citation_raw as raw on raw.publication_id = pubs.id
-            group by pubs.id, title, doi, date_published
-            having bool_and(raw.key ='BIBTEX_ENTRY' or raw.key = 'BIBTEX_REF') or count(raw.*) = 0
-            order by id
-        ), publication_ids_with_dois_and_missing_data as (
-            select id
-            from citation_publication
-            where doi <> '' and (title = '' or date_published_text = '' or abstract = '')
+        WITH publication_ids_with_only_bibtex_raw AS (
+            SELECT pubs.id AS id
+            FROM citation_publication AS pubs
+            INNER JOIN citation_raw AS raw ON raw.publication_id = pubs.id
+            GROUP BY pubs.id, title, doi, date_published
+            HAVING bool_and(raw.key ='BIBTEX_ENTRY' OR raw.key = 'BIBTEX_REF') OR count(raw.*) = 0
+            ORDER BY id
+        ), publication_ids_with_dois_and_missing_data AS (
+            SELECT id
+            FROM citation_publication
+            WHERE doi <> '' AND (title = '' OR date_published_text = '' OR abstract = '')
         )
-        select pub.id, pub.date_published_text, pub.doi, pub.title, array_agg(name) as author_names
-        from citation_publication as pub
-        left join citation_publicationauthors as pub_creators on pub.id = pub_creators.publication_id
-        left join citation_author as creator on pub_creators.author_id = creator.id
-        left join (
-          select distinct on (author_id) id, name, author_id
-          from citation_authoralias
-        ) as author_names on author_names.author_id = creator.id
-        where pub.id in
-          (select id from publication_ids_with_only_bibtex_raw
-           intersect
-           select id from publication_ids_with_dois_and_missing_data)
-        group by pub.id, pub.date_published_text, pub.doi, pub.title
+        SELECT pub.id, pub.date_published_text, pub.doi, pub.title
+          , array_agg(trim(BOTH FROM given_name || ' ' || family_name, ' ')) AS author_names
+        FROM citation_publication AS pub
+        LEFT JOIN citation_publicationauthors AS pub_creators ON pub.id = pub_creators.publication_id
+        LEFT JOIN citation_author AS creator ON pub_creators.author_id = creator.id
+        LEFT JOIN (
+          SELECT DISTINCT ON (author_id) id, family_name, given_name, author_id
+          FROM citation_authoralias
+        ) AS author_names ON author_names.author_id = creator.id
+        WHERE pub.id IN
+          (SELECT id FROM publication_ids_with_only_bibtex_raw
+           INTERSECT
+           SELECT id FROM publication_ids_with_dois_and_missing_data)
+        GROUP BY pub.id, pub.date_published_text, pub.doi, pub.title
         """
 
     if isinstance(limit, int) and 1 <= limit:
@@ -113,7 +116,8 @@ def augment_publications(user: User, limit=None):
             creator=user, action="augment data crossref year author search",
             role=models.AuditCommand.Role.CURATOR_EDIT)
         print("Entry")
-        print("\t{ind} Year: {year}, Title: {title}, DOI: {doi} ID: {publication_id}".format(ind=ind, **year_author_result))
+        print("\t{ind} Year: {year}, Title: {title}, DOI: {doi} ID: {publication_id}".format(ind=ind,
+                                                                                             **year_author_result))
         publication = update(year_author_result, audit_command)
         if publication:
             print(publication)
@@ -123,7 +127,8 @@ def _match_author_name(name: str, other_name: str):
     return name == other_name
 
 
-def _match_publication_title(publication, detached_publications: List[common.DetachedPublication], publication_matches: Set[int]) -> Set[int]:
+def _match_publication_title(publication, detached_publications: List[common.DetachedPublication],
+                             publication_matches: Set[int]) -> Set[int]:
     if publication["title"]:
         # Determine if titles approximately match
         publication_titles = [detached_publication.publication.title for detached_publication in detached_publications]
@@ -139,7 +144,8 @@ def _match_publication_title(publication, detached_publications: List[common.Det
         return publication_matches
 
 
-def _match_publication_year(publication, detached_publications: List[common.DetachedPublication], publication_matches: Set[int]) -> Set[int]:
+def _match_publication_year(publication, detached_publications: List[common.DetachedPublication],
+                            publication_matches: Set[int]) -> Set[int]:
     if publication["date_published_text"] is not None:
         # Determine if years exactly match
         years_matches = set(i for (i, detached_publication) in enumerate(detached_publications)
@@ -159,7 +165,8 @@ def _match_publication_author(publication, detached_publication: common.Detached
     return True
 
 
-def _match_publication_authors(publication, detached_publications: List[common.DetachedPublication], publication_matches: Set[int]) -> Set[int]:
+def _match_publication_authors(publication, detached_publications: List[common.DetachedPublication],
+                               publication_matches: Set[int]) -> Set[int]:
     author_matches = set(i for (i, other_publication) in enumerate(detached_publications)
                          if _match_publication_author(publication, other_publication))
     publication_matches.intersection_update(author_matches)

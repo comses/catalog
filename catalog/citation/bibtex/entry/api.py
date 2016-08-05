@@ -11,29 +11,28 @@ def make_container(entry, audit_command) -> models.Container:
     container_str = entry.get("journal", "")
     container_type_str = entry.get("type", "")
     container_issn_str = entry.get("issn", "")
-    container = models.Container.objects.log_create(audit_command=audit_command,
-                                                    payload={'type': container_type_str,
-                                                             'issn': container_issn_str})
-    container_alias, created = models.ContainerAlias.objects.log_get_or_create(
-        audit_command=audit_command,
+    container = models.Container.objects.create(type=container_type_str,
+                                                issn=container_issn_str,
+                                                primary_name=container_str)
+    container_alias, created = models.ContainerAlias.objects.get_or_create(
         container=container,
         name=container_str,
-        payload={'container': container, 'name': container_str})
+        defaults={'container': container, 'name': container_str})
 
     return container, container_alias
 
 
 def make_author(publication: models.Publication, raw: models.Raw, author_str: str, audit_command) -> models.Author:
-    cleaned_author_str = util.last_name_and_initials(util.normalize_name(author_str))
-    author = models.Author.objects.log_create(
-        audit_command=audit_command,
-        payload= {'type': models.Author.INDIVIDUAL})
-    author_alias, created = models.AuthorAlias.objects.log_get_or_create(
-        audit_command=audit_command,
+    cleaned_family_name, cleaned_given_name = models.Author.normalize_author_name(author_str)
+    author = models.Author.objects.create(
+        type=models.Author.INDIVIDUAL,
+        primary_family_name=cleaned_family_name,
+        primary_given_name=cleaned_given_name)
+    author_alias, created = models.AuthorAlias.objects.get_or_create(
         author=author,
-        name=cleaned_author_str,
-        payload={'author': author, 'name': cleaned_author_str})
-    models.AuthorAliasRaws.objects.create(author_alias=author_alias, raw=raw)
+        family_name=cleaned_family_name,
+        given_name=cleaned_given_name)
+    models.RawAuthors.objects.create(author=author, raw=raw)
     models.PublicationAuthors.objects.create(publication=publication, author=author)
 
     return author
@@ -76,16 +75,15 @@ def process(entry, audit_command: models.AuditCommand) -> models.Publication:
     date_published, date_published_text = make_date_published(entry)
     container, container_alias = make_container(entry, audit_command)
 
-    publication = models.Publication.objects.log_create(
-        audit_command=audit_command,
-        payload={'title': util.sanitize_name(entry.get("title", "")),
-                 'date_published_text': date_published_text,
-                 'date_published': date_published,
-                 'doi': entry.get("doi", ""),
-                 'abstract': entry.get("abstract", ""),
-                 'is_primary': True,
-                 'added_by': audit_command.creator,
-                 'journal': container})
+    publication = models.Publication.objects.create(
+        title=util.sanitize_name(entry.get("title", "")),
+        date_published_text=date_published_text,
+        date_published=date_published,
+        doi=entry.get("doi", ""),
+        abstract=entry.get("abstract", ""),
+        is_primary=True,
+        added_by=audit_command.creator,
+        container=container)
 
     raw = models.Raw.objects.create(
         key=models.Raw.BIBTEX_ENTRY,
