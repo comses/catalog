@@ -110,11 +110,11 @@ def setup_solr(ctx, travis=False):
 
 @task(aliases=['rfd'])
 def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True):
-    run_chain('dropdb --if-exists {db_name} -U {db_user}'.format(**env),
-              'createdb {db_name} -U {db_user}'.format(**env))
+    run_chain('dropdb --if-exists {db_name} -U {db_user} -h db '.format(**env),
+              'createdb {db_name} -U {db_user} -h db'.format(**env))
     if os.path.isfile(dumpfile):
         logger.debug("loading data from %s", dumpfile)
-        run('psql {db_name} {db_user} < {dumpfile}'.format(dumpfile=dumpfile, **env))
+        run('psql -h db {db_name} {db_user} < {dumpfile}'.format(dumpfile=dumpfile, **env))
     if init_db_schema:
         initialize_database_schema()
 
