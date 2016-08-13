@@ -1,17 +1,16 @@
-from invoke import task, run
+from invoke import task
 from invoke.tasks import call
 
 import logging
 import os
 import re
+import sys
 
-logger = logging.getLogger(__name__)
 
-# # default to current working directory
-# env.project_path = os.path.dirname(__file__)
-# # needed to push catalog.settings onto the path.
-# env.abs_project_path = os.path.abspath(env.project_path)
-# sys.path.append(env.abs_project_path)
+# push current working directory onto the path to access catalog.settings
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+os.environ['DJANGO_SETTINGS_MODULE'] = 'catalog.settings'
+
 #
 # # default env configuration
 # env.roledefs = {
@@ -31,6 +30,7 @@ env = {'python': 'python3',
 env['solr_conf_dir'] = 'solr-{}/example/solr/catalog/conf'.format(env['solr_version'])
 env['virtualenv_path'] = '%s/.virtualenvs/%s' % (os.getenv('HOME'), env['project_name'])
 
+logger = logging.getLogger(__name__)
 
 # # django integration for access to settings, etc.
 # django.project(env.project_name)
@@ -55,9 +55,9 @@ def dj(command, **kwargs):
               **kwargs)
 
 
-def run_chain(*commands, **kwargs):
+def run_chain(ctx, *commands, **kwargs):
     command = ' && '.join(commands)
-    run(command, **kwargs)
+    ctx.run(command, **kwargs)
 
 
 @task
@@ -76,7 +76,7 @@ def test(ctx, name=None, coverage=False):
         coverage_cmd = "coverage run --source='.' --omit=" + ','.join(ignored)
     else:
         coverage_cmd = env['python']
-    run('{coverage_cmd} manage.py test {apps}'.format(apps=apps, coverage_cmd=coverage_cmd))
+    ctx.run('{coverage_cmd} manage.py test {apps}'.format(apps=apps, coverage_cmd=coverage_cmd))
 
 
 @task(pre=[call(test, coverage=True)])
@@ -110,18 +110,27 @@ def setup_solr(ctx, travis=False):
 
 @task(aliases=['rfd'])
 def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True):
-    run_chain('dropdb --if-exists {db_name} -U {db_user} -h db '.format(**env),
-              'createdb {db_name} -U {db_user} -h db'.format(**env))
+    from django.conf import settings
+    pgpass_path = os.path.join(os.path.expanduser('~'), '.pgpass')
+    with open(pgpass_path, 'w+') as pgpass:
+        pgpass.write('db:*:template1:{db_user}:{db_password}\n'.format(db_password=settings.DATABASES['default']['PASSWORD'], **env))
+        pgpass.write('db:*:{db_name}:{db_user}:{db_password}\n'.format(db_password=settings.DATABASES['default']['PASSWORD'], **env))
+        ctx.run('chmod 0600 ~/.pgpass')
+
+    ctx.run('dropdb -w --if-exists -e {db_name} -U {db_user} -h db'.format(**env), echo=True, warn=True)
+    ctx.run('createdb -w {db_name} -U {db_user} -h db'.format(**env), echo=True, warn=True)
     if os.path.isfile(dumpfile):
         logger.debug("loading data from %s", dumpfile)
-        run('psql -h db {db_name} {db_user} < {dumpfile}'.format(dumpfile=dumpfile, **env))
+        ctx.run('psql -w -q -h db {db_name} {db_user} < {dumpfile}'.format(dumpfile=dumpfile, **env),
+                warn=True)
     if init_db_schema:
-        initialize_database_schema()
+        initialize_database_schema(ctx)
 
 
 @task(aliases=['idb', 'init_db'])
 def initialize_database_schema(ctx):
-    run_chain('python manage.py makemigrations', 'python manage.py migrate')
+    ctx.run('python manage.py makemigrations')
+    ctx.run('yes | python manage.py migrate')
 
 
 @task(aliases=['zi'])
@@ -131,7 +140,7 @@ def zotero_import(ctx, group=None, collection=None):
         _command += ' --group=%s' % group
     if collection:
         _command += ' --collection=%s' % collection
-    run(_command)
+    ctx.run(_command)
 
 
 @task(aliases=['ri'])
