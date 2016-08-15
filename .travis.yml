@@ -4,10 +4,13 @@ python:
   - "3.5"
 notifications:
   email: comses-dev@googlegroups.com
+services:
+  - docker
 env: 
-  DOCKER_COMPOSE_VERSION: 1.4.2
+  DOCKER_COMPOSE_VERSION: 1.8.0
 before_install:
-  - sudo rm /usr/local/bin/docker-compose
+  - sudo apt-get -qq update
+  - sudo apt-get install -y docker-engine
   - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
@@ -15,6 +18,5 @@ script:
   - docker-compose build
   - docker-compose up solr db -d
   - docker-compose run test
-install: "pip install -r requirements.txt"
 after_success:
     - coveralls
