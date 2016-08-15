@@ -1,24 +1,20 @@
 language: python
-sudo: false
+sudo: required
 python:
-    - "3.5"
-addons:
-    postgresql: "9.4"
+  - "3.5"
 notifications:
-    email: comses-dev@googlegroups.com
+  email: comses-dev@googlegroups.com
 env: 
-    - DB=postgres SOLR_VERSION=4.10.4 SOLR_CORE=catalog SOLR_CONFS="schema.xml deploy/travis/solrconfig.xml"
-services:
-    - redis
-before_script:
-    - cp catalog/settings/local.py.example catalog/settings/local.py
-    - python manage.py build_solr_schema > schema.xml
-    - bash deploy/travis/travis-solr.sh # edited from https://github.com/moliware/travis-solr
-    - invoke setup_postgres
-    - invoke initialize_database_schema
-    - curl http://localhost:8983/solr/admin/cores?action=RELOAD&core=catalog
-    - invoke rebuild_index --noinput
+  DOCKER_COMPOSE_VERSION: 1.4.2
+before_install:
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+script:
+  - docker-compose build
+  - docker-compose up solr db -d
+  - docker-compose run test
 install: "pip install -r requirements.txt"
-script: invoke coverage
 after_success:
     - coveralls

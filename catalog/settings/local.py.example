@@ -5,9 +5,9 @@ DEBUG = True
 
 os.environ.setdefault('DB_USER', 'catalog')
 os.environ.setdefault('DB_NAME', 'comses_catalog')
-os.environ.setdefault('DB_HOST', 'localhost')
+os.environ.setdefault('DB_HOST', 'db')
 os.environ.setdefault('DB_PORT', '5432')
-os.environ.setdefault('SOLR_HOST', 'localhost')
+os.environ.setdefault('SOLR_HOST', 'solr')
 os.environ.setdefault('SOLR_PORT', '8983')
 os.environ.setdefault('SOLR_CORE_NAME', 'catalog_core')
 

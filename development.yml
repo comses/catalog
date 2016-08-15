@@ -17,9 +17,9 @@ services:
       - data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: catalog
+      # FIXME: replace with env_file (https://docs.docker.com/v1.8/compose/yml/#env-file)
       POSTGRES_PASSWORD: CHANGEME_CATALOG_DB_PASSWORD
       POSTGRES_DB: comses_catalog
-
   django:
     build:
       context: ./
@@ -27,8 +27,7 @@ services:
       - .:/code
       - solr:/etc/solr/mycores/
       - logs:/catalog/logs
-    entrypoint:
-      - /code/devel-entrypoint.sh
+    command: /code/deploy/docker/dev.sh
     environment:
       DB_USER: catalog
       DB_HOST: db
@@ -39,10 +38,31 @@ services:
       SOLR_CORE_NAME: catalog_core
     ports:
       - "8000:8000"
-    depends_on:
+    links:
       - db
       - solr
-
+  test:
+    build:
+      context: ./
+    volumes:
+      - .:/code
+      - solr:/etc/solr/mycores/
+      - logs:/catalog/logs
+    entrypoint: 
+      - /code/deploy/docker/test.sh 
+    environment:
+      DB_USER: catalog
+      DB_HOST: db
+      DB_NAME: comses_catalog
+      DB_PORT: 5432
+      SOLR_HOST: solr
+      SOLR_PORT: 8983
+      SOLR_CORE_NAME: catalog_core
+    ports:
+      - "8000:8000"
+    links:
+      - db
+      - solr
 volumes:
   solr:
     driver: local

@@ -6,5 +6,7 @@ ENV PYTHONUNBUFFERED 1
 
 COPY requirements.txt /tmp/
 RUN pip install -r /tmp/requirements.txt
+ARG settingsfile=local.py.example
 WORKDIR /code
-CMD ["/code/entrypoint.sh"]
+COPY catalog/settings/$settingsfile /code/settings/local.py
+CMD ["/code/deploy/docker/entrypoint.sh"]
