@@ -10,11 +10,11 @@ django-autocomplete-light==2.3.1
 django-bootstrap3==7.0.1
 django-contact-form==1.2
 django-debug-toolbar==1.5
-django-extensions==1.6.7
+django-extensions==1.7.0
 django-haystack==2.5.0
 django-kronos==0.9
-django-model-utils==2.5
-djangorestframework==3.4.1
+django-model-utils==2.5.1
+djangorestframework==3.4.3
 feedparser==5.2.1
 fuzzywuzzy==0.11.1
 invoke==0.13.0
@@ -23,8 +23,8 @@ lxml==3.6.1
 psycopg2==2.6.2
 pysolr==3.5.0
 python-coveralls==2.7.0
-raven==5.23.0
-requests==2.10.0
+raven==5.24.3
+requests==2.11.0
 sh==1.11
 Unidecode==0.4.19
 unicodecsv==0.14.1

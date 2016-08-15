@@ -8,5 +8,5 @@ COPY requirements.txt /tmp/
 RUN pip install -r /tmp/requirements.txt
 ARG settingsfile=local.py.example
 WORKDIR /code
-COPY catalog/settings/$settingsfile /code/settings/local.py
+COPY catalog/settings/$settingsfile /code/catalog/settings/local.py
 CMD ["/code/deploy/docker/entrypoint.sh"]

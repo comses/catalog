@@ -6,7 +6,7 @@ services:
     ports:
       - "8983:8983"
     volumes:
-      - solr:/opt/solr/server/solr/mycores
+      - solr:/etc/solr/server/solr/mycores
     entrypoint:
       - docker-entrypoint.sh
       - solr-precreate
@@ -58,8 +58,6 @@ services:
       SOLR_HOST: solr
       SOLR_PORT: 8983
       SOLR_CORE_NAME: catalog_core
-    ports:
-      - "8000:8000"
     links:
       - db
       - solr
