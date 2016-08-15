@@ -1,4 +1,4 @@
 #!/bin/sh
 
-/code/deploy/solr/config.sh
+/bin/sh /code/deploy/docker/common.sh
 supervisord -c /code/deploy/supervisord/supervisord.conf

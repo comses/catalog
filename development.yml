@@ -6,7 +6,7 @@ services:
     ports:
       - "8983:8983"
     volumes:
-      - solr:/etc/solr/server/solr/mycores
+      - solr:/opt/solr/server/solr/mycores
     entrypoint:
       - docker-entrypoint.sh
       - solr-precreate
@@ -27,7 +27,8 @@ services:
       - .:/code
       - solr:/etc/solr/mycores/
       - logs:/catalog/logs
-    command: /code/deploy/docker/dev.sh
+    entrypoint: 
+      - /code/deploy/docker/dev.sh
     environment:
       DB_USER: catalog
       DB_HOST: db

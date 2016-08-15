@@ -6,8 +6,5 @@ ENV PYTHONUNBUFFERED 1
 COPY requirements.txt /tmp/
 RUN pip install -r /tmp/requirements.txt
 
-ARG settingsfile=local.py.example
-COPY catalog/settings/$settingsfile catalog/settings/local.py
-
 WORKDIR /code
 CMD ["/code/deploy/docker/dev.sh"]
