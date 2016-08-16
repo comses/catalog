@@ -1,0 +1,18 @@
+{% load i18n %}
+{% blocktrans %}Hi,{% endblocktrans %}
+
+{% blocktrans %} {{ invitation_text }}{% endblocktrans %}
+
+{% blocktrans %}
+There are many places you can archive your computational model. We offer free hosting at https://cml.comses.net but
+there are also digital repositories such as figshare.com, github.com, or bitbucket.org where you can place your code.
+
+After you have archived the computational model associated with this publication we would appreciate it if you would let
+us know where you put it by filling out the following form:
+{% endblocktrans %}
+
+https://{{ domain }}{% url "citation:update_model_url" token %}
+
+Thanks!
+
+The CoMSES Network Editors

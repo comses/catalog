@@ -1,0 +1,82 @@
+<script type="text/html" id="creator_form">
+    <legend class="scheduler-border">Authors <button type="button" class="btn btn-xs btn-primary" data-bind="click: addCreator"><i class="fa fa-plus-square"></i> Add Author </button></legend>
+    <div data-bind="foreach: creators">
+        <p>
+            <span data-bind="text: given_name"></span> <span data-bind="text: family_name"></span>(<span data-bind="text: creator_type"></span>)
+
+            <a href='#' data-bind='click: editCreator'><i class="fa fa-edit"></i></a>
+            <a href='#' data-bind='click: removeCreator'><i class="fa fa-times"></i></a>
+        </p>
+    </div>
+    <div class="modal fade" data-bind="showModal: activateModal" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true" data-bind="click:hideModal">&times;</button>
+                    <h4 class="modal-title">Edit Details and Click Save</h4>
+                </div>
+                <div class="modal-body" data-bind="with: modalData">
+                    <label class="control-label">First Name</label>
+                    <input type="text" class="form-control"data-bind="value: given_name" />
+                    <label class="control-label">Last Name</label>
+                    <input type="text" class="form-control"data-bind="value: family_name" />
+                    <label class="control-label">Author Type</label>
+                    <select class="form-control" name="creator_type" data-bind="value: creator_type">
+                        <option value="AUTHOR" selected="selected">author</option>
+                        <option value="REVIEWED_AUTHOR">reviewed author</option>
+                        <option value="CONTRIBUTOR">contributor</option>
+                        <option value="EDITOR">editor</option>
+                        <option value="TRANSLATOR">translator</option>
+                        <option value="SERIES_EDITOR">series editor</option>
+                    </select>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bind="click: saveCreator">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script type="text/javascript">
+    ko.components.register('creator-detail', {
+    viewModel: function(params) {
+        self.creators = params.creators;
+        self.activateModal = ko.observable(false);
+        self.modalData = ko.observable();
+        self.selectedCreator = ko.observable();
+
+        self.hideModal = function() {
+            self.modalData("");
+            self.activateModal("");
+        };
+        self.addCreator = function() {
+            self.modalData({id: -1, given_name: "", family_name: "", creator_type: "AUTHOR"});
+            self.activateModal(true);
+        };
+        self.editCreator = function(data, event) {
+            self.selectedCreator(data);
+            self.modalData(ko.toJS(data));
+            self.activateModal(true);
+        };
+        self.removeCreator = function() {
+            var creator = this;
+            self.creators.remove(creator);
+        };
+        self.saveCreator = function(data, event) { 
+            if(self.modalData().id != -1) {
+                self.selectedCreator().given_name(self.modalData().given_name);
+                self.selectedCreator().family_name(self.modalData().family_name);
+                self.selectedCreator().creator_type(self.modalData().creator_type);
+                self.hideModal();
+            } else {
+                self.creators.push(self.modalData());
+                self.hideModal();
+            }
+        };
+    },
+    template: { element: 'creator_form' }
+});
+
+</script>

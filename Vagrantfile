@@ -30,7 +30,7 @@ Vagrant.configure(2) do |config|
 	config.vm.network "forwarded_port", guest: 8000, host: 8000
 
 	# postgresql
-	config.vm.network "forwarded_port", guest: 5432, host: 5432
+	config.vm.network "forwarded_port", guest: 5432, host: 25432
 
 	# Create a private network, which allows host-only access to the machine
 	# using a specific IP.
@@ -56,7 +56,8 @@ Vagrant.configure(2) do |config|
 	#   vb.gui = true
 	#
 	# Customize the amount of memory on the VM:
-		vb.memory = "4096"
+		vb.cpus = "4"
+		vb.memory = "8192"
 	end
 	#
 	# View the documentation for the provider you are using for more
@@ -72,7 +73,7 @@ Vagrant.configure(2) do |config|
 	# Enable provisioning with a shell script. Additional provisioners such as
 	# Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
 	# documentation for more information about their specific syntax and use.
-	config.vm.provision "shell", inline: <<-SHELL
+	config.vm.provision "shell", privileged: false, inline: <<-SHELL
 		sudo apt-get update
 		sudo apt-get install -y postgresql postgresql-client-common postgresql-server-dev-9.5 \
 		solr-tomcat git \
@@ -97,7 +98,7 @@ Vagrant.configure(2) do |config|
 			. $HOME/.virtualenvs/catalog/bin/activate
 
 			cd $BASEDIR
-			pip install -Ur requirements.txt
+			sudo -H pip install -Ur requirements.txt
 			deactivate
 		}
 		prepare_python
@@ -114,7 +115,7 @@ Vagrant.configure(2) do |config|
 		install_java
 
 		# Replace postgres settings file
-		cp $BASEDIR/deploy/vagrant/pg_hba.conf "/etc/postgresql/9.5/main/pg_hba.conf"
+		sudo cp $BASEDIR/deploy/vagrant/pg_hba.conf "/etc/postgresql/9.5/main/pg_hba.conf"
 		sudo service postgresql restart
 
 		# Create a local settings file

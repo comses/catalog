@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load bootstrap3 %}
+
+{% block content %}
+    <publication-detail params="data: publicationDetail"></publication-detail>
+{% endblock content %}
+
+{% block javascript %}
+    {% include "includes/publication_detail_form.html" %}
+
+    <script type="text/javascript">
+        var viewModelJson = $.parseJSON("{{ json | escapejs }}");
+        console.log("Hello");
+        console.log(viewModelJson);
+        $(function(){
+            var ViewModel = function(data) {
+                this.publicationDetail = data;
+            };
+            ko.applyBindings(new ViewModel(viewModelJson));
+        });
+    </script>
+{% endblock javascript %}
