@@ -7,10 +7,12 @@ services:
       - "8983:8983"
     volumes:
       - solr:/opt/solr/server/solr/mycores
+      - ./deploy/solr/conf:/catalog-solr-conf
     entrypoint:
       - docker-entrypoint.sh
       - solr-precreate
       - catalog_core
+      - /catalog-solr-conf
   db:
     image: postgres:9
     volumes:
