@@ -11,7 +11,7 @@ After you have archived the computational model associated with this publication
 us know where you put it by filling out the following form:
 {% endblocktrans %}
 
-https://{{ domain }}{% url "core:update_model_url" token %}
+https://{{ domain }}{% url "citation:update_model_url" token %}
 
 Thanks!
 

@@ -10,6 +10,8 @@
 
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
+        console.log("Hello");
+        console.log(viewModelJson);
         $(function(){
             var ViewModel = function(data) {
                 this.publicationDetail = data;

@@ -73,8 +73,8 @@ class Command(BaseCommand):
         creators = []
         for c in data['creators']:
             creator, created = Author.objects.get_or_create(
-                primary_family_name=c['lastName'].strip(),
-                primary_given_name=c['firstName'].strip())
+                family_name=c['lastName'].strip(),
+                given_name=c['firstName'].strip())
             if not created:
                 logger.debug("found existing creator %s", creator)
             creators.append(creator)
@@ -185,7 +185,7 @@ class Command(BaseCommand):
         article.zotero_key = zotero_key
         article = self.set_common_fields(article, data, meta)
         article.container = Container.objects.get_or_create(
-            primary_name=data['publicationTitle'].strip())[0]
+            name=data['publicationTitle'].strip())[0]
         article.pages = data['pages'].strip()
         article.issn = data['ISSN'].strip().strip()
         article.volume = data['volume'].strip()

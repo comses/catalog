@@ -18,14 +18,14 @@ class TestMergers(TestCase):
             name='jasss',
             container=self.container_jasss_copy)
 
-        self.author_bob = models.Author.objects.create(type='INDIVIDUAL', orcid='', primary_given_name='Bob',
-                                                       primary_family_name='Smith')
-        self.author_alias_bob = models.AuthorAlias.objects.create(author=self.author_bob, given_name='Bob',
+        self.author_bob = models.Author.objects.create(type='INDIVIDUAL', orcid='', given_name='Bob',
+                                                       family_name='Smith')
+        self.author_alias_bob = models.AuthorAlias.objects.create(author=self.author_bob, given_name='Robert',
                                                                   family_name='Smith')
-        self.author_bob_copy = models.Author.objects.create(type='INDIVIDUAL', orcid='', primary_given_name='Bob',
-                                                            primary_family_name='Smith')
-        self.author_alias_bob_copy = models.AuthorAlias.objects.create(author=self.author_bob_copy, given_name='Bob',
-                                                                       family_name='Smith')
+        self.author_rob = models.Author.objects.create(type='INDIVIDUAL', orcid='', given_name='Rob',
+                                                       family_name='Smith')
+        self.author_alias_rob = models.AuthorAlias.objects.create(author=self.author_rob, given_name='Robert',
+                                                                  family_name='Smith')
 
         self.publication_foo = models.Publication.objects.create(
             title='''Agent-based modeling of hunting and subsistence agriculture on indigenous lands:
@@ -50,10 +50,10 @@ class TestMergers(TestCase):
                                                   publication=self.publication_foo_copy)
 
         models.PublicationAuthors.objects.create(author=self.author_bob, publication=self.publication_foo)
-        models.PublicationAuthors.objects.create(author=self.author_bob_copy, publication=self.publication_foo_copy)
+        models.PublicationAuthors.objects.create(author=self.author_rob, publication=self.publication_foo_copy)
 
         models.RawAuthors.objects.create(author=self.author_bob, raw=self.raw)
-        models.RawAuthors.objects.create(author=self.author_bob_copy, raw=self.raw_copy)
+        models.RawAuthors.objects.create(author=self.author_rob, raw=self.raw_copy)
 
     def test_container_merge(self):
         mergeset = merger.create_container_mergeset_by_name()
@@ -65,14 +65,14 @@ class TestMergers(TestCase):
         self.assertEqual(models.ContainerAlias.objects.count(), 1)
 
     def test_author_merge(self):
-        mergeset = merger.create_author_mergeset_by_name()
+        mergeset = merger.MergeSet(groups=[[author.id for author in models.Author.objects.all()]])
         self.assertEqual(len(mergeset), 1)
         self.assertEqual(len(mergeset[0]), 2)
 
         merger.merge_authors(mergeset, self.audit_command)
+        self.assertEqual(models.Author.objects.first().raw.count(), 2)
         self.assertEqual(models.Author.objects.count(), 1)
-        self.assertEqual(models.AuthorAlias.objects.count(), 1)
-        self.assertEqual(models.AuthorAlias.objects.first().raw.count(), 2)
+        self.assertEqual(models.AuthorAlias.objects.count(), 2)
 
     def test_publication_merge(self):
         mergeset = merger.create_publication_mergeset_by_titles()

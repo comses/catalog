@@ -51,7 +51,7 @@
                     {% for publication in object_list %}
                         <tr>
                             <td><mark>{{ publication.assigned_curator }}</mark></td>
-                            <td><span class='label label-as-badge label-primary'>{{ publication.status }}</span> <a href="{% url 'core:curator_publication_detail' publication.pk %}">{{ publication.title }}</td>
+                            <td><span class='label label-as-badge label-primary'>{{ publication.status }}</span> <a href="{% url 'citation:curator_publication_detail' publication.pk %}">{{ publication.title }}</td>
                             <td>{{ publication.last_modified }}</td>
                         </tr>
                     {% empty %}
@@ -109,7 +109,7 @@
 
                 self.previewEmail = function(formElement) {
                     var formData = $(formElement).serialize()
-                    $.get("{% url 'core:invite_email_preview' %}?" + formData)
+                    $.get("{% url 'citation:invite_email_preview' %}?" + formData)
                         .done(function(result) {
                             $("#email-text").html(result.content);
                         })
@@ -161,7 +161,7 @@
                         var $btn = $("#nextBtn").button('loading');
                         $.ajax({
                             type: "POST",
-                            url: "{% url 'core:send_invites' %}" + window.location.search,
+                            url: "{% url 'citation:send_invites' %}" + window.location.search,
                             contentType: "application/json; charset=utf-8",
                             data: ko.toJSON(self.currentStep().model()),
                             dataType:"json",

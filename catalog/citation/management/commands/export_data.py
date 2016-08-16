@@ -1,7 +1,7 @@
-from django.core.management.base import BaseCommand
+from django.citation.management.base import BaseCommand
 from django.db.models import Count
 
-from catalog.core.models import Publication
+from catalog.citation.models import Publication
 
 import unicodecsv as csv
 import logging

@@ -83,7 +83,7 @@ def augment_publications(user: User, limit=None):
             WHERE doi <> '' AND (title = '' OR date_published_text = '' OR abstract = '')
         )
         SELECT pub.id, pub.date_published_text, pub.doi, pub.title
-          , array_agg(trim(BOTH FROM given_name || ' ' || family_name, ' ')) AS author_names
+          , array_agg(trim(BOTH FROM creator.given_name || ' ' || creator.family_name, ' ')) AS author_names
         FROM citation_publication AS pub
         LEFT JOIN citation_publicationauthors AS pub_creators ON pub.id = pub_creators.publication_id
         LEFT JOIN citation_author AS creator ON pub_creators.author_id = creator.id

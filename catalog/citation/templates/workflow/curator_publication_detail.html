@@ -32,7 +32,7 @@
                                 <div><b>Author(s):</b>
                                     <ul class='list-inline' data-bind="foreach: creators">
                                         <li><a target='_blank' data-bind='attr: { href: $root.googleScholarAuthorSearch($data) }'>
-                                                <span data-bind="text: first_name"></span> <span data-bind="text: last_name"></span>
+                                                <span data-bind="text: given_name"></span> <span data-bind="text: family_name"></span>
                                             </a>
                                         </li>
                                     </ul>
@@ -91,9 +91,27 @@
                                 <div class='panel-heading'><h5 class='panel-title'><i class='fa fa-history'></i> Activity Log</h5></div>
                                 <div class='panel-body' data-bind='foreach: activity_logs'>
                                     <p>
-                                    <span class='pull-right label label-as-badge label-info' data-bind='text: date_added'></span>
-                                    <mark data-bind='text: creator'></mark>
-                                    <span data-bind='text: message'></span>
+                                        <span class='pull-right label label-as-badge label-info' data-bind='text: date_added'></span>
+                                        <mark data-bind='text: creator'></mark>
+                                        <span data-bind='text: message'></span>
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Table</th>
+                                                    <th>Action</th>
+                                                    <th>Row ID</th>
+                                                    <th>Payload</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody data-bind='foreach: auditlogs'>
+                                                <tr>
+                                                    <td data-bind='text: table'></td>
+                                                    <td data-bind='text: action'></td>
+                                                    <td data-bind='text: row_id'></td>
+                                                    <td data-bind='text: ko.toJSON(payload)'></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </p>
                                 </div>
                             </div>
@@ -186,7 +204,7 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                     </div>
                 </div>
                 <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
-                <a class='btn btn-default' href='{% url 'core:curator_workflow'%}?status=UNTAGGED'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
+                <a class='btn btn-default' href='{% url 'citation:curator_workflow'%}?status=UNTAGGED'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
             </form>
         </div>
     </div>
@@ -197,6 +215,7 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
 
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
+        console.log(viewModelJson);
         if (!viewModelJson.journal) {
             viewModelJson.journal = {'name': null};
         }
@@ -241,11 +260,11 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                     return ko.pureComputed(function() {
                         return $.urls.SEARCH_GOOGLE_SCHOLAR
                             + "&as_sauthors="
-                            + encodeURIComponent(creator.first_name() + ' ' + creator.last_name());
+                            + encodeURIComponent(creator.given_name() + ' ' + creator.family_name());
                     });
                 };
                 self.authorLastNames = ko.pureComputed(function() {
-                    return ko.utils.arrayMap(self.creators(), function(creator) { return creator.last_name() }).join(' ');
+                    return ko.utils.arrayMap(self.creators(), function(creator) { return creator.family_name() }).join(' ');
                 });
                 self.googleScholarTitleLink = ko.pureComputed(function() {
                     return $.urls.SEARCH_GOOGLE_SCHOLAR + encodeURIComponent(self.title());
@@ -274,19 +293,19 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                     return '#id_code_archive_url';
                 });
                 self.getPlatformList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, "{% url 'core:platform_search' %}");
+                    self.makeAsyncRequest(query, callback, "{% url 'citation:platform_search' %}");
                 };
                 self.getSponsorList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, "{% url 'core:sponsor_search' %}");
+                    self.makeAsyncRequest(query, callback, "{% url 'citation:sponsor_search' %}");
                 };
                 self.getTagList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, "{% url 'core:tag_search' %}");
+                    self.makeAsyncRequest(query, callback, "{% url 'citation:tag_search' %}");
                 };
                 self.getJournalList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, "{% url 'core:journal_search' %}");
+                    self.makeAsyncRequest(query, callback, "{% url 'citation:journal_search' %}");
                 };
                 self.getModelDocumentationList = function(query, callback) {
-                    self.makeAsyncRequest(query, callback, "{% url 'core:model_documentation_search' %}");
+                    self.makeAsyncRequest(query, callback, "{% url 'citation:model_documentation_search' %}");
                 };
 
                 self.makeAsyncRequest = function(query, callback, url) {
@@ -318,6 +337,7 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                     }
                     {% endcomment %}
                     var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
+                    console.log(data_clone);
                     data_clone.platforms(ko.utils.arrayMap(data.selectedPlatforms(), function(platform) {
                         return {'name': platform};
                     }));

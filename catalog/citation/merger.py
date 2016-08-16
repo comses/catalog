@@ -107,14 +107,14 @@ def create_publication_mergeset_by_titles() -> MergeSet:
 def display_merge_publications(publications):
     print("Merged")
     for publication in publications:
-        print("\tYear: {}, Title: {}, DOI: {}".format(publication.date_published_text, publication.title, publication.doi))
+        print("\tYear: {}, Title: {}, DOI: {}".format(publication.date_published_text, publication.title,
+                                                      publication.doi))
     print("\n")
 
 
 def merge_publications(mergeset: MergeSet,
                        audit_command: models.AuditCommand,
-                       final_publications: Optional[List[models.Publication]]=None) -> None:
-
+                       final_publications: Optional[List[models.Publication]] = None) -> None:
     if not final_publications or len(mergeset) != len(final_publications):
         final_publication_ids = [mergeitem.pop() for mergeitem in mergeset]
         final_publications = models.Publication.objects.filter(id__in=final_publication_ids).all()
@@ -124,34 +124,34 @@ def merge_publications(mergeset: MergeSet,
 
         publications = models.Publication.objects.filter(id__in=ids).all()
 
-        models.Raw.objects\
-            .filter(publication_id__in=ids)\
+        models.Raw.objects \
+            .filter(publication_id__in=ids) \
             .log_update(audit_command=audit_command, publication_id=final_publication.id)
 
         authors = models.Author.objects.filter(publications=final_publication).all()
-        models.PublicationAuthors.objects\
-            .filter(publication_id__in=ids, author__in=authors)\
+        models.PublicationAuthors.objects \
+            .filter(publication_id__in=ids, author__in=authors) \
             .log_delete(audit_command)
-        models.PublicationAuthors.objects\
-            .filter(publication_id__in=ids)\
+        models.PublicationAuthors.objects \
+            .filter(publication_id__in=ids) \
             .log_update(audit_command=audit_command, publication_id=final_publication.id)
 
         citations = models.Publication.objects.filter(Q(citations=final_publication)).all()
         references = models.Publication.objects.filter(Q(referenced_by=final_publication)).all()
-        models.PublicationCitations.objects\
-            .filter(publication_id__in=ids, citation__in=citations | references)\
+        models.PublicationCitations.objects \
+            .filter(publication_id__in=ids, citation__in=citations | references) \
             .log_delete(audit_command)
-        models.PublicationCitations.objects\
-            .filter(publication_id__in=ids)\
+        models.PublicationCitations.objects \
+            .filter(publication_id__in=ids) \
             .log_update(audit_command=audit_command, publication_id=final_publication.id)
 
-        # TODO: remove log_save and track updates here for updating later, create log_update method
+        changes = {}
         for publication in publications:
             for field in ['date_published_text', 'title', 'doi', 'abstract']:
                 if not getattr(final_publication, field):
-                    setattr(final_publication, field, getattr(publication, field))
+                    changes[field] = getattr(publication, field)
 
-        final_publication.log_save(audit_command)
+        final_publication.log_update(audit_command, **changes)
         publications.log_delete(audit_command)
         display_merge_publications(publications)
 
@@ -160,84 +160,68 @@ def merge_containers(mergeset: MergeSet, audit_command: models.AuditCommand) -> 
     final_container_ids = [mergeitem.pop() for mergeitem in mergeset]
     final_containers = models.Container.objects.filter(id__in=final_container_ids).all()
 
-    cursor = connection.cursor()
     for (ids, final_container) in zip(mergeset, final_containers):
-
         containers = models.Container.objects.filter(id__in=ids).all()
 
-        final_container_aliases = models.ContainerAlias.objects.filter(container=final_container)
-        container_aliases_to_delete = models.ContainerAlias.objects.filter(container_id__in=ids)
-        raw_update = \
-            """
-            update citation_raw as raw set container_alias_id = container_alias_map.target_id
-            from (
-                select final.id as target_id, deleted.id as source_id
-                from (
-                    select id, name
-                    from citation_containeralias
-                    where id = any(%s)) as final
-                inner join (
-                    select id, name
-                    from citation_containeralias
-                    where id = any(%s)) as deleted on deleted.name = final.name
-            ) as container_alias_map
-            where container_alias_map.source_id = raw.container_alias_id"""
-        cursor.execute(raw_update,
-                       [[final_alias.id for final_alias in final_container_aliases],
-                        [alias_to_delete.id for alias_to_delete in container_aliases_to_delete]])
-        models.ContainerAlias.objects\
-            .filter(container_id__in=ids,
-                    name__in=[final_container_alias.name for final_container_alias in final_container_aliases])\
-            .log_delete(audit_command)
-        models.ContainerAlias.objects.filter(container_id__in=ids).log_update(audit_command, container_id=final_container.id)
-
-        models.Publication.objects.filter(container__in=containers).log_update(audit_command, container_id=final_container.id)
-
         for container in containers:
+            if container.name != final_container.name:
+                models.ContainerAlias.objects.log_get_or_create(
+                    audit_command=audit_command,
+                    container_id=final_container.id,
+                    name=container.name)
+
+            container_aliases = container.container_aliases.all()
+            for container_alias in container_aliases:
+                if models.ContainerAlias.objects.filter(
+                        name=container_alias.name).first() is None:
+                    container_alias.log_update(audit_command=audit_command, container_id=final_container.id)
+                else:
+                    container_alias.log_delete(audit_command=audit_command)
+
+            changes = {}
             for field in ['issn']:
                 if not getattr(final_container, field):
-                    setattr(final_container, field, getattr(container, field))
+                    changes[field] = getattr(container, field)
 
-        final_container.log_save(audit_command)
-        containers.log_delete(audit_command)
+            final_container.log_update(audit_command=audit_command, **changes)
+            models.Raw.objects.filter(container=container).exclude(
+                id__in=models.Raw.objects.filter(container=final_container)).log_update(
+                audit_command=audit_command, container_id=final_container.id)
+            container.log_delete(audit_command=audit_command)
 
 
 def merge_authors(mergeset: MergeSet, audit_command: models.AuditCommand) -> None:
-    # TODO: repoint raw values if author_alias is deleted
     final_ids = [mergeitem.pop() for mergeitem in mergeset]
     final_authors = models.Author.objects.filter(id__in=final_ids).all()
 
     for (ids, final_author) in zip(mergeset, final_authors):
         authors = models.Author.objects.filter(id__in=ids).all()
 
-        final_author_aliases = models.AuthorAlias.objects.filter(author=final_author)
-
-        author_aliases_to_delete = models.AuthorAlias.objects\
-            .filter(author_id__in=ids,
-                    given_name__in=[final_author_alias.given_name for final_author_alias in final_author_aliases],
-                    family_name__in=[final_author_alias.family_name for final_author_alias in final_author_aliases])
-        for author_alias_to_delete in author_aliases_to_delete:
-            raws = author_alias_to_delete.raw.all()
-            final_author_alias=final_author_aliases.get(given_name=author_alias_to_delete.given_name,
-                                                        family_name=author_alias_to_delete.family_name)
-            models.RawAuthors.objects\
-                .filter(author_alias=author_alias_to_delete, raw__in=raws)\
-                .update(author_alias=final_author_alias)
-        author_aliases_to_delete.log_delete(audit_command)
-        models.AuthorAlias.objects.filter(author_id__in=ids).update(author=final_author)
-
-        publications = models.Publication.objects.filter(creators=final_author)
-        models.PublicationAuthors.objects\
-            .filter(publication__in=publications, author__in=authors)\
-            .log_delete(audit_command)
-        models.PublicationAuthors.objects\
-            .filter(author__in=authors)\
-            .log_update(audit_command, author_id=final_author.id)
-
         for author in authors:
-            for field in ['orcid']:
-                if not getattr(final_author, field):
-                    setattr(final_author, field, getattr(author, field))
+            if author.family_name != final_author.family_name or \
+                            author.given_name != final_author.given_name:
+                models.AuthorAlias.objects.log_get_or_create(
+                    audit_command=audit_command,
+                    author_id=final_author.id,
+                    given_name=author.given_name,
+                    family_name=author.family_name)
 
-        final_author.log_save(audit_command)
-        authors.log_delete(audit_command)
+            author_aliases = author.author_aliases.all()
+            for author_alias in author_aliases:
+                if models.AuthorAlias.objects.filter(
+                        given_name=author_alias.given_name,
+                        family_name=author_alias.family_name).first() is None:
+                    author_alias.log_update(audit_command=audit_command, author_id=final_author.id)
+                else:
+                    author_alias.log_delete(audit_command=audit_command)
+
+            changes = {}
+            for field in ['orcid', 'given_name', 'family_name']:
+                if not getattr(final_author, field):
+                    changes[field] = getattr(author, field)
+
+            final_author.log_update(audit_command=audit_command, **changes)
+            models.RawAuthors.objects.filter(author=author).exclude(
+                raw__in=models.Raw.objects.filter(authors__in=[final_author])).log_update(
+                audit_command=audit_command, author_id=final_author.id)
+            author.log_delete(audit_command=audit_command)

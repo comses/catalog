@@ -145,8 +145,7 @@ THIRD_PARTY_APPS = (
     'django_extensions',
 )
 
-CATALOG_APPS = ('catalog.core',
-                'catalog.citation',)
+CATALOG_APPS = ('catalog.citation',)
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + CATALOG_APPS
 

@@ -2,7 +2,7 @@
     <legend class="scheduler-border">Authors <button type="button" class="btn btn-xs btn-primary" data-bind="click: addCreator"><i class="fa fa-plus-square"></i> Add Author </button></legend>
     <div data-bind="foreach: creators">
         <p>
-            <span data-bind="text: first_name"></span> <span data-bind="text: last_name"></span>(<span data-bind="text: creator_type"></span>)
+            <span data-bind="text: given_name"></span> <span data-bind="text: family_name"></span>(<span data-bind="text: creator_type"></span>)
 
             <a href='#' data-bind='click: editCreator'><i class="fa fa-edit"></i></a>
             <a href='#' data-bind='click: removeCreator'><i class="fa fa-times"></i></a>
@@ -17,9 +17,9 @@
                 </div>
                 <div class="modal-body" data-bind="with: modalData">
                     <label class="control-label">First Name</label>
-                    <input type="text" class="form-control"data-bind="value: first_name" />
+                    <input type="text" class="form-control"data-bind="value: given_name" />
                     <label class="control-label">Last Name</label>
-                    <input type="text" class="form-control"data-bind="value: last_name" />
+                    <input type="text" class="form-control"data-bind="value: family_name" />
                     <label class="control-label">Author Type</label>
                     <select class="form-control" name="creator_type" data-bind="value: creator_type">
                         <option value="AUTHOR" selected="selected">author</option>
@@ -52,7 +52,7 @@
             self.activateModal("");
         };
         self.addCreator = function() {
-            self.modalData({id: -1, first_name: "", last_name: "", creator_type: "AUTHOR"});
+            self.modalData({id: -1, given_name: "", family_name: "", creator_type: "AUTHOR"});
             self.activateModal(true);
         };
         self.editCreator = function(data, event) {
@@ -66,8 +66,8 @@
         };
         self.saveCreator = function(data, event) { 
             if(self.modalData().id != -1) {
-                self.selectedCreator().first_name(self.modalData().first_name);
-                self.selectedCreator().last_name(self.modalData().last_name);
+                self.selectedCreator().given_name(self.modalData().given_name);
+                self.selectedCreator().family_name(self.modalData().family_name);
                 self.selectedCreator().creator_type(self.modalData().creator_type);
                 self.hideModal();
             } else {

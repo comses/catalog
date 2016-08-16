@@ -81,7 +81,7 @@
                         self.hideNoteModal();
                     });
             } else {
-                self.makeRequest("POST", ko.toJSON(self.modalNoteData()), "{% url 'core:notes' %}")
+                self.makeRequest("POST", ko.toJSON(self.modalNoteData()), "{% url 'citation:notes' %}")
                     .done(function(result) {
                         self.notes.push(ko.mapping.fromJS(result));
                         self.hideNoteModal();

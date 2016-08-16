@@ -101,7 +101,7 @@ class PublicationList(LoginRequiredMixin, generics.GenericAPIView):
         # FIXME: hard coded PublicationSerializer should instead depend on incoming data
         serializer = PublicationSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(user=request.user)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -125,7 +125,7 @@ class PublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
         publication = self.get_object(pk)
         serializer = PublicationSerializer(publication, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(user=request.user)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -154,15 +154,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
         # computational models.
         serializer = PublicationSerializer(publication, data=request.data)
         if serializer.is_valid():
-            publication = serializer.save()
-            if serializer.modified_data:
-                AuditCommand.objects.log_curator_action(
-                    creator=self.request.user,
-                    publication=publication,
-                    modified_data=serializer.modified_data
-                )
-            else:
-                logger.debug("no changes detected, not creating audit log")
+            serializer.save(user=request.user)
             return Response(serializer.data)
         logger.warn("serializer failed validation: %s", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -1,5 +1,5 @@
 import re
-from typing import Dict
+from typing import Dict, Tuple
 import copy
 from unidecode import unidecode
 
@@ -34,7 +34,7 @@ def all_initials(given_names):
                for given_name in given_names)
 
 
-def last_name_and_initials(name: str) -> str:
+def last_name_and_initials(name: str) -> Tuple[str, str]:
     normalized_name = normalize_name(name)
     name_split = re.split(r"\b,? +\b", normalized_name)
     family = name_split[0]

@@ -54,9 +54,8 @@ class TestEntryParsing(TestPublication):
             creator=user)
         publication = bibtex_entry_api.process(entry=self.walderr2013, audit_command=audit_command)
         names = [a.name for a in models.AuthorAlias.objects.all()]
-        self.assertTrue("ABBOTT A" in names)
-        self.assertTrue("WALDHERR ANNIE" in names)
-        self.assertTrue("WIJERMANS NANDA" in names)
+        self.assertTrue("ANNIE WALDHERR" in names)
+        self.assertTrue("NANDA WIJERMANS" in names)
 
 
 class TestNameNormalization(TestCase):
@@ -86,5 +85,5 @@ class TestNameNormalization(TestCase):
                              util.normalize_name(abbas_full)
                          ))
 
-        last_name_and_initial_str = util.last_name_and_initial(last_name_and_initials_str)
+        last_name_and_initial_str = util.last_name_and_initial(" ".join(last_name_and_initials_str))
         self.assertEqual(last_name_and_initial_str, "ABBAS A")

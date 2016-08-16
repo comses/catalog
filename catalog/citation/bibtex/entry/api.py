@@ -13,7 +13,7 @@ def make_container(entry, audit_command) -> models.Container:
     container_issn_str = entry.get("issn", "")
     container = models.Container.objects.create(type=container_type_str,
                                                 issn=container_issn_str,
-                                                primary_name=container_str)
+                                                name=container_str)
     container_alias, created = models.ContainerAlias.objects.get_or_create(
         container=container,
         name=container_str,
@@ -26,8 +26,8 @@ def make_author(publication: models.Publication, raw: models.Raw, author_str: st
     cleaned_family_name, cleaned_given_name = models.Author.normalize_author_name(author_str)
     author = models.Author.objects.create(
         type=models.Author.INDIVIDUAL,
-        primary_family_name=cleaned_family_name,
-        primary_given_name=cleaned_given_name)
+        family_name=cleaned_family_name,
+        given_name=cleaned_given_name)
     author_alias, created = models.AuthorAlias.objects.get_or_create(
         author=author,
         family_name=cleaned_family_name,
@@ -89,7 +89,7 @@ def process(entry, audit_command: models.AuditCommand) -> models.Publication:
         key=models.Raw.BIBTEX_ENTRY,
         value=entry,
         publication=publication,
-        container_alias=container_alias)
+        container=container)
 
     make_references(publication, entry, raw, audit_command)
     make_authors(publication, raw, entry, audit_command)

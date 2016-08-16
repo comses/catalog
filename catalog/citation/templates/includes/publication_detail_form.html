@@ -10,7 +10,7 @@
             <button type="button" class="pull-right btn btn-xs btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
             </h3>
             {% if pk %}
-            <a class='btn btn-default' href="{% url 'core:curator_publication_detail' pk %}"><i class='fa fa-edit'></i> Curator View</a>
+            <a class='btn btn-default' href="{% url 'citation:curator_publication_detail' pk %}"><i class='fa fa-edit'></i> Curator View</a>
             {% endif %}
         </div>
         <div class="panel-body clearfix">
@@ -218,19 +218,19 @@
             model.model_docs = ko.observableArray([data.model_documentation || ""]);
 
             model.getPlatformList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'core:platform_search' %}");
+                model.makeAsyncRequest(query, callback, "{% url 'citation:platform_search' %}");
             };
             model.getSponsorList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'core:sponsor_search' %}");
+                model.makeAsyncRequest(query, callback, "{% url 'citation:sponsor_search' %}");
             };
             model.getTagList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'core:tag_search' %}");
+                model.makeAsyncRequest(query, callback, "{% url 'citation:tag_search' %}");
             };
             model.getJournalList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'core:journal_search' %}");
+                model.makeAsyncRequest(query, callback, "{% url 'citation:journal_search' %}");
             };
             model.getModelDocumentationList = function(query, callback) {
-                model.makeAsyncRequest(query, callback, "{% url 'core:model_documentation_search' %}");
+                model.makeAsyncRequest(query, callback, "{% url 'citation:model_documentation_search' %}");
             };
 
             model.makeAsyncRequest = function(query, callback, url) {
@@ -243,6 +243,7 @@
  
             model.gatherData = function(data) {
                 var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
+                console.log(data_clone);
                 data_clone.platforms(ko.utils.arrayMap(data.selected_platforms(), function(platform) {
                     return {'name': platform};
                 }));

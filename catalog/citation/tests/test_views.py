@@ -23,7 +23,7 @@ class AuthTest(BaseTest):
     def test_login_with_good_credentials(self):
         response = self.post(self.login_url, {'username': self.default_username, 'password': self.default_password})
         self.assertTrue(200, response.status_code)
-        self.assertTrue(self.reverse('core:dashboard') in response['Location'])
+        self.assertTrue(self.reverse('citation:dashboard') in response['Location'])
 
     def test_login_with_inactive_user(self):
         self.user.is_active = False
@@ -39,10 +39,10 @@ class AuthTest(BaseTest):
 class ProfileViewTest(BaseTest):
 
     def test_profile_view(self):
-        self.without_login_and_with_login_test('core:user_profile')
+        self.without_login_and_with_login_test('citation:user_profile')
 
     def test_profile_update(self):
-        url = self.reverse('core:user_profile', query_parameters={'format': 'json'})
+        url = self.reverse('citation:user_profile', query_parameters={'format': 'json'})
         self.login()
         old_email = self.user.email
         response = self.post(url, {'first_name': 'Updated Firstname',
@@ -58,7 +58,7 @@ class ProfileViewTest(BaseTest):
         self.assertEqual(user.email, old_email)
 
     def test_profile_invalid_update(self):
-        url = self.reverse('core:user_profile', query_parameters={'format': 'json'})
+        url = self.reverse('citation:user_profile', query_parameters={'format': 'json'})
         self.login()
         response = self.post(url, {'first_name': 'Test', 'last_name': 'Test'})
         self.assertTrue(400, response.status_code)
@@ -73,17 +73,17 @@ class IndexViewTest(BaseTest):
 class DashboardViewTest(BaseTest):
 
     def test_dashboard_view(self):
-        self.without_login_and_with_login_test('core:dashboard')
+        self.without_login_and_with_login_test('citation:dashboard')
 
 
 class PublicationsViewTest(BaseTest):
 
     def test_publications_view(self):
-        self.without_login_and_with_login_test('core:publications')
+        self.without_login_and_with_login_test('citation:publications')
 
     def test_publication_view_with_query_parameter(self):
         self.login()
-        url = self.reverse('core:publications')
+        url = self.reverse('citation:publications')
         response = self.get(url + "?page=-1")
         self.assertEqual(404, response.status_code)
 
@@ -138,7 +138,7 @@ class SearchViewTest(BaseTest):
             'status': 'INCOMPLETE'
         }
         url = self.reverse(
-            'core:haystack_search', query_parameters=query_parameters)
+            'citation:haystack_search', query_parameters=query_parameters)
         self.without_login_and_with_login_test(url)
 
 
@@ -146,7 +146,7 @@ class ContactViewTest(BaseTest):
 
     def test_contact_view(self):
         self.without_login_and_with_login_test(
-            self.reverse('core:contact_us'), before_status=200)
+            self.reverse('citation:contact_us'), before_status=200)
 
     def test_contact_info_submit_without_timestamp_and_security_hash(self):
         response = self.post(self.reverse('citation:contact_us', query_parameters={'format': 'json'}),

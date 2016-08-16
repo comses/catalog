@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class BaseTest(TestCase):
     login_url = reverse('login')
     logout_url = reverse('logout')
-    index_url = reverse('core:index')
+    index_url = reverse('citation:index')
     default_username = 'testcase'
     default_email = 'testcase@mailinator.com'
     default_password = 'testing'

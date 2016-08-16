@@ -2,7 +2,7 @@ from django.conf.urls import include, url
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 
-from .core.forms import CatalogAuthenticationForm
+from .citation.forms import CatalogAuthenticationForm
 
 urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
@@ -18,5 +18,5 @@ urlpatterns = [
     url(r'^accounts/password_reset/$', auth_views.password_reset, name='password_reset'),
     url(r'^accounts/password_reset_done/$', auth_views.password_reset_done, name='password_reset_done'),
     url(r'', include('catalog.citation.urls', namespace='citation')),
-    url(r'', include('catalog.core.urls', namespace='core'))
+    # url(r'', include('catalog.core.urls', namespace='core'))
 ]

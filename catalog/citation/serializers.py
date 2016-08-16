@@ -1,0 +1,433 @@
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core import signing
+from django.core.mail import send_mass_mail, send_mail
+from django.core.validators import URLValidator
+from django.db.models import F
+from django.db.models.manager import BaseManager
+from django.utils.translation import ugettext as _
+
+from rest_framework import serializers, pagination
+from collections import OrderedDict
+from rest_framework.utils import model_meta
+from rest_framework.exceptions import ValidationError
+
+from .models import (Tag, Sponsor, Platform, Author, Publication, Container, InvitationEmail,
+                     ModelDocumentation, Note, AuditCommand, AuditLog,
+                     PublicationAuthors, PublicationModelDocumentations, PublicationPlatforms, PublicationSponsors, PublicationTags)
+
+from collections import defaultdict
+from hashlib import sha1
+
+import logging
+import time
+
+logger = logging.getLogger(__name__)
+
+
+class CatalogPagination(pagination.PageNumberPagination):
+    # FIXME: review & refactor: http://www.django-rest-framework.org/api-guide/pagination/
+    def get_paginated_response(self, data):
+        return OrderedDict([
+            ('start_index', self.page.start_index()),
+            ('end_index', self.page.end_index()),
+            ('num_pages', self.page.paginator.num_pages),
+            ('current_page', self.page.number),
+            ('count', self.page.paginator.count),
+            ('next', self.get_next_link()),
+            ('previous', self.get_previous_link()),
+            ('results', data)
+        ])
+
+
+###########################
+#    Model Serializers    #
+###########################
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Serialize users.
+    """
+
+    class Meta:
+        model = User
+        fields = ('id', 'first_name', 'last_name', 'username', 'email')
+
+
+class NoteSerializer(serializers.ModelSerializer):
+    added_by = serializers.StringRelatedField(read_only=True)
+    date_added = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
+    deleted_on = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
+    deleted_by = serializers.StringRelatedField(read_only=True)
+    is_deleted = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Note
+        fields = ('id', 'text', 'publication', 'added_by', 'date_added', 'deleted_on', 'deleted_by', 'is_deleted')
+
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AuditLog
+        read_only_fields = ('id', 'audit_command_id', 'action', 'row_id', 'table', 'payload')
+
+
+class AuditCommandSerializer(serializers.ModelSerializer):
+    creator = serializers.StringRelatedField(read_only=True)
+    auditlogs = AuditLogSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = AuditCommand
+        read_only_fields = ('id', 'action', 'creator', 'role', 'date_added', 'message', 'auditlogs')
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
+
+
+class PlatformSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Platform
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
+
+
+class SponsorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Sponsor
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
+
+
+class ModelDocumentationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ModelDocumentation
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
+
+
+class ContainerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Container
+        extra_kwargs = {
+            "name": {
+                "validators": [],
+            },
+        }
+
+
+class CreatorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Author
+        fields = ('id', 'given_name', 'family_name', 'type', 'email')
+
+
+class PublicationSerializer(serializers.ModelSerializer):
+    """
+    Serializes publication querysets.
+    """
+    detail_url = serializers.CharField(source='get_absolute_url', read_only=True)
+    curator_detail_url = serializers.CharField(source='get_curator_url', read_only=True)
+    assigned_curator = serializers.StringRelatedField()
+    date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
+    notes = NoteSerializer(source='note_set', many=True, read_only=True)
+    activity_logs = AuditCommandSerializer(source='get_auditcommands', many=True, read_only=True)
+    tags = TagSerializer(many=True)
+    platforms = PlatformSerializer(many=True)
+    sponsors = SponsorSerializer(many=True)
+    container = ContainerSerializer()
+    model_documentation = ModelDocumentationSerializer(many=True)
+    creators = CreatorSerializer(many=True)
+
+    """
+    XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some
+    point. See http://www.django-rest-framework.org/api-guide/serializers/#writable-nested-representations for more
+    details
+    """
+
+    @staticmethod
+    def save_creators(audit_command, publication, raw_creators):
+        for raw_creator in raw_creators:
+            author, created = Author.objects.log_get_or_create(audit_command=audit_command, **raw_creator)
+            PublicationAuthors.objects.log_get_or_create(audit_command=audit_command,
+                                                         publication_id=publication.id,
+                                                         author_id=author.id)
+
+    @staticmethod
+    def save_model_documentation(audit_command, publication, raw_model_documentations):
+        names = [model_documentation_raw['name'] for model_documentation_raw in raw_model_documentations]
+        for name in names:
+            model_documentation = ModelDocumentation.objects.get(name=name)
+            PublicationModelDocumentations.objects.log_get_or_create(audit_command=audit_command,
+                                                                     publication_id=publication.id,
+                                                                     model_documentation_id=model_documentation.id)
+
+    @staticmethod
+    def save_platform(audit_command, publication, raw_platforms):
+        names = [raw_platform['name'] for raw_platform in raw_platforms]
+        for name in names:
+            platform, created = Platform.objects.log_get_or_create(audit_command=audit_command, name=name)
+            PublicationPlatforms.objects.log_get_or_create(audit_command=audit_command,
+                                                           publication_id=publication.id,
+                                                           platform_id=platform.id)
+
+    @staticmethod
+    def save_sponsor(audit_command, publication, raw_sponsors):
+        names = [raw_sponsor['name'] for raw_sponsor in raw_sponsors]
+        for name in names:
+            platform, created = Sponsor.objects.log_get_or_create(audit_command=audit_command, name=name)
+            PublicationSponsors.objects.log_get_or_create(audit_command=audit_command,
+                                                          publication_id=publication.id,
+                                                          sponsor_id=platform.id)
+
+    @staticmethod
+    def save_tags(audit_command, publication, raw_tags):
+        names = [raw_tag['name'] for raw_tag in raw_tags]
+        for name in names:
+            tag, created = Tag.objects.log_get_or_create(audit_command=audit_command, name=name)
+            PublicationTags.objects.log_get_or_create(audit_command=audit_command,
+                                                      publication_id=publication.id,
+                                                      tag_id=tag.id)
+
+    @classmethod
+    def save_related(cls, audit_command, publication, validated_data):
+        cls.save_model_documentation(audit_command=audit_command,
+                                     publication=publication,
+                                     raw_model_documentations=validated_data['model_documentation'])
+        cls.save_platform(audit_command=audit_command,
+                          publication=publication,
+                          raw_platforms=validated_data['platforms'])
+        cls.save_sponsor(audit_command=audit_command,
+                         publication=publication,
+                         raw_sponsors=validated_data['sponsors'])
+        cls.save_tags(audit_command=audit_command,
+                      publication=publication,
+                      raw_tags=validated_data['tags'])
+
+    def create(self, audit_command, validated_data):
+        ModelClass = self.Meta.model
+
+        # Remove many-to-many relationships from validated_data.
+        # They are not valid arguments to the default `.create()` method,
+        # as they require that the instance has already been saved.
+        info = model_meta.get_field_info(ModelClass)
+        many_to_many = {}
+        for field_name, relation_info in info.relations.items():
+            if relation_info.to_many and (field_name in validated_data):
+                many_to_many[field_name] = validated_data.pop(field_name)
+
+        instance = ModelClass.objects.log_create(audit_command=audit_command, **validated_data)
+
+        # Save many-to-many relationships after the instance is created.
+        self.save_related(audit_command=audit_command,
+                          publication=instance,
+                          validated_data=validated_data)
+
+        return instance
+
+    def update(self, audit_command, instance, validated_data):
+        concrete_changes = {}
+
+        raw_creators = validated_data.pop('creators')
+        self.save_creators(audit_command=audit_command, publication=instance, raw_creators=raw_creators)
+
+        raw_model_documentations = validated_data.pop('model_documentation')
+        self.save_model_documentation(audit_command=audit_command, publication=instance,
+                                      raw_model_documentations=raw_model_documentations)
+
+        raw_platforms = validated_data.pop('platforms')
+        self.save_platform(audit_command=audit_command, publication=instance, raw_platforms=raw_platforms)
+
+        raw_sponsors = validated_data.pop('sponsors')
+        self.save_sponsor(audit_command=audit_command, publication=instance, raw_sponsors=raw_sponsors)
+
+        raw_tags = validated_data.pop('tags')
+        self.save_tags(audit_command=audit_command, publication=instance, raw_tags=raw_tags)
+
+        raw_container = validated_data.pop('container')
+        container, created = Container.objects.log_get_or_create(
+            audit_command=audit_command, **raw_container)
+        if container.id != instance.container.id:
+            concrete_changes['container_id'] = container.id
+
+        for field_name, updated_data_value in validated_data.items():
+            try:
+                current_data_value = getattr(instance, field_name)
+            except AttributeError:
+                raise ValidationError('\'{}\' not a field of publication with id={} and title={}' \
+                                      .format(field_name, instance.id, instance.title))
+
+            if updated_data_value != current_data_value:
+                concrete_changes[field_name] = updated_data_value
+
+        if concrete_changes:
+            instance.log_update(audit_command=audit_command, **concrete_changes)
+
+        return instance
+
+    def save(self, user, **kwargs):
+        # Modified from rest_framework/serializers method
+        audit_command = AuditCommand.objects.create(creator=user,
+                                                    role=AuditCommand.Role.AUTHOR_EDIT,
+                                                    action=AuditCommand.Action.MANUAL)
+
+        assert not hasattr(self, 'save_object'), (
+            'Serializer `%s.%s` has old-style version 2 `.save_object()` '
+            'that is no longer compatible with REST framework 3. '
+            'Use the new-style `.create()` and `.update()` methods instead.' %
+            (self.__class__.__module__, self.__class__.__name__)
+        )
+
+        assert hasattr(self, '_errors'), (
+            'You must call `.is_valid()` before calling `.save()`.'
+        )
+
+        assert not self.errors, (
+            'You cannot call `.save()` on a serializer with invalid data.'
+        )
+
+        # Guard against incorrect use of `serializer.save(commit=False)`
+        assert 'commit' not in kwargs, (
+            "'commit' is not a valid keyword argument to the 'save()' method. "
+            "If you need to access data before committing to the database then "
+            "inspect 'serializer.validated_data' instead. "
+            "You can also pass additional keyword arguments to 'save()' if you "
+            "need to set extra attributes on the saved model instance. "
+            "For example: 'serializer.save(owner=request.user)'.'"
+        )
+
+        assert not hasattr(self, '_data'), (
+            "You cannot call `.save()` after accessing `serializer.data`."
+            "If you need to access data before committing to the database then "
+            "inspect 'serializer.validated_data' instead. "
+        )
+
+        validated_data = dict(
+            list(self.validated_data.items()) +
+            list(kwargs.items())
+        )
+
+        if self.instance is not None:
+            self.instance = self.update(audit_command, self.instance, validated_data)
+            assert self.instance is not None, (
+                '`update()` did not return an object instance.'
+            )
+        else:
+            self.instance = self.create(audit_command, validated_data)
+            assert self.instance is not None, (
+                '`create()` did not return an object instance.'
+            )
+
+        return self.instance
+
+    @property
+    def modified_data(self):
+        return getattr(self, '_modified_data', defaultdict(tuple))
+
+    @property
+    def modified_data_text(self):
+        # md_list = [u"{}: {} -> {}".format(key, pair[0], pair[1]) for key, pair in self.modified_data.items()]
+        mdl = [u"{}: {} -> {}".format(key, pair[0], pair[1]) for key, pair in self.modified_data.items()]
+        return u" | ".join(mdl)
+
+    class Meta:
+        model = Publication
+        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url', 'curator_detail_url', 'status',
+                  'assigned_curator', 'activity_logs', 'notes', 'model_documentation', 'sponsors', 'platforms',
+                  'container', 'tags', 'creators', 'code_archive_url', 'contact_author_name', 'contact_email',
+                  'activity_logs',)
+
+
+class ContactFormSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    message = serializers.CharField()
+
+    security_hash = serializers.CharField()
+    timestamp = serializers.CharField()
+    # honeypot field
+    contact_number = serializers.CharField(allow_blank=True)
+
+    def validate_contact_number(self, value):
+        if value:
+            raise serializers.ValidationError("Honeypot bot alert failed.")
+        return value
+
+    def validate_timestamp(self, value):
+        """ spam protection currently only accept form submissions between 3 seconds and 2 hours """
+        min_seconds = 3
+        max_seconds = 2 * 60 * 60
+        difference = float(time.time()) - float(value)
+        if min_seconds < difference < max_seconds:
+            raise serializers.ValidationError("Timestamp check failed")
+        return value
+
+    def validate(self, data):
+        security_hash = data['security_hash']
+        timestamp = str(data['timestamp'])
+
+        info = (timestamp, settings.SECRET_KEY)
+        new_security_hash = sha1("".join(info).encode("ascii")).hexdigest()
+        if security_hash == new_security_hash:
+            return data
+        logger.warn("timestamp was altered, flagging as invalid")
+        raise serializers.ValidationError("timestamp was tampered.")
+
+    def save(self):
+        # name = self.validated_data['name']
+        email = self.validated_data['email']
+        message = self.validated_data['message']
+
+        send_mail(from_email=email,
+                  message=message,
+                  subject="CoMSES Catalog Feedback",
+                  recipient_list=[settings.DEFAULT_FROM_EMAIL])
+
+
+class InvitationSerializer(serializers.Serializer):
+    invitation_subject = serializers.CharField()
+    invitation_text = serializers.CharField()
+
+    def save(self, request, pk_list):
+        subject = self.validated_data['invitation_subject']
+        message = self.validated_data['invitation_text']
+
+        pub_list = Publication.objects.filter(pk__in=pk_list).exclude(contact_email__exact='')
+        messages = []
+
+        for pub in pub_list:
+            token = signing.dumps(pub.pk, salt=settings.SALT)
+            ie = InvitationEmail(request)
+            body = ie.get_plaintext_content(message, token)
+            messages.append((subject, body, settings.DEFAULT_FROM_EMAIL, [pub.contact_email]))
+        send_mass_mail(messages, fail_silently=False)
+        pub_list.update(email_sent_count=F('email_sent_count') + 1)
+
+
+class UpdateModelUrlSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Publication
+        fields = ('title', 'code_archive_url', 'author_comments')
+        read_only_fields = ('title',)
+
+    def validate(self, data):
+        url = data['code_archive_url']
+        validator = URLValidator(message=_("Please enter a valid URL for this computational model."))
+        validator(url)
+        return data

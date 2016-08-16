@@ -26,14 +26,14 @@ def make_author(publication: models.Publication, raw: models.Raw, author_str: st
     cleaned_author_str = util.last_name_and_initials(util.normalize_name(author_str))
     author = models.Author.objects.log_create(
         audit_command=audit_command,
-        kwargs={'type': models.Author.INDIVIDUAL})
+        type=models.Author.INDIVIDUAL)
     author_alias = models.AuthorAlias.objects.log_create(
         audit_command=audit_command,
-        kwargs={'author': author,
-                 'name': cleaned_author_str})
-    models.AuthorAliasRaws.objects.create(author_alias=author_alias, raw=raw)
+        author_id=author.id,
+        name=cleaned_author_str)
+    models.RawAuthors.objects.create(author=author, raw=raw)
     models.PublicationAuthors.objects.create(publication=publication, author=author,
-                                             creator_type=models.PublicationAuthors.RoleChoices.AUTHOR)
+                                             role=models.PublicationAuthors.RoleChoices.AUTHOR)
     return author
 
 
@@ -107,7 +107,7 @@ def process(publication: models.Publication,
         key=models.Raw.BIBTEX_REF,
         value=ref,
         publication=citation,
-        container_alias=container_alias
+        container=container
     )
     make_author(citation, citation_raw, author_str, audit_command)
 

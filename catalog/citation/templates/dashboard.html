@@ -85,7 +85,7 @@
                         {% for pub in recently_updated %}
                             <tr>
                                 <td><mark>{{ pub.assigned_curator }}</mark></td>
-                                <td><span class='label label-as-badge label-primary'>{{ pub.status }}</span> <a href="{% url 'core:curator_publication_detail' pub.pk %}">{{ pub.title }} </a></td>
+                                <td><span class='label label-as-badge label-primary'>{{ pub.status }}</span> <a href="{% url 'citation:curator_publication_detail' pub.pk %}">{{ pub.title }} </a></td>
                                 <td>{{ pub.date_modified }}</td>
                             </tr>
                         {% endfor %}
@@ -113,7 +113,7 @@
                             <tr>
                                 <td>{{ pub.pk}}</td>
                                 <td>{{ pub.date_modified }}</td>
-                                <td><a href="{% url 'core:publication_detail' pub.pk %}">{{ pub.title }}</a></td>
+                                <td><a href="{% url 'citation:publication_detail' pub.pk %}">{{ pub.title }}</a></td>
                             </tr>
                         {% endfor %}
                         </tbody>

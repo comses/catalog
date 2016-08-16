@@ -10,6 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 from datetime import datetime, date
 from collections import defaultdict
 from django.core import serializers
+from django.db.models import Q
 import re
 
 from model_utils import Choices
@@ -18,8 +19,6 @@ from typing import Dict, Optional
 
 
 class LogManager(models.Manager):
-    # TODO: add log_bulk_create method
-
     use_for_related_fields = True
 
     def log_create(self, audit_command, **kwargs):
@@ -29,32 +28,43 @@ class LogManager(models.Manager):
                 action='INSERT',
                 row_id=instance.id,
                 table=instance._meta.db_table,
-                payload={},
+                payload=kwargs,
                 audit_command=audit_command)
             return instance
 
     def log_get_or_create(self, audit_command, **kwargs):
+        relation_fields = {relation.attname for relation in self.model._meta.many_to_many}
         defaults = kwargs.pop('defaults', {})
         with transaction.atomic():
             instance, created = self.get_or_create(defaults=defaults, **kwargs)
             if created:
                 action = 'INSERT'
-                payload = {}
+                payload = kwargs
                 row_id = instance.id
             else:
                 defaults.update(kwargs)
                 action = 'UPDATE'
+                changes = self.create_changelist(instance, kwargs)
                 payload = {column: getattr(instance, column)
-                           for column in defaults.keys()}
+                           for column in changes}
                 row_id = instance.id
-            AuditLog.objects.create(
-                action=action,
-                row_id=row_id,
-                table=instance._meta.db_table,
-                payload=payload,
-                audit_command=audit_command)
+            if created or payload:
+                AuditLog.objects.create(
+                    action=action,
+                    row_id=row_id,
+                    table=instance._meta.db_table,
+                    payload=payload,
+                    audit_command=audit_command)
 
         return instance, created
+
+    @staticmethod
+    def create_changelist(instance, kwargs):
+        changes = {}
+        for key, value in kwargs.items():
+            if value != getattr(instance, key):
+                changes[key] = value
+        return changes
 
 
 def datetime_json_serialize(datetime_obj: Optional[datetime]):
@@ -92,7 +102,7 @@ def identity_json_serialize(obj):
 
 
 class LogQuerySet(models.query.QuerySet):
-    # TODO: get of serializers and use a custom encode
+    # TODO: get rid of serializers and use a custom encode
     # serializers.serialize('json', [p])
     DISPATCH_JSON_SERIALIZE = defaultdict(lambda: identity_json_serialize,
                                           DateTimeField=datetime_json_serialize,
@@ -121,7 +131,6 @@ class LogQuerySet(models.query.QuerySet):
             return instances.delete()
 
     def log_update(self, audit_command, **kwargs):
-        # TODO: call instance.log_update in loop here
         with transaction.atomic():
             instances = self.all()
 
@@ -160,25 +169,20 @@ class AbstractLogModel(models.Model):
             info = self.delete()
             return info
 
-    # TODO: replace with log_update
-    def log_save(self, audit_command, payload: Optional[Dict] = None):
+    def log_update(self, audit_command, **kwargs):
         with transaction.atomic():
-            auditlog = AuditLog(
+            original_values = {column: getattr(self, column)
+                               for column in kwargs.keys()}
+            row_id = self.id
+            AuditLog.objects.create(
+                action='UPDATE',
+                row_id=row_id,
                 table=self._meta.db_table,
+                payload=original_values,
                 audit_command=audit_command)
-            if payload:
-                assert self.id is not None
-                auditlog.row_id = self.id
-                auditlog.action = 'UPDATE'
-                auditlog.payload = payload
-                info = self.save()
-            else:
-                info = self.save()
-                auditlog.action = 'INSERT'
-                auditlog.row_id = self.id
-                auditlog.payload = {}
-
-            auditlog.save()
+            for column in kwargs:
+                setattr(self, column, kwargs[column])
+            info = self.save()
             return info
 
     objects = LogManager.from_queryset(LogQuerySet)()
@@ -216,7 +220,6 @@ class InvitationEmailTemplate(models.Model):
 
 
 class Author(AbstractLogModel):
-    # TODO: rename primary_* name fields to not start with primary
     INDIVIDUAL = 'INDIVIDUAL'
     ORGANIZATION = 'ORGANIZATION'
     TYPE_CHOICES = Choices(
@@ -224,8 +227,8 @@ class Author(AbstractLogModel):
         (ORGANIZATION, _('organization')),
     )
     type = models.TextField(choices=TYPE_CHOICES, max_length=32)
-    primary_given_name = models.CharField(max_length=200)
-    primary_family_name = models.CharField(max_length=200)
+    given_name = models.CharField(max_length=200)
+    family_name = models.CharField(max_length=200)
     orcid = models.TextField(max_length=200)
     email = models.EmailField(blank=True)
 
@@ -235,9 +238,9 @@ class Author(AbstractLogModel):
                                          help_text=_('Date this model was last modified on this system'))
 
     def __repr__(self):
-        return "Author(orcid={orcid}. primary_given_name={primary_given_name}, primary_family_name={primary_family_name})" \
-            .format(orcid=self.orcid, primary_given_name=self.primary_given_name,
-                    primary_family_name=self.primary_family_name)
+        return "Author(orcid={orcid}. given_name={given_name}, family_name={family_name})" \
+            .format(orcid=self.orcid, given_name=self.given_name,
+                    family_name=self.family_name)
 
     @staticmethod
     def normalize_author_name(author_str: str):
@@ -365,7 +368,7 @@ class Container(AbstractLogModel):
     """Canonical Container"""
     issn = models.TextField(max_length=500, blank=True, default='')
     type = models.TextField(max_length=1000, blank=True, default='')
-    primary_name = models.CharField(max_length=300)
+    name = models.CharField(max_length=300)
 
     date_added = models.DateTimeField(auto_now_add=True,
                                       help_text=_('Date this container was imported into this system'))
@@ -465,6 +468,13 @@ class Publication(AbstractLogModel):
         "self", symmetrical=False, related_name="referenced_by",
         through='PublicationCitations', through_fields=('publication', 'citation'))
 
+    def get_auditcommands(self):
+        # TODO: fix this query to capture all related model changes
+        audit_commands = AuditCommand.objects\
+            .filter(Q(auditlogs__table=self._meta.db_table, auditlogs__row_id=self.id) |
+                    Q(auditlogs__payload__publication_id=self.id)).all()
+        return audit_commands
+
     def is_editable_by(self, user):
         # eventually consider having permission groups or per-object permissions
         return self.assigned_curator == user
@@ -517,7 +527,7 @@ class AuditLog(models.Model):
     table = models.CharField(max_length=128)
     payload = JSONField(blank=True, null=True,
                         help_text=_('A JSON dictionary containing modified fields, if any, for the given publication'))
-    audit_command = models.ForeignKey(AuditCommand)
+    audit_command = models.ForeignKey(AuditCommand, related_name='auditlogs')
 
     def __str__(self):
         return u"{} - {} performed {} on {}".format(
@@ -531,11 +541,7 @@ class AuditLog(models.Model):
         ordering = ['-id']
 
 
-class AbstractWithDateAddedModel:
-    date_added = models.DateTimeField(auto_now=True)
-
-
-class Raw(AbstractLogModel, AbstractWithDateAddedModel):
+class Raw(AbstractLogModel):
     BIBTEX_FILE = "BIBTEX_FILE"
     BIBTEX_ENTRY = "BIBTEX_ENTRY"
     BIBTEX_REF = "BIBTEX_REF"
@@ -564,8 +570,11 @@ class Raw(AbstractLogModel, AbstractWithDateAddedModel):
     container = models.ForeignKey(Container, related_name='raw', on_delete=models.PROTECT)
     authors = models.ManyToManyField(Author, related_name='raw', through='RawAuthors')
 
+    date_added = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
 
-class PublicationAuthors(AbstractLogModel, AbstractWithDateAddedModel):
+
+class PublicationAuthors(AbstractLogModel):
     RoleChoices = Choices(
         ('AUTHOR', _('author')),
         ('REVIEWED_AUTHOR', _('reviewed author')),
@@ -578,53 +587,74 @@ class PublicationAuthors(AbstractLogModel, AbstractWithDateAddedModel):
     author = models.ForeignKey(Author, related_name='publication_authors')
     role = models.CharField(choices=RoleChoices, max_length=32)
 
+    date_added = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
+
     class Meta:
         unique_together = ('publication', 'author')
 
 
-class PublicationCitations(AbstractLogModel, AbstractWithDateAddedModel):
+class PublicationCitations(AbstractLogModel):
     publication = models.ForeignKey(Publication, related_name='publication_citations')
     citation = models.ForeignKey(Publication, related_name='publication_citations_referenced_by')
+
+    date_added = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('publication', 'citation')
 
 
-class PublicationModelDocumentations(AbstractLogModel, AbstractWithDateAddedModel):
+class PublicationModelDocumentations(AbstractLogModel):
     publication = models.ForeignKey(Publication, related_name='publication_modeldocumentations')
     model_documentation = models.ForeignKey(ModelDocumentation, related_name='publication_modeldocumentations')
+
+    date_added = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('publication', 'model_documentation')
 
 
-class PublicationPlatforms(AbstractLogModel, AbstractWithDateAddedModel):
+class PublicationPlatforms(AbstractLogModel):
     publication = models.ForeignKey(Publication, related_name='publication_platforms')
     platform = models.ForeignKey(Platform, related_name='publications_platforms')
+
+    date_added = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('publication', 'platform')
 
 
-class PublicationSponsors(AbstractLogModel, AbstractWithDateAddedModel):
+class PublicationSponsors(AbstractLogModel):
     publication = models.ForeignKey(Publication, related_name='publication_sponsors')
     sponsor = models.ForeignKey(Sponsor, related_name='publication_sponsors')
+
+    date_added = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('publication', 'sponsor')
 
 
-class PublicationTags(AbstractLogModel, AbstractWithDateAddedModel):
+class PublicationTags(AbstractLogModel):
     publication = models.ForeignKey(Publication, related_name='publication_tags')
     tag = models.ForeignKey(Tag, related_name='publication_tags')
+
+    date_added = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('publication', 'tag')
 
 
-class RawAuthors(AbstractLogModel, AbstractWithDateAddedModel):
+class RawAuthors(AbstractLogModel):
     author = models.ForeignKey(Author, related_name='raw_authors')
     raw = models.ForeignKey(Raw, related_name='raw_authors')
+
+    date_added = models.DateTimeField(auto_now_add=True)
+    date_modified = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('author', 'raw')
