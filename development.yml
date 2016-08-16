@@ -29,8 +29,7 @@ services:
       - .:/code
       - solr:/etc/solr/mycores/
       - logs:/catalog/logs
-    entrypoint: 
-      - /code/deploy/docker/dev.sh
+    entrypoint: /code/deploy/docker/dev.sh
     environment:
       DB_USER: catalog
       DB_HOST: db
@@ -51,8 +50,7 @@ services:
       - .:/code
       - solr:/etc/solr/mycores/
       - logs:/catalog/logs
-    entrypoint: 
-      - /code/deploy/docker/test.sh 
+    command: /code/deploy/docker/test.sh
     environment:
       DB_USER: catalog
       DB_HOST: db

@@ -6,5 +6,7 @@ ENV PYTHONUNBUFFERED 1
 COPY requirements.txt /tmp/
 RUN pip install -r /tmp/requirements.txt
 
+ARG cmd="dev.sh"
+
 WORKDIR /code
-CMD ["/code/deploy/docker/dev.sh"]
+CMD ["/code/deploy/docker/$cmd"]
