@@ -44,15 +44,15 @@ def clean_update(ctx):
 
 @task
 def sh(ctx):
-    dj('shell_plus --ipython', pty=True)
+    dj(ctx, 'shell_plus --ipython', pty=True)
 
 
-def dj(command, **kwargs):
+def dj(ctx, command, **kwargs):
     """
     Run a Django manage.py command on the server.
     """
-    run_chain('{python} manage.py {dj_command} --settings {project_conf}'.format(dj_command=command, **env),
-              **kwargs)
+    ctx.run('{python} manage.py {dj_command} --settings {project_conf}'.format(dj_command=command, **env),
+            **kwargs)
 
 
 def run_chain(ctx, *commands, **kwargs):
@@ -89,6 +89,24 @@ def coverage(ctx):
 def server(ctx, ip="0.0.0.0", port=8000):
     dj('runserver {ip}:{port}'.format(ip=ip, port=port), capture=False)
 
+
+@task(aliases=['cd'])
+def clean_data(ctx, creator=None):
+    if creator is None:
+        creator = 'cpritch3'
+    """ one-off to clean degenerate data in Sponsor, Platform, ModelDocumentation """
+    print("Splitting")
+    datafiles = ['sponsor.split', 'platform.split']
+    for d in datafiles:
+        ctx.run('python manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator))
+    print("Merging")
+    datafiles = ['sponsor.merge', 'platform.merge', 'model_documentation.merge']
+    for d in datafiles:
+        ctx.run('python manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator))
+    print("Deleting")
+    datafiles = ['sponsor.delete', 'platform.delete']
+    for d in datafiles:
+        ctx.run('python manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator))
 
 @task
 def setup_solr(ctx, travis=False):

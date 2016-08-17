@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 import os
 
 from ... import models
-from catalog.core import dedupe
+from ... import dedupe
 
 
 class Command(BaseCommand):
@@ -15,7 +15,8 @@ class Command(BaseCommand):
                             help='file to clean data with')
         parser.add_argument('--creator',
                             dest='creator',
-                            help='user to clean the data as')
+                            required=True,
+                            help='username of user used to execute these commands')
 
     def parse_path(self, path):
         filename, ext = os.path.splitext(os.path.basename(path))
@@ -31,7 +32,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         path = options['path']
-        creator = User.objects.get(username=options['name'])
+        creator = User.objects.get(username=options['creator'])
         (model, action) = self.parse_path(path)
-        processor = dedupe.DataProcessor(model)
+        processor = dedupe.DataProcessor(model, creator)
         processor.execute(action, path)

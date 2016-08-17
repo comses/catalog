@@ -8,16 +8,12 @@ logger = logging.getLogger(__name__)
 
 
 class DataProcessor(object):
-    model_names = {
-        models.Platform: (models.PublicationPlatforms, 'platform'),
-        models.Sponsor: (models.PublicationSponsors, 'sponsor'),
-        models.ModelDocumentation: (models.PublicationModelDocumentations, 'model_documentation')
-    }
 
     def __init__(self, model, creator):
         self.model = model
-        self.through_model = DataProcessor.model_names[model][0]
-        self.through_field = DataProcessor.model_names[model][1]
+        self.through_model = model.publications.field.related.through
+        self.through_field = model.publications.field.name
+        self.through_id_name = model.publications.field.m2m_reverse_name()
         self.creator = creator
 
     def execute(self, action, path):
@@ -81,10 +77,10 @@ class DataProcessor(object):
                 for new_record in new_records:
                     through_model.objects.log_get_or_create(
                         audit_command=audit_command,
-                        **{'publication_id': publication.id, '{}_id'.format(self.through_field): new_record.id})
+                        **{'publication_id': publication.id, self.through_id_name: new_record.id})
 
     def get_related_publications_with_name(self, names):
-        criteria = {'{0}s__name__in'.format(self.through_field): names}
+        criteria = {'{0}__name__in'.format(self.through_field): names}
         return list(models.Publication.objects.filter(**criteria))
 
     def merge_records(self, names, new_name):
@@ -97,7 +93,7 @@ class DataProcessor(object):
             publications = self.get_related_publications_with_name(names)
             canonical_record, created = self.model.objects.log_get_or_create(audit_command=audit_command,
                                                                              name=new_name)
-            payload = {'{}_id'.format(self.through_field): canonical_record.id}
+            payload = {self.through_id_name: canonical_record.id}
             for publication in publications:
                 payload['publication_id'] = publication.id
                 self.through_model.objects.log_get_or_create(audit_command=audit_command,
