@@ -4,7 +4,7 @@ RUN apk add --no-cache --virtual=build_dependencies musl-dev gcc python3-dev pos
 
 ENV PYTHONUNBUFFERED 1
 COPY requirements.txt /tmp/
-RUN pip install -r /tmp/requirements.txt
+RUN pip install -q -r /tmp/requirements.txt
 
 ARG cmd="dev.sh"
 

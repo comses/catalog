@@ -28,7 +28,6 @@ media
 .coverage
 htmlcov
 *.log
-schema.xml
 tags
 
 
