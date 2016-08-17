@@ -36,13 +36,19 @@ class DataProcessor(object):
     def insert(self, path):
         with open(path, "r") as f:
             names = ast.literal_eval(f.read())
-            self.model.objects.bulk_create([
-                                               self.model(name=name) for name in names])
+            audit_command = models.AuditCommand.objects.create(action=models.AuditCommand.Action.MANUAL,
+                                                               role=models.AuditCommand.Role.CURATOR_EDIT,
+                                                               creator=self.creator)
+            for name in names:
+                self.model.objects.log_create(audit_command=audit_command, name=name)
 
     def delete(self, path):
         with open(path, "r") as f:
             names = ast.literal_eval(f.read())
-            self.model.objects.filter(name__in=names).delete()
+            audit_command = models.AuditCommand.objects.create(action=models.AuditCommand.Action.MANUAL,
+                                                               role=models.AuditCommand.Role.CURATOR_EDIT,
+                                                               creator=self.creator)
+            self.model.objects.filter(name__in=names).log_delete(audit_command=audit_command)
 
     def split(self, path):
         with open(path, "r") as f:
