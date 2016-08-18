@@ -14,7 +14,7 @@
 
 <!doctype html>
 <html class="no-js" lang="">
-{% with JQUERY_VER="1.11.3" BOOTSWATCH_THEME="lumen" JQUERY_VALIDATE_VER="1.13.1" KNOCKOUT_VER="3.3.0" KNOCKOUT_MAPPING_VER="2.4.1" BOOTSTRAP_VER="3.3.5" FONTAWESOME_VER="4.3.0" RAVENJS_VER="1.1.16" HUMANE_VER="3.0.6" SELECTIZE_VER="0.12.1"%}
+{% with JQUERY_VER="1.12.4" BOOTSWATCH_THEME="spacelab" JQUERY_VALIDATE_VER="1.15.1" KNOCKOUT_VER="3.4.0" KNOCKOUT_MAPPING_VER="2.4.1" BOOTSTRAP_VER="3.3.7" FONTAWESOME_VER="4.6.3" RAVENJS_VER="3.5.0" HUMANE_VER="3.2.2" SELECTIZE_VER="0.12.2"%}
     <head>
     {% block head %}
         <meta charset="utf-8">
@@ -119,7 +119,7 @@
         <script src="//maxcdn.bootstrapcdn.com/bootstrap/{{BOOTSTRAP_VER}}/js/bootstrap.min.js"></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/humane-js/{{HUMANE_VER}}/humane.min.js"></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/selectize.js/{{SELECTIZE_VER}}/js/standalone/selectize.min.js"></script>
-        <script src="//cdn.ravenjs.com/{{RAVENJS_VER}}/jquery,native/raven.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/raven.js/{{RAVENJS_VER}}/raven.min.js"></script>
         <script src='//ajax.aspnetcdn.com/ajax/jquery.validate/{{JQUERY_VALIDATE_VER}}/jquery.validate.min.js'></script>
         {# local JS files #}
         <script src="{% static 'js/csrf.js' %}"></script>
