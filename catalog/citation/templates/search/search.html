@@ -62,8 +62,8 @@
                 </tbody>
             </table>
         {% endif %}
-        {% if page_object.has_previous or page_object.has_next and request.GET %}
-            <div class="text-center">{% bootstrap_pagination page url=request.get_full_path %}</div>
+        {% if page_obj.has_previous or page_obj.has_next and request.GET %}
+            <div class="text-center">{% bootstrap_pagination page_obj url=request.get_full_path %}</div>
         {% endif %}
     </script>
 

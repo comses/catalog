@@ -309,7 +309,7 @@ class JournalSearchView(AutocompleteView):
 
 
 class CatalogSearchView(LoginRequiredMixin, SearchView):
-    """ generic django haystack searchview using a custom form """
+    """ generic django haystack SearchView using a custom form """
     form_class = CatalogSearchForm
 
 
