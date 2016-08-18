@@ -22,4 +22,6 @@ script:
   - docker-compose build 2> /dev/null
   - docker-compose run test
 after_success:
+  - ls -al .coverage
+  - sudo chmod a+r .coverage
   - coveralls
