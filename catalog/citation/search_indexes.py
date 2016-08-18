@@ -15,6 +15,12 @@ class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     status = indexes.CharField(model_attr='status', faceted=True)
     assigned_curator = indexes.CharField(model_attr='assigned_curator', null=True)
 
+    def prepare_last_modified(self, obj):
+        last_modified = self.prepared_data.get('last_modified')
+        if last_modified:
+            return last_modified.strftime('%Y-%m-%dT%H:%M:%SZ')
+        return ''
+
     def get_model(self):
         return Publication
 
