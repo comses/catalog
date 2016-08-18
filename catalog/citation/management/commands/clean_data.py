@@ -2,8 +2,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 import os
 
-from ... import models
-from ... import dedupe
+from ... import dedupe, models
 
 
 class Command(BaseCommand):
@@ -11,12 +10,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--file',
-                            dest='path',
-                            help='file to clean data with')
-        parser.add_argument('--creator',
-                            dest='creator',
                             required=True,
-                            help='username of user used to execute these commands')
+                            help='.merge, .split, or .delete data file specifying how to clean data')
+        parser.add_argument('--creator',
+                            required=True,
+                            help="username of a User to be recorded in the audit log when executing these commands")
 
     def parse_path(self, path):
         filename, ext = os.path.splitext(os.path.basename(path))
@@ -31,7 +29,7 @@ class Command(BaseCommand):
             raise ValueError("Unsupported filename '{0}': should be 'platform' or 'sponsor'".format(filename))
 
     def handle(self, *args, **options):
-        path = options['path']
+        path = options['file']
         creator = User.objects.get(username=options['creator'])
         (model, action) = self.parse_path(path)
         processor = dedupe.DataProcessor(model, creator)

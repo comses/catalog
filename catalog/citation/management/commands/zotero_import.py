@@ -28,31 +28,22 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--test',
-                            action='store',
-                            dest='test',
                             default=False,
                             help='used for test cases only')
         parser.add_argument('--group',
-                            action='store',
                             dest='group_id',
                             default='284000',
                             help='Zotero group id to pull records from')
         parser.add_argument('--collection',
-                            action='store',
                             dest='collection_id',
                             default=False,
-                            help='Zotero collection ID, used to fetch a particular collection in the group')
+                            help='Zotero collection ID, used to fetch a particular collection within the group')
         parser.add_argument('--outfile',
-                            nargs='?',
-                            dest='output_data_file',
                             default='zotero_data.json',
                             help='data file to write zotero results to')
         parser.add_argument('--infile',
-                            nargs='?',
-                            dest='input_data_file',
                             default='',
-                            const='',
-                            help='data file to read zotero results from')
+                            help='data file to read already persisted zotero results from')
 
     def convert(self, name):
         s1 = first_cap_re.sub(r'\1_\2', name)
@@ -269,7 +260,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         zot = zotero.Zotero(options['group_id'], "group", settings.ZOTERO_API_KEY)
-        input_data_file = options['input_data_file']
+        input_data_file = options['infile']
         if input_data_file:
             logger.debug("Loading data from file %s", input_data_file)
             with open(input_data_file, 'r') as infile:
@@ -284,7 +275,7 @@ class Command(BaseCommand):
             else:
                 json_data = zot.everything(zot.items())
 
-            output_data_file = options['output_data_file']
+            output_data_file = options['outfile']
             logger.debug("saving zotero data to disk at %s", output_data_file)
             with open(output_data_file, 'w') as outfile:
                 json.dump(json_data, outfile)

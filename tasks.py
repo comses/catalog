@@ -24,7 +24,7 @@ env = {'python': 'python3',
        'db_user': 'catalog',
        'db_name': 'comses_catalog',
        'database': 'default',
-       'ignored_coverage': ('test', 'settings', 'migrations', 'wsgi', 'management'),
+       'coverage_omit_patterns': ('test', 'settings', 'migrations', 'wsgi', 'management', 'tasks'),
        'solr_version': '4.10.4',
        'vcs': 'git'}
 env['solr_conf_dir'] = 'solr-{}/example/solr/catalog/conf'.format(env['solr_version'])
@@ -72,8 +72,8 @@ def test(ctx, name=None, coverage=False):
     else:
         apps = ''
     if coverage:
-        ignored = ['*{0}*'.format(ignored_pkg) for ignored_pkg in env['ignored_coverage']]
-        coverage_cmd = "coverage run --source='.' --omit=" + ','.join(ignored)
+        ignored = ['*{0}*'.format(ignored_pkg) for ignored_pkg in env['coverage_omit_patterns']]
+        coverage_cmd = "coverage run --source='catalog' --omit=" + ','.join(ignored)
     else:
         coverage_cmd = env['python']
     ctx.run('{coverage_cmd} manage.py test {apps}'.format(apps=apps, coverage_cmd=coverage_cmd))
@@ -81,8 +81,7 @@ def test(ctx, name=None, coverage=False):
 
 @task(pre=[call(test, coverage=True)])
 def coverage(ctx):
-    ignored = ['*{0}*'.format(ignored_pkg) for ignored_pkg in env['ignored_coverage']]
-    ctx.run('coverage html --omit=' + ','.join(ignored))
+    ctx.run('coverage html')
 
 
 @task
