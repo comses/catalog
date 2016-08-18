@@ -16,12 +16,7 @@ before_install:
   - sudo mv docker-compose /usr/local/bin
   - ln -s development.yml docker-compose.yml 
   - docker-compose version
-  - pip install coveralls
 install: true # skip standard python install
 script:
   - docker-compose build 2> /dev/null
   - docker-compose run test
-after_success:
-  - ls -al .coverage
-  - sudo chmod a+r .coverage
-  - coveralls
