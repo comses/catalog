@@ -12,7 +12,7 @@ class TestPipeline(TestCase):
         cmd = Command()
         cmd.handle(filename="catalog/citation/tests/load_bibtex.json", username='foo')
 
-        # TODO: test actual data instead of just counts. Right now only publication count is meaningful
+        # TODO: test actual data instead of just counts.
         self.assertEqual(models.AuditCommand.objects.count(), 23)
-        self.assertEqual(models.Publication.objects.count(), 5)
+        self.assertEqual(models.Publication.objects.count(), 6)
         self.assertEqual(models.Author.objects.count(), 20)

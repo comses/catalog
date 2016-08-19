@@ -27,7 +27,7 @@ class TestModelManagers(TestCase):
     def test_author_log_create(self):
         author = models.Author.objects.log_create(audit_command=self.context, **self.author_detached)
         auditlog = models.AuditLog.objects.first()
-        self.assertEqual(auditlog.table, 'citation_author')
+        self.assertEqual(auditlog.table, 'author')
         self.assertEqual(auditlog.action, 'INSERT')
         self.assertEqual(auditlog.row_id, author.id)
 
@@ -35,7 +35,7 @@ class TestModelManagers(TestCase):
         author, created = models.Author.objects.log_get_or_create(
             audit_command=self.context, **self.author_detached)
         auditlog = models.AuditLog.objects.first()
-        self.assertEqual(auditlog.table, 'citation_author')
+        self.assertEqual(auditlog.table, 'author')
         self.assertEqual(auditlog.action, 'INSERT')
         self.assertEqual(auditlog.row_id, author.id)
 
@@ -48,20 +48,17 @@ class TestModelManagers(TestCase):
         models.Author.objects.create(**self.author_detached)
         models.Author.objects.log_update(audit_command=self.context, given_name='Ralph')
         auditlog = models.AuditLog.objects.first()
-        self.assertEqual(auditlog.table, 'citation_author')
+        self.assertEqual(auditlog.table, 'author')
         self.assertEqual(auditlog.action, 'UPDATE')
-        self.assertEqual(auditlog.payload['given_name'], 'Bob') # previous state is recorded
+        self.assertEqual(auditlog.payload['data']['given_name']['new'], 'Ralph')
+        self.assertEqual(auditlog.payload['data']['given_name']['old'], 'Bob')
 
     def test_author_log_delete(self):
         author = models.Author.objects.create(**self.author_detached)
         author_contents = {'id': author.id, 'orcid': author.orcid, 'type': author.type}
         models.Author.objects.all().log_delete(audit_command=self.context)
         auditlog = models.AuditLog.objects.first()
-        self.assertEqual(auditlog.table, 'citation_author')
+        self.assertEqual(auditlog.table, 'author')
         self.assertEqual(auditlog.action, 'DELETE')
-        auditlog.payload.pop('id')
-        auditlog.payload.pop('date_added')
-        auditlog.payload.pop('date_modified')
-        auditlog.payload.pop('email')
         # auditlog.payload.pop('name')
-        self.assertEqual(auditlog.payload, self.author_detached)
+        self.assertEqual(auditlog.payload['data']['given_name'], self.author_detached['given_name'])

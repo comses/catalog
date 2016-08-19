@@ -38,8 +38,8 @@ class PublicationSerializerTest(BaseTest):
         serializer = PublicationSerializer(Publication.objects.first(), data=serializer.data)
         if serializer.is_valid():
             serializer.save(self.user)
-        self.assertEqual(AuditLog.objects.filter(table='citation_publicationplatforms').count(), 0)
-        self.assertEqual(AuditLog.objects.filter(table='citation_platform').count(), 0)
+        self.assertEqual(AuditLog.objects.filter(table='publicationplatforms').count(), 0)
+        self.assertEqual(AuditLog.objects.filter(table='platform').count(), 0)
         self.assertEqual(AuditCommand.objects.count(), 2)
 
         platform_pascal_str = 'Pascal'
@@ -49,8 +49,9 @@ class PublicationSerializerTest(BaseTest):
         serializer = PublicationSerializer(Publication.objects.first(), data=data)
         if serializer.is_valid():
             serializer.save(self.user)
-        self.assertEqual(AuditLog.objects.filter(table='citation_publicationplatforms').count(), 1)
-        self.assertEqual(AuditLog.objects.filter(table='citation_platform').count(), 1)
+        # Two Deletes and One Insert
+        self.assertEqual(AuditLog.objects.filter(table='publicationplatforms').count(), 3)
+        self.assertEqual(AuditLog.objects.filter(table='platform').count(), 1)
         self.assertEqual(AuditCommand.objects.count(), 3)
 
     def test_add_creator_to_publication(self):

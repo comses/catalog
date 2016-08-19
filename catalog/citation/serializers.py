@@ -14,7 +14,8 @@ from rest_framework.exceptions import ValidationError
 
 from .models import (Tag, Sponsor, Platform, Author, Publication, Container, InvitationEmail,
                      ModelDocumentation, Note, AuditCommand, AuditLog,
-                     PublicationAuthors, PublicationModelDocumentations, PublicationPlatforms, PublicationSponsors, PublicationTags)
+                     PublicationAuthors, PublicationModelDocumentations, PublicationPlatforms, PublicationSponsors,
+                     PublicationTags)
 
 from collections import defaultdict
 from hashlib import sha1
@@ -168,6 +169,12 @@ class PublicationSerializer(serializers.ModelSerializer):
             PublicationAuthors.objects.log_get_or_create(audit_command=audit_command,
                                                          publication_id=publication.id,
                                                          author_id=author.id)
+        filters = {'given_name__in': [raw_creator['given_name'] for raw_creator in raw_creators],
+                   'family_name__in': [raw_creator['family_name'] for raw_creator in raw_creators]}
+        PublicationAuthors.objects \
+            .exclude(author__in=Author.objects.filter(**filters)) \
+            .filter(publication=publication) \
+            .log_delete(audit_command=audit_command)
 
     @staticmethod
     def save_model_documentation(audit_command, publication, raw_model_documentations):
@@ -177,6 +184,10 @@ class PublicationSerializer(serializers.ModelSerializer):
             PublicationModelDocumentations.objects.log_get_or_create(audit_command=audit_command,
                                                                      publication_id=publication.id,
                                                                      model_documentation_id=model_documentation.id)
+        PublicationModelDocumentations.objects \
+            .exclude(model_documentation__in=ModelDocumentation.objects.filter(name__in=names)) \
+            .filter(publication=publication) \
+            .log_delete(audit_command=audit_command)
 
     @staticmethod
     def save_platform(audit_command, publication, raw_platforms):
@@ -186,6 +197,10 @@ class PublicationSerializer(serializers.ModelSerializer):
             PublicationPlatforms.objects.log_get_or_create(audit_command=audit_command,
                                                            publication_id=publication.id,
                                                            platform_id=platform.id)
+        PublicationPlatforms.objects\
+            .exclude(platform__in=Platform.objects.filter(name__in=names))\
+            .filter(publication=publication) \
+            .log_delete(audit_command=audit_command)
 
     @staticmethod
     def save_sponsor(audit_command, publication, raw_sponsors):
@@ -195,6 +210,10 @@ class PublicationSerializer(serializers.ModelSerializer):
             PublicationSponsors.objects.log_get_or_create(audit_command=audit_command,
                                                           publication_id=publication.id,
                                                           sponsor_id=platform.id)
+        PublicationSponsors.objects \
+            .exclude(sponsor__in=Sponsor.objects.filter(name__in=names))\
+            .filter(publication=publication) \
+            .log_delete(audit_command=audit_command)
 
     @staticmethod
     def save_tags(audit_command, publication, raw_tags):
@@ -204,6 +223,10 @@ class PublicationSerializer(serializers.ModelSerializer):
             PublicationTags.objects.log_get_or_create(audit_command=audit_command,
                                                       publication_id=publication.id,
                                                       tag_id=tag.id)
+        PublicationTags.objects \
+            .exclude(tag__in=Tag.objects.filter(name__in=names)) \
+            .filter(publication=publication) \
+            .log_delete(audit_command=audit_command)
 
     @classmethod
     def save_related(cls, audit_command, publication, validated_data):

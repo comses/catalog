@@ -3,7 +3,7 @@ from django.contrib.postgres.fields import JSONField
 from django.contrib.sites.requests import RequestSite
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ValidationError
-from django.db import models, transaction
+from django.db import connection, models, transaction
 from django.template import Context
 from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
@@ -14,8 +14,72 @@ from django.db.models import Q
 import re
 
 from model_utils import Choices
-from model_utils.managers import InheritanceManager
 from typing import Dict, Optional
+
+
+def datetime_json_serialize(datetime_obj: Optional[datetime]):
+    return str(datetime_obj)
+
+
+def date_json_serialize(date_obj: Optional[date]):
+    return str(date_obj)
+
+
+def identity_json_serialize(obj):
+    return obj
+
+
+DISPATCH_JSON_SERIALIZE = defaultdict(lambda: identity_json_serialize,
+                                      DateTimeField=datetime_json_serialize,
+                                      DateField=date_json_serialize)
+
+
+def json_serialize(field_type, obj):
+    return DISPATCH_JSON_SERIALIZE[field_type](obj)
+
+
+def make_payload(instance):
+    """Make an auditlog payload for an INSERT or DELETE statement"""
+    data = {}
+    labels = {}
+    for field in instance._meta.concrete_fields:
+        data[field.attname] = json_serialize(field.get_internal_type(), getattr(instance, field.attname))
+        if field.many_to_one and field.related.model != User:
+            label = getattr(instance, field.name).get_message()
+            labels[field.name] = label
+
+    # this is to ensure we have at least one label for every insert and delete entry
+    if len(labels) == 0:
+        labels[instance._meta.model_name] = instance.get_message()
+    payload = {'data': data, 'labels': labels}
+    return payload
+
+
+def make_versioned_payload(instance, changes: Dict):
+    """Make an auditlog payload for an UPDATE statement"""
+    data = {}
+    labels = {}
+    for column_name, new_raw_value in changes.items():
+        field = instance._meta.get_field(column_name)
+        old_raw_value = getattr(instance, column_name)
+        old_value = json_serialize(field.get_internal_type(), old_raw_value)
+        new_value = json_serialize(field.get_internal_type(), new_raw_value)
+        if new_value != old_value:
+            data[field.name] = {'old': old_value, 'new': new_value}
+            if field.many_to_one and field.related.model != User:
+                old_label = getattr(instance, field.name).get_message()
+                new_label = field.related.model.objects.get(id=new_value).get_message()
+                labels[field.name] = \
+                    {'old': old_label, 'new': new_label}
+
+    # this is to ensure that if changes occur we have at least one label
+    if data and not labels:
+        labels[instance._meta.model_name] = instance.get_message()
+    if data or labels:
+        payload = {'data': data, 'labels': labels}
+    else:
+        payload = None
+    return payload
 
 
 class LogManager(models.Manager):
@@ -27,8 +91,8 @@ class LogManager(models.Manager):
             AuditLog.objects.create(
                 action='INSERT',
                 row_id=instance.id,
-                table=instance._meta.db_table,
-                payload=kwargs,
+                table=instance._meta.model_name,
+                payload=make_payload(instance),
                 audit_command=audit_command)
             return instance
 
@@ -39,77 +103,27 @@ class LogManager(models.Manager):
             instance, created = self.get_or_create(defaults=defaults, **kwargs)
             if created:
                 action = 'INSERT'
-                payload = kwargs
+                payload = make_payload(instance)
                 row_id = instance.id
             else:
                 defaults.update(kwargs)
                 action = 'UPDATE'
-                changes = self.create_changelist(instance, kwargs)
-                payload = {column: getattr(instance, column)
-                           for column in changes}
+                payload = make_versioned_payload(instance, kwargs)
                 row_id = instance.id
             if created or payload:
                 AuditLog.objects.create(
                     action=action,
                     row_id=row_id,
-                    table=instance._meta.db_table,
+                    table=instance._meta.model_name,
                     payload=payload,
                     audit_command=audit_command)
 
         return instance, created
 
-    @staticmethod
-    def create_changelist(instance, kwargs):
-        changes = {}
-        for key, value in kwargs.items():
-            if value != getattr(instance, key):
-                changes[key] = value
-        return changes
-
-
-def datetime_json_serialize(datetime_obj: Optional[datetime]):
-    if datetime_obj:
-        val = {'tag': 'just',
-               'value': {
-                   'year': datetime_obj.year,
-                   'month': datetime_obj.month,
-                   'day': datetime_obj.day,
-                   'hour': datetime_obj.hour,
-                   'minute': datetime_obj.minute,
-                   'microsecond': datetime_obj.microsecond,
-                   'tzinfo': datetime_obj.tzinfo.zone}
-               }
-    else:
-        val = {'tag': 'nothing'}
-    return val
-
-
-def date_json_serialize(date_obj: Optional[date]):
-    if date_obj is not None:
-        val = {'tag': 'just',
-               'value': {
-                   'year': date_obj.year,
-                   'month': date_obj.month,
-                   'day': date_obj.day
-               }}
-    else:
-        val = {'tag': 'nothing'}
-    return val
-
-
-def identity_json_serialize(obj):
-    return obj
-
 
 class LogQuerySet(models.query.QuerySet):
     # TODO: get rid of serializers and use a custom encode
     # serializers.serialize('json', [p])
-    DISPATCH_JSON_SERIALIZE = defaultdict(lambda: identity_json_serialize,
-                                          DateTimeField=datetime_json_serialize,
-                                          DateField=date_json_serialize)
-
-    def json_serialize(self, field_type, obj):
-        return LogQuerySet.DISPATCH_JSON_SERIALIZE[field_type](obj)
 
     def log_delete(self, audit_command):
         with transaction.atomic():
@@ -117,13 +131,12 @@ class LogQuerySet(models.query.QuerySet):
 
             auditlogs = []
             for instance in instances:
-                payload = {field.column: self.json_serialize(field.get_internal_type(), getattr(instance, field.column))
-                           for field in instance._meta.local_fields}
+                payload = make_payload(instance)
                 auditlogs.append(
                     AuditLog(
                         action='DELETE',
                         row_id=instance.id,
-                        table=instance._meta.db_table,
+                        table=instance._meta.model_name,
                         payload=payload,
                         audit_command=audit_command))
             AuditLog.objects.bulk_create(auditlogs)
@@ -136,34 +149,39 @@ class LogQuerySet(models.query.QuerySet):
 
             auditlogs = []
             for instance in instances:
-                original_values = {column: getattr(instance, column)
-                                   for column in kwargs.keys()}
+                payload = make_versioned_payload(instance, kwargs)
                 row_id = instance.id
-                auditlogs.append(
-                    AuditLog(
-                        action='UPDATE',
-                        row_id=row_id,
-                        table=instance._meta.db_table,
-                        payload=original_values,
-                        audit_command=audit_command))
+                if payload:
+                    auditlogs.append(
+                        AuditLog(
+                            action='UPDATE',
+                            row_id=row_id,
+                            table=instance._meta.model_name,
+                            payload=payload,
+                            audit_command=audit_command))
             AuditLog.objects.bulk_create(auditlogs)
 
             return self.update(**kwargs)
 
 
 class AbstractLogModel(models.Model):
-    def json_serialize(self, field_type, obj):
-        return LogQuerySet.DISPATCH_JSON_SERIALIZE[field_type](obj)
+    """
+    Class that implements logging for all children
+
+    Subclasses should implement a get_message() method
+    """
+
+    def get_message(self):
+        raise NotImplementedError("get_message must be implemented")
 
     def log_delete(self, audit_command):
         with transaction.atomic():
-            payload = {field.column: self.json_serialize(field.get_internal_type(), getattr(self, field.column))
-                       for field in self._meta.local_fields}
+            payload = make_payload(self)
             auditlogs = \
                 AuditLog.objects.create(
                     action='DELETE',
                     row_id=self.id,
-                    table=self._meta.db_table,
+                    table=self._meta.model_name,
                     payload=payload,
                     audit_command=audit_command)
             info = self.delete()
@@ -171,19 +189,19 @@ class AbstractLogModel(models.Model):
 
     def log_update(self, audit_command, **kwargs):
         with transaction.atomic():
-            original_values = {column: getattr(self, column)
-                               for column in kwargs.keys()}
+            payload = make_versioned_payload(self, kwargs)
             row_id = self.id
-            AuditLog.objects.create(
-                action='UPDATE',
-                row_id=row_id,
-                table=self._meta.db_table,
-                payload=original_values,
-                audit_command=audit_command)
-            for column in kwargs:
-                setattr(self, column, kwargs[column])
-            info = self.save()
-            return info
+            if payload:
+                AuditLog.objects.create(
+                    action='UPDATE',
+                    row_id=row_id,
+                    table=self._meta.model_name,
+                    payload=payload,
+                    audit_command=audit_command)
+                for column in kwargs:
+                    setattr(self, column, kwargs[column])
+                self.save()
+            return self
 
     objects = LogManager.from_queryset(LogQuerySet)()
 
@@ -254,6 +272,9 @@ class Author(AbstractLogModel):
             family, given = normalized_name, ''
         return family, given
 
+    def get_message(self):
+        return '{} {} ({})'.format(self.given_name, self.family_name, self.id)
+
 
 class AuthorAlias(AbstractLogModel):
     # Authors that are not an individual only have a given name
@@ -271,6 +292,9 @@ class AuthorAlias(AbstractLogModel):
                 return self.family_name
         return self.given_name
 
+    def get_message(self):
+        return '{} {} ({})'.format(self.given_name, self.family_name, self.id)
+
     def __repr__(self):
         return "AuthorAlias(id={id}, family_name={family_name}, given_name={given_name}, author_id={author_id})" \
             .format(id=self.id, family_name=self.family_name, given_name=self.given_name, author_id=self.author_id)
@@ -286,8 +310,8 @@ class Tag(AbstractLogModel):
     date_modified = models.DateTimeField(auto_now=True,
                                          help_text=_('Date this model was last modified on this system'))
 
-    def __unicode__(self):
-        return self.name
+    def get_message(self):
+        return "{} ({})".format(self.name, self.id)
 
 
 class ModelDocumentation(AbstractLogModel):
@@ -312,8 +336,8 @@ class ModelDocumentation(AbstractLogModel):
     date_modified = models.DateTimeField(auto_now=True,
                                          help_text=_('Date this model was last modified on this system'))
 
-    def __unicode__(self):
-        return self.name
+    def get_message(self):
+        return "{} ({})".format(self.name, self.id)
 
 
 class Note(AbstractLogModel):
@@ -332,8 +356,8 @@ class Note(AbstractLogModel):
     def is_deleted(self):
         return bool(self.deleted_on)
 
-    def __unicode__(self):
-        return self.text
+    def get_message(self):
+        return "{} ({})".format(self.text, self.id)
 
 
 class Platform(AbstractLogModel):
@@ -346,8 +370,8 @@ class Platform(AbstractLogModel):
     date_modified = models.DateTimeField(auto_now=True,
                                          help_text=_('Date this model was last modified on this system'))
 
-    def __unicode__(self):
-        return self.name
+    def get_message(self):
+        return "{} ({})".format(self.name, self.id)
 
 
 class Sponsor(AbstractLogModel):
@@ -360,8 +384,8 @@ class Sponsor(AbstractLogModel):
     date_modified = models.DateTimeField(auto_now=True,
                                          help_text=_('Date this model was last modified on this system'))
 
-    def __unicode__(self):
-        return self.name
+    def get_message(self):
+        return "{} ({})".format(self.name, self.id)
 
 
 class Container(AbstractLogModel):
@@ -379,6 +403,9 @@ class Container(AbstractLogModel):
         return "Container(issn={issn}, type={type})" \
             .format(issn=self.issn, type=self.type)
 
+    def get_message(self):
+        return 'name: {} issn: {}'.format(repr(self.name), repr(self.issn) if self.issn else '\'\'')
+
 
 class ContainerAlias(AbstractLogModel):
     name = models.TextField(max_length=1000, blank=True, default='')
@@ -387,6 +414,9 @@ class ContainerAlias(AbstractLogModel):
     def __repr__(self):
         return "ContainerAlias(name={name}, container={container})" \
             .format(name=self.name, container=self.container)
+
+    def get_message(self):
+        return "{} ({})".format(self.name, self.id)
 
     class Meta:
         unique_together = ('container', 'name')
@@ -468,11 +498,13 @@ class Publication(AbstractLogModel):
         "self", symmetrical=False, related_name="referenced_by",
         through='PublicationCitations', through_fields=('publication', 'citation'))
 
+    def get_message(self):
+        return "{} ({})".format(self.title, self.id)
+
     def get_auditcommands(self):
-        # TODO: fix this query to capture all related model changes
         audit_commands = AuditCommand.objects\
-            .filter(Q(auditlogs__table=self._meta.db_table, auditlogs__row_id=self.id) |
-                    Q(auditlogs__payload__publication_id=self.id)).all()
+            .filter(Q(auditlogs__table=self._meta.model_name, auditlogs__row_id=self.id) |
+                    Q(auditlogs__payload__data__publication_id=self.id)).distinct()
         return audit_commands
 
     def is_editable_by(self, user):
@@ -537,6 +569,17 @@ class AuditLog(models.Model):
             self.payload,
         )
 
+    def _generate_through_message(self):
+        pass
+
+    def _generate_message(self):
+        pass
+
+    def generate_message(self):
+        for key, value in self.payload.items():
+            if isinstance(value, dict):
+                pass
+
     class Meta:
         ordering = ['-id']
 
@@ -572,6 +615,9 @@ class Raw(AbstractLogModel):
 
     date_added = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)
+
+    def get_message(self):
+        return '{} ({})'.format(self.key, self.id)
 
 
 class PublicationAuthors(AbstractLogModel):

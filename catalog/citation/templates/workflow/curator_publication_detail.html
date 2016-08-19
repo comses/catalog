@@ -6,7 +6,8 @@
     <div class="panel panel-default">
         <div class="panel-heading">
             <h3 class='panel-title'>
-                <span class='label label-as-badge label-primary'><b>STATUS:</b> <span data-bind='text: status'></span></span>
+                <span class='label label-as-badge label-primary'><b>STATUS:</b> <span
+                        data-bind='text: status'></span></span>
                 <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
                     <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
                 </a>
@@ -31,9 +32,11 @@
                                 <b>Last modified:</b> <span data-bind='text:date_modified'></span>
                                 <div><b>Author(s):</b>
                                     <ul class='list-inline' data-bind="foreach: creators">
-                                        <li><a target='_blank' data-bind='attr: { href: $root.googleScholarAuthorSearch($data) }'>
-                                                <span data-bind="text: given_name"></span> <span data-bind="text: family_name"></span>
-                                            </a>
+                                        <li><a target='_blank'
+                                               data-bind='attr: { href: $root.googleScholarAuthorSearch($data) }'>
+                                            <span data-bind="text: given_name"></span> <span
+                                                data-bind="text: family_name"></span>
+                                        </a>
                                         </li>
                                     </ul>
                                 </div>
@@ -48,7 +51,8 @@
                                                 </a>
                                             </span>
                                             <span class='btn'>
-                                                <a target='_blank' data-bind="attr: { href: googleScholarAuthorLink() }">
+                                                <a target='_blank'
+                                                   data-bind="attr: { href: googleScholarAuthorLink() }">
                                                     <i class='fa fa-pencil-square'></i> Title and Author
                                                 </a>
                                             </span>
@@ -74,7 +78,8 @@
                                     </li>
                                     <li class='list-group-item'>
                                         {# FIXME: dirty, hard-coded URL #}
-                                        <a data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic record</a>
+                                        <a data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic
+                                            record</a>
                                     </li>
                                 </ul>
                             </div>
@@ -88,31 +93,25 @@
                     <div class='col-md-12'>
                         <div class='panel-group' id='activity-accordion' role='tablist' aria-multiselectable='false'>
                             <div class='panel panel-default'>
-                                <div class='panel-heading'><h5 class='panel-title'><i class='fa fa-history'></i> Activity Log</h5></div>
-                                <div class='panel-body' data-bind='foreach: activity_logs'>
-                                    <p>
-                                        <span class='pull-right label label-as-badge label-info' data-bind='text: date_added'></span>
-                                        <mark data-bind='text: creator'></mark>
-                                        <span data-bind='text: message'></span>
-                                        <table class="table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Table</th>
-                                                    <th>Action</th>
-                                                    <th>Row ID</th>
-                                                    <th>Payload</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody data-bind='foreach: auditlogs'>
-                                                <tr>
-                                                    <td data-bind='text: table'></td>
-                                                    <td data-bind='text: action'></td>
-                                                    <td data-bind='text: row_id'></td>
-                                                    <td data-bind='text: ko.toJSON(payload)'></td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </p>
+                                <div class='panel-heading'><h5 class='panel-title'><i class='fa fa-history'></i>
+                                    Activity Log</h5></div>
+                                <div class='panel-body' data-bind='foreach: activity_logs'
+                                     style='max-height: 400px; overflow-y: scroll;'>
+                                    <span>
+                                        Creator <strong data-bind='text: creator'></strong>
+                                        in role <i data-bind='text: role'></i> took
+                                        action <mark data-bind='text: action'></mark>
+                                    </span>
+                                    <span class='pull-right'>
+                                        <mark class='bg-info' data-bind='text: date_added'></mark>
+                                    </span>
+                                    <ul class='list-group' data-bind='foreach: auditlogs'>
+                                        <li class='list-group-item'>
+                                            <u data-bind='text: action'></u> on
+                                            <em data-bind='text: table'></em>:
+                                            <span data-bind='text: message'></span>
+                                        </li>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -122,16 +121,17 @@
                     <div class='col-md-6 form-group'>
                         <label class="control-label" for="id_model_documentation">Model documentation</label>
                         <label for='model_documentation_none'>
-                            <input type='checkbox' id='model_documentation_none' data-bind='click: clearModelDocumentation, checked: hasNoModelDocumentation'>None
+                            <input type='checkbox' id='model_documentation_none'
+                                   data-bind='click: clearModelDocumentation, checked: hasNoModelDocumentation'>None
                         </label>
                         <select multiple class="form-control" id="id_model_documentation" name="model_documentation"
-data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selectedModelDocumentations, optionsValue: 'name', options: { optgroups: modelDocumentationCategories(), optgroupField: 'category', optgroupLabelField: 'category', optgroupValueField: 'category', options: modelDocumentationCategoryLists(), plugins: ['optgroup_columns']}">
+                                data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selectedModelDocumentations, optionsValue: 'name', options: { optgroups: modelDocumentationCategories(), optgroupField: 'category', optgroupLabelField: 'category', optgroupValueField: 'category', options: modelDocumentationCategoryLists(), plugins: ['optgroup_columns']}">
                         </select>
                     </div>
                     <div class="col-md-6 form-group">
                         <label class="control-label" for="id_platforms">Platforms</label>
                         <select multiple class="form-control" id="id_platforms" name="platforms"
-                            data-bind="selectize: platforms, selectedOptions: selectedPlatforms, optionsValue: 'name', options: { create: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}">
+                                data-bind="selectize: platforms, selectedOptions: selectedPlatforms, optionsValue: 'name', options: { create: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}">
                         </select>
                     </div>
                 </div>
@@ -139,7 +139,7 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                     <div class="col-md-12 form-group">
                         <label class="control-label" for="id_sponsors">Sponsors</label>
                         <select multiple class="form-control" id="id_sponsors" name="sponsors"
-                            data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList }">
+                                data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList }">
                         </select>
                     </div>
                 </div>
@@ -147,7 +147,7 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                     <div class="col-md-12 form-group">
                         <label class="control-label" for="id_tags">Tags</label>
                         <select multiple class="form-control" id="id_tags" name="tags"
-                            data-bind="selectize: tags, selectedOptions: selectedTags, optionsValue: 'name', options: { create: true, load: getTagList }">
+                                data-bind="selectize: tags, selectedOptions: selectedTags, optionsValue: 'name', options: { create: true, load: getTagList }">
                         </select>
                     </div>
                 </div>
@@ -156,10 +156,12 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                         <label class="control-label" for="id_code_archive_url">Code Archive URL</label>
                         <div class='input-group'>
                             <span class='input-group-addon'><i class='fa fa-code'></i> </span>
-                            <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
+                            <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url"
+                                   placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
                             <span class='input-group-addon'>
                                 <!-- ko if: validCodeArchiveUrl -->
-                                <strong><a target='_blank' data-bind='attr: {href: codeArchiveUrl()}'>View <i class='fa fa-external-link'></i></a></strong>
+                                <strong><a target='_blank' data-bind='attr: {href: codeArchiveUrl()}'>View <i
+                                        class='fa fa-external-link'></i></a></strong>
                                 <!-- /ko -->
                                 <!-- ko ifnot: validCodeArchiveUrl -->
                                 <span>View <i class='fa fa-external-link'></i></span>
@@ -171,40 +173,52 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                 <div class='row'>
                     <div class="col-md-6 form-group">
                         <label class="control-label" for="id_contact_author">Contact author name</label>
-                        <input class="form-control" id="id_contact_author" maxlength="75" name="contact_author" placeholder="Corresponding Author" type="text" data-bind="value: contact_author_name">
+                        <input class="form-control" id="id_contact_author" maxlength="75" name="contact_author"
+                               placeholder="Corresponding Author" type="text" data-bind="value: contact_author_name">
                     </div>
                     <div class="col-md-6 form-group">
                         <label class="control-label" for="id_contact_email">Contact email</label>
-                        <input class="form-control" id="id_contact_email" maxlength="75" name="contact_email" placeholder="Contact email" type="email" data-bind="value: contact_email">
+                        <input class="form-control" id="id_contact_email" maxlength="75" name="contact_email"
+                               placeholder="Contact email" type="email" data-bind="value: contact_email">
                     </div>
                 </div>
                 <div class='row'>
                     <div class='col-sm-12 form-group'>
                         <div class='well'>
-                            <h4>Current Status: <b data-bind='css: "label-" + status().toLowerCase(), text: status' class="label label-as-badge-lg"></b></h4>
+                            <h4>Current Status: <b data-bind='css: "label-" + status().toLowerCase(), text: status'
+                                                   class="label label-as-badge-lg"></b></h4>
                             <hr>
-                        <div class="radio" data-toggle="buttons">
-                            <label class="btn btn-info btn-sm">
-                                <input type="radio" name="status" value="UNTAGGED" data-bind="bsChecked: status"> <i class='fa fa-eye-slash'></i> Incomplete
-                            </label>
-                            <label class="btn btn-warning btn-sm">
-                                <input type="radio" name="status" value="NEEDS_AUTHOR_REVIEW" data-bind="bsChecked: status"> <i class='fa fa-tag'></i> Tagging Complete, Needs Author Input
-                            </label>
-                            <label class="btn btn-success btn-sm">
-                                <input type="radio" name="status" value="COMPLETE" data-bind="bsChecked: status"> <i class='fa fa-thumbs-o-up'></i> Tagging Complete, Code Archived
-                            </label>
-                            <label class="btn btn-danger btn-sm">
-                                <input type="radio" name="status" value="INVALID" data-bind="bsChecked: status"> <i class='fa fa-times'></i> Invalid Publication
-                            </label>
-                            <label class="btn btn-danger btn-sm">
-                                <input type="radio" name="status" value="FLAGGED" data-bind="bsChecked: status"> <i class='fa fa-flag'></i> Flag for Additional CoMSES Review
-                            </label>
-                        </div>
+                            <div class="radio" data-toggle="buttons">
+                                <label class="btn btn-info btn-sm">
+                                    <input type="radio" name="status" value="UNTAGGED" data-bind="bsChecked: status"> <i
+                                        class='fa fa-eye-slash'></i> Incomplete
+                                </label>
+                                <label class="btn btn-warning btn-sm">
+                                    <input type="radio" name="status" value="NEEDS_AUTHOR_REVIEW"
+                                           data-bind="bsChecked: status"> <i class='fa fa-tag'></i> Tagging Complete,
+                                    Needs Author Input
+                                </label>
+                                <label class="btn btn-success btn-sm">
+                                    <input type="radio" name="status" value="COMPLETE" data-bind="bsChecked: status"> <i
+                                        class='fa fa-thumbs-o-up'></i> Tagging Complete, Code Archived
+                                </label>
+                                <label class="btn btn-danger btn-sm">
+                                    <input type="radio" name="status" value="INVALID" data-bind="bsChecked: status"> <i
+                                        class='fa fa-times'></i> Invalid Publication
+                                </label>
+                                <label class="btn btn-danger btn-sm">
+                                    <input type="radio" name="status" value="FLAGGED" data-bind="bsChecked: status"> <i
+                                        class='fa fa-flag'></i> Flag for Additional CoMSES Review
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
-                <a class='btn btn-default' href='{% url 'citation:curator_workflow'%}?status=UNTAGGED'><i class='fa fa-arrow-left'></i> Back to assigned publications</a>
+                <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i
+                        class="fa fa-floppy-o"></i> Save
+                </button>
+                <a class='btn btn-default' href='{% url 'citation:curator_workflow' %}?status=UNTAGGED'><i
+                        class='fa fa-arrow-left'></i> Back to assigned publications</a>
             </form>
         </div>
     </div>
@@ -215,16 +229,16 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
 
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
-        console.log(viewModelJson);
         if (!viewModelJson.journal) {
             viewModelJson.journal = {'name': null};
         }
         if (!viewModelJson.model_documentation) {
             viewModelJson.model_documentation = {'name': null};
         }
-        $(function() {
-            var PublicationDetail = function(data) {
+        $(function () {
+            var PublicationDetail = function (data) {
                 var self = this;
+                data = DataPreparation.prepare_viewModelJson(data);
                 ko.mapping.fromJS(data, {}, self);
 
                 self.hasNoModelDocumentation = ko.observable(false);
@@ -236,119 +250,128 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                         self.hasNoModelDocumentation(true);
                     }
                 }
-                self.clearModelDocumentation = function() {
+                self.clearModelDocumentation = function () {
                     self.selectedModelDocumentations([]);
                     return true;
                 };
                 self.modelDocumentationCategories = ko.observableArray({{model_documentation_categories_json|safe}});
-                self.modelDocumentationCategoryLists = ko.pureComputed(function() {
+                self.modelDocumentationCategoryLists = ko.pureComputed(function () {
                     var list = [];
-                    ko.utils.arrayForEach(self.modelDocumentationCategories(), function(mdc) {
+                    ko.utils.arrayForEach(self.modelDocumentationCategories(), function (mdc) {
                         list = list.concat(mdc.modelDocumentationList);
                     });
                     return list;
                 });
                 self.modelDocumentationList = ko.observableArray({{model_documentation_list_json|safe}});
-                self.selectedTags = ko.observableArray(ko.utils.arrayMap(self.tags(), function(tag) { return tag.name(); }));
-                self.selectedPlatforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function(platform) { return platform.name();}));
-                self.selectedSponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function(sponsor) { return sponsor.name();}));
-                self.selectedModelDocumentations = ko.observableArray(ko.utils.arrayMap(self.model_documentation(), function(md) { 
+                self.selectedTags = ko.observableArray(ko.utils.arrayMap(self.tags(), function (tag) {
+                    return tag.name();
+                }));
+                self.selectedPlatforms = ko.observableArray(ko.utils.arrayMap(self.platforms(), function (platform) {
+                    return platform.name();
+                }));
+                self.selectedSponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function (sponsor) {
+                    return sponsor.name();
+                }));
+                self.selectedModelDocumentations = ko.observableArray(ko.utils.arrayMap(self.model_documentation(), function (md) {
                     return md.name();
                 }));
                 self.journals = ko.observableArray([data.journal || ""]);
-                self.googleScholarAuthorSearch = function(creator) {
-                    return ko.pureComputed(function() {
+                self.googleScholarAuthorSearch = function (creator) {
+                    return ko.pureComputed(function () {
                         return $.urls.SEARCH_GOOGLE_SCHOLAR
-                            + "&as_sauthors="
-                            + encodeURIComponent(creator.given_name() + ' ' + creator.family_name());
+                                + "&as_sauthors="
+                                + encodeURIComponent(creator.given_name() + ' ' + creator.family_name());
                     });
                 };
-                self.authorLastNames = ko.pureComputed(function() {
-                    return ko.utils.arrayMap(self.creators(), function(creator) { return creator.family_name() }).join(' ');
+                self.authorLastNames = ko.pureComputed(function () {
+                    return ko.utils.arrayMap(self.creators(), function (creator) {
+                        return creator.family_name()
+                    }).join(' ');
                 });
-                self.googleScholarTitleLink = ko.pureComputed(function() {
+                self.googleScholarTitleLink = ko.pureComputed(function () {
                     return $.urls.SEARCH_GOOGLE_SCHOLAR + encodeURIComponent(self.title());
                 });
-                self.googleScholarAuthorLink = ko.pureComputed(function() {
+                self.googleScholarAuthorLink = ko.pureComputed(function () {
                     return $.urls.SEARCH_GOOGLE_SCHOLAR + encodeURIComponent(self.title()) +
-                        '&as_sauthors=' + encodeURIComponent(self.authorLastNames());
+                            '&as_sauthors=' + encodeURIComponent(self.authorLastNames());
                 });
-                self.asuLibraryTitleLink = ko.pureComputed(function() {
+                self.asuLibraryTitleLink = ko.pureComputed(function () {
                     return 'http://asu.summon.serialssolutions.com/search/results?q=' + encodeURIComponent(self.title());
 
                 });
-                self.asuLibraryAuthorLink = ko.pureComputed(function() {
+                self.asuLibraryAuthorLink = ko.pureComputed(function () {
                     return 'http://asu.summon.serialssolutions.com/search/results?q=' + encodeURIComponent(self.title())
-                        +  encodeURIComponent(' AND (AuthorCombined: (' + self.authorLastNames() + '))');
+                            + encodeURIComponent(' AND (AuthorCombined: (' + self.authorLastNames() + '))');
 
                 });
-                self.validCodeArchiveUrl = ko.pureComputed(function() {
+                self.validCodeArchiveUrl = ko.pureComputed(function () {
                     url = self.code_archive_url();
                     return url && validator.isURL(url);
                 });
-                self.codeArchiveUrl = ko.pureComputed(function() {
+                self.codeArchiveUrl = ko.pureComputed(function () {
                     if (self.validCodeArchiveUrl()) {
                         return self.code_archive_url();
                     }
                     return '#id_code_archive_url';
                 });
-                self.getPlatformList = function(query, callback) {
+                self.getPlatformList = function (query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'citation:platform_search' %}");
                 };
-                self.getSponsorList = function(query, callback) {
+                self.getSponsorList = function (query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'citation:sponsor_search' %}");
                 };
-                self.getTagList = function(query, callback) {
+                self.getTagList = function (query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'citation:tag_search' %}");
                 };
-                self.getJournalList = function(query, callback) {
+                self.getJournalList = function (query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'citation:journal_search' %}");
                 };
-                self.getModelDocumentationList = function(query, callback) {
+                self.getModelDocumentationList = function (query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'citation:model_documentation_search' %}");
                 };
 
-                self.makeAsyncRequest = function(query, callback, url) {
+                self.makeAsyncRequest = function (query, callback, url) {
                     if (!query.length) return callback();
                     $.getJSON(url + "?q=" + encodeURIComponent(query))
-                        .done(function(res) {
-                            callback(JSON.parse(res).slice(0, 5));
-                        }).fail(function() { callback(); });
+                            .done(function (res) {
+                                callback(JSON.parse(res).slice(0, 5));
+                            }).fail(function () {
+                        callback();
+                    });
                 };
-                {# FIXME: code duplication #}
-                self.makeRequest = function(request_type, data, url) {
-                     return $.ajax({
+                self.makeRequest = function (request_type, data, url) {
+                    return $.ajax({
                         type: request_type,
                         url: url,
                         data: data,
                         dataType: "json",
                         contentType: "application/json; charset=utf-8"
-                    }).fail(function(result) {
+                    }).fail(function (result) {
                         humane.log("Something went wrong, Please verify the form data and try again.", {timeout: 5000});
                         console.log(result.responseJSON);
                     });
-                }
-                self.savePublication = function(data, event) {
+                };
+                self.savePublication = function (data, event) {
                     {% comment "FIXME: Add client-side validation " %}
-                    var form = $('#curatorPublicationDetailForm');
-                    if ( !form.valid() ) {
-                        form.showErrors();
-                        return false;
-                    }
+                        var form = $('#curatorPublicationDetailForm');
+                        if (!form.valid()) {
+                            form.showErrors();
+                            return false;
+                        }
                     {% endcomment %}
                     var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
                     console.log(data_clone);
-                    data_clone.platforms(ko.utils.arrayMap(data.selectedPlatforms(), function(platform) {
+                    data_clone.platforms(ko.utils.arrayMap(data.selectedPlatforms(), function (platform) {
                         return {'name': platform};
                     }));
-                    data_clone.sponsors(ko.utils.arrayMap(data.selectedSponsors(), function(sponsor) {
+                    data_clone.sponsors(ko.utils.arrayMap(data.selectedSponsors(), function (sponsor) {
                         return {'name': sponsor};
                     }));
-                    data_clone.tags(ko.utils.arrayMap(data.selectedTags(), function(tag) {
+                    data_clone.tags(ko.utils.arrayMap(data.selectedTags(), function (tag) {
                         return {'name': tag};
                     }));
                     if (data.selectedModelDocumentations().length > 0) {
-                        data_clone.model_documentation(ko.utils.arrayMap(data.selectedModelDocumentations(), function(md) {
+                        data_clone.model_documentation(ko.utils.arrayMap(data.selectedModelDocumentations(), function (md) {
                             return {'name': md};
                         }));
                         data.hasNoModelDocumentation(false);
@@ -365,11 +388,91 @@ data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selected
                     } else if (data_clone.journal.name() == "") {
                         data_clone.journal = null
                     }
-                    self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname).done(function(result) {
+                    self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname).done(function (result) {
+                        result = DataPreparation.prepare_viewModelJson(result);
                         ko.mapping.fromJS(result, self);
                         humane.log("Data saved successfully.", {timeout: 5000});
                     });
                 };
+
+            };
+            var DataPreparation = {
+                // For transforming the auditlogs into a format convenient for showing to the user
+
+                delete_current_publication_label: function (auditlog, current_publication_id) {
+                    // We don't want to display the publication label if we are viewing the same publication
+                    if (auditlog.payload.labels.hasOwnProperty('publication')) {
+                        if (auditlog.payload.data.publication_id === current_publication_id) {
+                            delete auditlog.payload.labels.publication;
+                        }
+                    }
+                },
+                display_insert_or_delete_auditlog: function (auditlog, current_publication_id) {
+                    var self = this;
+
+                    var labels = auditlog.payload.labels;
+
+                    self.delete_current_publication_label(auditlog, current_publication_id);
+
+                    var keys = Object.keys(labels);
+                    var message;
+                    if (keys.length === 1) {
+                        message = labels[keys[0]];
+                    } else if (keys.length === 0) {
+                        message = '';
+                    } else {
+                        message = keys.map(function (key) {
+                            return '' + key + ': ' + labels[key];
+                        }).join(', ');
+                    }
+
+                    return {'action': auditlog.action, 'table': auditlog.table, 'message': message};
+                },
+                display_update_auditlog: function (auditlog, current_publication_id) {
+                    var labels = auditlog.payload.labels;
+                    var data = auditlog.payload.data;
+
+                    var keys = Object.keys(data);
+                    var message;
+                    if (keys.length === 0) {
+                        message = '';
+                    } else {
+                        message = keys.map(function (key) {
+                            var old_value, new_value;
+                            if (labels.hasOwnProperty(key)) {
+                                old_value = labels[key]['old'] || '""';
+                                new_value = labels[key]['new'] || '""';
+                            } else {
+                                old_value = data[key]['old'] || '""';
+                                new_value = data[key]['new'] || '""';
+                            }
+                            return '' + key + ': ' + old_value + ' -> ' + new_value;
+                        }).join(', ');
+                    }
+                    return {'action': auditlog.action, 'table': auditlog.table, 'message': message};
+                }
+                ,
+                display_auditlog: function (auditlog, current_publication_id) {
+                    var self = this;
+                    switch (auditlog.action) {
+                        case 'INSERT':
+                        case 'DELETE':
+                            return self.display_insert_or_delete_auditlog(auditlog, current_publication_id);
+                        case 'UPDATE':
+                            return self.display_update_auditlog(auditlog, current_publication_id);
+                    }
+                }
+                ,
+                prepare_viewModelJson: function (viewModelJson) {
+                    var self = this;
+                    viewModelJson.activity_logs = viewModelJson.activity_logs.map(function (activity_log) {
+                        activity_log.auditlogs = activity_log.auditlogs.map(function (auditlog) {
+                            return self.display_auditlog(auditlog, viewModelJson.id);
+                        });
+                        return activity_log;
+                    });
+                    return viewModelJson;
+                }
             };
             var model = new PublicationDetail(viewModelJson);
             ko.applyBindings(model);
