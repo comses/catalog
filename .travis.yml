@@ -19,4 +19,4 @@ before_install:
 install: true # skip standard python install
 script:
   - docker-compose build 2> /dev/null
-  - docker-compose run test
+  - docker-compose run -e RUN_COVERALLS=true test

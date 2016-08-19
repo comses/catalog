@@ -24,7 +24,7 @@ env = {'python': 'python3',
        'db_user': 'catalog',
        'db_name': 'comses_catalog',
        'database': 'default',
-       'coverage_omit_patterns': ('test', 'settings', 'migrations', 'wsgi', 'management', 'tasks'),
+       'coverage_omit_patterns': ('test', 'settings', 'migrations', 'wsgi', 'management', 'tasks', 'apps.py'),
        'solr_version': '4.10.4',
        'vcs': 'git'}
 env['solr_conf_dir'] = 'solr-{}/example/solr/catalog/conf'.format(env['solr_version'])
@@ -126,20 +126,27 @@ def setup_solr(ctx, travis=False):
 
 
 @task(aliases=['rfd'])
-def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True):
+def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True, force=False):
     from django.conf import settings
-    pgpass_path = os.path.join(os.path.expanduser('~'), '.pgpass')
-    with open(pgpass_path, 'w+') as pgpass:
-        pgpass.write('db:*:template1:{db_user}:{db_password}\n'.format(db_password=settings.DATABASES['default']['PASSWORD'], **env))
-        pgpass.write('db:*:{db_name}:{db_user}:{db_password}\n'.format(db_password=settings.DATABASES['default']['PASSWORD'], **env))
-        ctx.run('chmod 0600 ~/.pgpass')
+    import django
+    django.setup()
+    from catalog.citation.models import Publication
+    number_of_publications = Publication.objects.count()
+    if number_of_publications > 0 and not force:
+        print("Ignoring restore, database with {0} publications already exists. Use --force to override.".format(number_of_publications))
+    else:
+        pgpass_path = os.path.join(os.path.expanduser('~'), '.pgpass')
+        with open(pgpass_path, 'w+') as pgpass:
+            pgpass.write('db:*:template1:{db_user}:{db_password}\n'.format(db_password=settings.DATABASES['default']['PASSWORD'], **env))
+            pgpass.write('db:*:{db_name}:{db_user}:{db_password}\n'.format(db_password=settings.DATABASES['default']['PASSWORD'], **env))
+            ctx.run('chmod 0600 ~/.pgpass')
 
-    ctx.run('dropdb -w --if-exists -e {db_name} -U {db_user} -h db'.format(**env), echo=True, warn=True)
-    ctx.run('createdb -w {db_name} -U {db_user} -h db'.format(**env), echo=True, warn=True)
-    if os.path.isfile(dumpfile):
-        logger.debug("loading data from %s", dumpfile)
-        ctx.run('psql -w -q -h db {db_name} {db_user} < {dumpfile}'.format(dumpfile=dumpfile, **env),
-                warn=True)
+        ctx.run('dropdb -w --if-exists -e {db_name} -U {db_user} -h db'.format(**env), echo=True, warn=True)
+        ctx.run('createdb -w {db_name} -U {db_user} -h db'.format(**env), echo=True, warn=True)
+        if os.path.isfile(dumpfile):
+            logger.debug("loading data from %s", dumpfile)
+            ctx.run('psql -w -q -h db {db_name} {db_user} < {dumpfile}'.format(dumpfile=dumpfile, **env),
+                    warn=True)
     if init_db_schema:
         initialize_database_schema(ctx)
 
