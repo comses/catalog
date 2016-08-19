@@ -126,6 +126,20 @@ insert into citation_publicationtags (id, publication_id, tag_id, date_added, da
   select id, publication_id, tag_id, now(), now()
   from core_publication_tags;
 
+with auditcommands as
+  (insert into citation_auditcommand (creator_id, role, action, date_added, message)
+    select creator_id, 'AUTHOR_EDIT', 'MANUAL', now(), ''
+      from core_publicationauditlog
+    returning id, creator_id, role, date_added, message)
+insert into citation_auditlog (audit_command_id, action, row_id, "table", payload, message)
+  select auditcommands.id, 'UPDATE', publication_id, 'publication',
+    json_build_object('data', json_build_object(),
+                      'labels', json_build_object('publication', pub.title)),
+    log.message
+  from auditcommands
+  inner join core_publicationauditlog as log on log.id = auditcommands.id
+  inner join core_publication as pub on pub.id = log.publication_id;
+
 select setval('citation_author_id_seq', nextval('core_creator_id_seq'));
 select setval('citation_authoralias_id_seq', nextval('core_creator_id_seq'));
 
@@ -149,8 +163,3 @@ select setval('citation_publicationsponsors_id_seq', nextval('core_publication_s
 select setval('citation_publicationtags_id_seq', nextval('core_publication_tags_id_seq'));
 
 commit;
-
--- Another time
--- insert into citation_publicationauditlog (id, creator_id, action, date_added, message, payload)
---   select id, creator_id, action, date_added, message, modified_data
---   from core_publicationauditlog;

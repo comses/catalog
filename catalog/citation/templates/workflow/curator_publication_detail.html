@@ -419,7 +419,7 @@
                     if (keys.length === 1) {
                         message = labels[keys[0]];
                     } else if (keys.length === 0) {
-                        message = '';
+                        message = auditlog.message;
                     } else {
                         message = keys.map(function (key) {
                             return '' + key + ': ' + labels[key];
@@ -435,7 +435,7 @@
                     var keys = Object.keys(data);
                     var message;
                     if (keys.length === 0) {
-                        message = '';
+                        message = auditlog.message;
                     } else {
                         message = keys.map(function (key) {
                             var old_value, new_value;
