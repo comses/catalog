@@ -11,5 +11,5 @@ Copy `development.yml` to `docker-compose.yml` and then run `docker-compose up d
 `Django` web app container.
 
 [![Build Status](https://travis-ci.org/comses/catalog.svg?branch=master)](https://travis-ci.org/comses/catalog)
-[![Coverage Status](https://coveralls.io/repos/comses/catalog/badge.svg)](https://coveralls.io/r/comses/catalog)
+[![Coverage Status](https://coveralls.io/repos/github/comses/catalog/badge.svg?branch=master)](https://coveralls.io/github/comses/catalog?branch=master)
 [![Code Health](https://landscape.io/github/comses/catalog/master/landscape.svg?style=flat)](https://landscape.io/github/comses/catalog/master)
