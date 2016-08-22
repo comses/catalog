@@ -184,34 +184,12 @@
                 </div>
                 <div class='row'>
                     <div class='col-sm-12 form-group'>
-                        <div class='well'>
-                            <h4>Current Status: <b data-bind='css: "label-" + status().toLowerCase(), text: status'
-                                                   class="label label-as-badge-lg"></b></h4>
-                            <hr>
-                            <div class="radio" data-toggle="buttons">
-                                <label class="btn btn-info btn-sm">
-                                    <input type="radio" name="status" value="UNTAGGED" data-bind="bsChecked: status"> <i
-                                        class='fa fa-eye-slash'></i> Incomplete
-                                </label>
-                                <label class="btn btn-warning btn-sm">
-                                    <input type="radio" name="status" value="NEEDS_AUTHOR_REVIEW"
-                                           data-bind="bsChecked: status"> <i class='fa fa-tag'></i> Tagging Complete,
-                                    Needs Author Input
-                                </label>
-                                <label class="btn btn-success btn-sm">
-                                    <input type="radio" name="status" value="COMPLETE" data-bind="bsChecked: status"> <i
-                                        class='fa fa-thumbs-o-up'></i> Tagging Complete, Code Archived
-                                </label>
-                                <label class="btn btn-danger btn-sm">
-                                    <input type="radio" name="status" value="INVALID" data-bind="bsChecked: status"> <i
-                                        class='fa fa-times'></i> Invalid Publication
-                                </label>
-                                <label class="btn btn-danger btn-sm">
-                                    <input type="radio" name="status" value="FLAGGED" data-bind="bsChecked: status"> <i
-                                        class='fa fa-flag'></i> Flag for Additional CoMSES Review
-                                </label>
-                            </div>
-                        </div>
+                        <label class="control-label" for="id_status">Status</label>
+                        <select class="form-control" id="id_status" data-bind="
+                            options: publicationStatuses,
+                            optionsText: publicationStatus,
+                            value: status">
+                        </select>
                     </div>
                 </div>
                 <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i
@@ -314,6 +292,41 @@
                     }
                     return '#id_code_archive_url';
                 });
+                self.publicationStatuses = ko.observableArray([
+                    'UNTAGGED',
+                    'NEEDS_AUTHOR_REVIEW',
+                    'FLAGGED',
+                    'AUTHOR_UPDATED',
+                    'INVALID',
+                    'COMPLETE'
+                ]);
+                self.publicationStatus = function (status) {
+                    var name;
+                    switch (status) {
+                        case 'UNTAGGED':
+                            name = 'Not reviewed';
+                            break;
+                        case 'NEEDS_AUTHOR_REVIEW':
+                            name = 'Curator has reviewed publication, requires author intervention.';
+                            break;
+                        case 'FLAGGED':
+                            name = 'Flagged for further internal review by CoMSES staff';
+                            break;
+                        case 'AUTHOR_UPDATED':
+                            name = 'Updated by author, needs CoMSES review';
+                            break;
+                        case 'INVALID':
+                            name = 'Publication record is not applicable or invalid';
+                            break;
+                        case 'COMPLETE':
+                            name = 'Reviewed and verified by CoMSES';
+                            break;
+                        default:
+                            throw Error('status ' + status + ' invalid');
+                    }
+                    name += ' (' + status + ')';
+                    return name;
+                };
                 self.getPlatformList = function (query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'citation:platform_search' %}");
                 };
@@ -348,7 +361,6 @@
                         contentType: "application/json; charset=utf-8"
                     }).fail(function (result) {
                         humane.log("Something went wrong, Please verify the form data and try again.", {timeout: 5000});
-                        console.log(result.responseJSON);
                     });
                 };
                 self.savePublication = function (data, event) {
@@ -360,7 +372,6 @@
                         }
                     {% endcomment %}
                     var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
-                    console.log(data_clone);
                     data_clone.platforms(ko.utils.arrayMap(data.selectedPlatforms(), function (platform) {
                         return {'name': platform};
                     }));
