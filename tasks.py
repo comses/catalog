@@ -131,7 +131,11 @@ def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True, force=Fa
     import django
     django.setup()
     from catalog.citation.models import Publication
-    number_of_publications = Publication.objects.count()
+    number_of_publications = 0
+    try:
+        number_of_publications = Publication.objects.count()
+    except:
+        pass
     if number_of_publications > 0 and not force:
         print("Ignoring restore, database with {0} publications already exists. Use --force to override.".format(number_of_publications))
     else:
