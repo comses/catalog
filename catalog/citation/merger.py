@@ -1,4 +1,4 @@
-from . import models, util
+from . import models, util, search_indexes
 from django.db import connection, transaction
 from django.db.models import QuerySet, Q, Count
 from typing import List, Optional
@@ -153,6 +153,7 @@ def merge_publications(mergeset: MergeSet,
 
         final_publication.log_update(audit_command, **changes)
         publications.log_delete(audit_command)
+        search_indexes.bulk_index_update()
         display_merge_publications(publications)
 
 
@@ -188,6 +189,8 @@ def merge_containers(mergeset: MergeSet, audit_command: models.AuditCommand) -> 
                 id__in=models.Raw.objects.filter(container=final_container)).log_update(
                 audit_command=audit_command, container_id=final_container.id)
             container.log_delete(audit_command=audit_command)
+
+            search_indexes.bulk_index_update()
 
 
 def merge_authors(mergeset: MergeSet, audit_command: models.AuditCommand) -> None:
@@ -225,3 +228,5 @@ def merge_authors(mergeset: MergeSet, audit_command: models.AuditCommand) -> Non
                 raw__in=models.Raw.objects.filter(authors__in=[final_author])).log_update(
                 audit_command=audit_command, author_id=final_author.id)
             author.log_delete(audit_command=audit_command)
+
+            search_indexes.bulk_index_update()

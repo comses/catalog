@@ -126,42 +126,50 @@ class LogQuerySet(models.query.QuerySet):
     # serializers.serialize('json', [p])
 
     def log_delete(self, audit_command):
+        # TODO test synchronization with solr
+        """
+        batch delete
+
+        does not keep solr index in sync. must resync solr index after calling this method
+        """
         with transaction.atomic():
             instances = self.all()
 
             auditlogs = []
             for instance in instances:
                 payload = make_payload(instance)
-                auditlogs.append(
-                    AuditLog(
+                if payload:
+                    auditlogs.append(AuditLog(
                         action='DELETE',
                         row_id=instance.id,
                         table=instance._meta.model_name,
                         payload=payload,
                         audit_command=audit_command))
-            AuditLog.objects.bulk_create(auditlogs)
 
-            return instances.delete()
+            AuditLog.objects.bulk_create(auditlogs)
+            instances.delete()
 
     def log_update(self, audit_command, **kwargs):
+        """batch update
+
+        does not keep solr index in sync. must resync solr index after calling this method
+        """
+        auditlogs = []
         with transaction.atomic():
             instances = self.all()
 
-            auditlogs = []
             for instance in instances:
-                payload = make_versioned_payload(instance, kwargs)
-                row_id = instance.id
-                if payload:
-                    auditlogs.append(
-                        AuditLog(
-                            action='UPDATE',
-                            row_id=row_id,
-                            table=instance._meta.model_name,
-                            payload=payload,
-                            audit_command=audit_command))
-            AuditLog.objects.bulk_create(auditlogs)
+                versioned_payload = make_versioned_payload(instance, kwargs)
+                if versioned_payload:
+                    auditlogs.append(AuditLog(
+                        action='UPDATE',
+                        row_id=instance.id,
+                        table=instance._meta.model_name,
+                        payload=versioned_payload,
+                        audit_command=audit_command))
 
-            return self.update(**kwargs)
+            AuditLog.objects.bulk_create(auditlogs)
+            instances.update(**kwargs)
 
 
 class AbstractLogModel(models.Model):
@@ -502,7 +510,7 @@ class Publication(AbstractLogModel):
         return "{} ({})".format(self.title, self.id)
 
     def get_auditcommands(self):
-        audit_commands = AuditCommand.objects\
+        audit_commands = AuditCommand.objects \
             .filter(Q(auditlogs__table=self._meta.model_name, auditlogs__row_id=self.id) |
                     Q(auditlogs__payload__data__publication_id=self.id)).distinct()
         return audit_commands

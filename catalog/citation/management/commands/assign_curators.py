@@ -6,6 +6,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 from ... import models
+from haystack.management.commands import update_index
+
 
 class Command(BaseCommand):
     help = "Assign curators to untagged publications"
@@ -37,7 +39,7 @@ class Command(BaseCommand):
                 print("\t{}".format(publication.title))
 
     def handle(self, *args, **options):
-        N = options['N'] + 1
+        N = options['N']
         usernames = options['usernames']
         verbose = options['verbose']
 
@@ -65,3 +67,5 @@ class Command(BaseCommand):
                 upperbound = n*(i+2)+r
 
                 self.assign_publications(username, untagged_publication_ids, lower_bound, upperbound, verbose)
+
+            rebuild_index.Command().handle(noinput=True)

@@ -55,3 +55,14 @@ class TagIndex(NameAutocompleteIndex, indexes.Indexable):
 class ModelDocumentationIndex(NameAutocompleteIndex, indexes.Indexable):
     def get_model(self):
         return ModelDocumentation
+
+##########################################
+#           Bulk Index Updates           #
+##########################################
+
+def bulk_index_update():
+    PublicationIndex().update()
+    PlatformIndex().update()
+    SponsorIndex().update()
+    TagIndex().update()
+    ModelDocumentationIndex().update()
