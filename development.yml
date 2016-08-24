@@ -60,6 +60,7 @@ services:
       SOLR_HOST: solr
       SOLR_PORT: 8983
       SOLR_CORE_NAME: catalog_core
+      TRAVIS_BRANCH: master
     links:
       - db
       - solr
