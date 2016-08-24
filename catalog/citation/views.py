@@ -106,30 +106,6 @@ class PublicationList(LoginRequiredMixin, generics.GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
-    """
-    Retrieve, update or delete a publication instance.
-    """
-    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
-
-    def get_object(self, pk):
-        return get_object_or_404(Publication, pk=pk)
-
-    def get(self, request, pk, format=None):
-        publication = self.get_object(pk)
-        serializer = PublicationSerializer(publication)
-        return Response({'json': dumps(serializer.data), 'pk': publication.pk},
-                        template_name='publication/detail.html')
-
-    def put(self, request, pk):
-        publication = self.get_object(pk)
-        serializer = PublicationSerializer(publication, data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
     """
     Retrieve, update or delete a publication instance.

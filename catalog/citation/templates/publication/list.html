@@ -6,13 +6,11 @@
 {% endblock content %}
 
 {% block javascript %}
-    {% include "includes/publication_detail_form.html" %}
 
     <script type="text/html" id="all-publications">
         <div class="panel panel-default">
             <div class="panel-heading">
                 <h3>Publications
-                <button type="button" class="btn btn-xs btn-primary" data-bind="click: newPublication"><i class="fa fa-plus-square-o"></i> Create</button>
                 </h3>
             </div>
             <div class="panel-body">
@@ -43,10 +41,6 @@
         </div>
     </script>
 
-    <script type="text/html" id="publication-detail-form">
-        <publication-detail></publication-detail>
-    </script>
-
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
 
@@ -54,7 +48,7 @@
             var Publication =  function(data) {
                 var self = this;
                 ko.mapping.fromJS(data, {}, self);
-            }
+            };
 
             var PagedPublicationGridModel = function(data) {
                 var pubs_mapping = {
@@ -64,15 +58,12 @@
                         }
                     }
                 };
-                var model = ko.mapping.fromJS(data, pubs_mapping, self)
+                var model = ko.mapping.fromJS(data, pubs_mapping, self);
 
                 model.numberOfResults = ko.computed(function() {
                     return "Showing "+ model.start_index() + " to " + model.end_index() + " of " + model.count() + " entries";
                 });
                 model.template_id = ko.observable("all-publications");
-                model.newPublication = function() {
-                    model.template_id("publication-detail-form");
-                }
             };
 
             ko.applyBindings(new PagedPublicationGridModel(viewModelJson));

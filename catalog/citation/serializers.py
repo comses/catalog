@@ -12,6 +12,9 @@ from collections import OrderedDict
 from rest_framework.utils import model_meta
 from rest_framework.exceptions import ValidationError
 
+from haystack.management.commands import update_index
+from . import search_indexes
+
 from .models import (Tag, Sponsor, Platform, Author, Publication, Container, InvitationEmail,
                      ModelDocumentation, Note, AuditCommand, AuditLog,
                      PublicationAuthors, PublicationModelDocumentations, PublicationPlatforms, PublicationSponsors,

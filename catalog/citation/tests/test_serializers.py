@@ -9,6 +9,7 @@ from .common import BaseTest
 
 from collections import OrderedDict
 
+
 class PublicationSerializerTest(BaseTest):
     def setUp(self):
         self.user = self.create_user(username='bobsmith',
@@ -53,9 +54,3 @@ class PublicationSerializerTest(BaseTest):
         self.assertEqual(AuditLog.objects.filter(table='publicationplatforms').count(), 3)
         self.assertEqual(AuditLog.objects.filter(table='platform').count(), 1)
         self.assertEqual(AuditCommand.objects.count(), 3)
-
-    def test_add_creator_to_publication(self):
-        pass
-
-    def test_remove_modeldocumentation_from_publication(self):
-        pass

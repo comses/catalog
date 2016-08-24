@@ -527,7 +527,7 @@ class Publication(AbstractLogModel):
         return self._pk_url('citation:publication_detail')
 
     def get_curator_url(self):
-        return self._pk_url('citation:curator_publication_detail')
+        return self._pk_url('citation:publication_detail')
 
     def __str__(self):
         return "Primary: {}; Date Published: {}; Title: {}; DOI: {}" \

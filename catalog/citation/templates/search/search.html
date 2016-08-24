@@ -51,7 +51,7 @@
                     {% for publication in object_list %}
                         <tr>
                             <td><mark>{{ publication.assigned_curator }}</mark></td>
-                            <td><span class='label label-as-badge label-primary'>{{ publication.status }}</span> <a href="{% url 'citation:curator_publication_detail' publication.pk %}">{{ publication.title }}</td>
+                            <td><span class='label label-as-badge label-primary'>{{ publication.status }}</span> <a href="{% url 'citation:publication_detail' publication.pk %}">{{ publication.title }}</td>
                             <td>{{ publication.last_modified }}</td>
                         </tr>
                     {% empty %}

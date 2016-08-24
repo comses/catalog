@@ -68,4 +68,4 @@ class Command(BaseCommand):
 
                 self.assign_publications(username, untagged_publication_ids, lower_bound, upperbound, verbose)
 
-            rebuild_index.Command().handle(noinput=True)
+            update_index.Command().handle(noinput=True)

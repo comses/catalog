@@ -8,8 +8,7 @@ from . import views
 # django rest framework endpoints that can generate JSON / HTML
 urlpatterns = format_suffix_patterns([
     url(r'^publications/$', views.PublicationList.as_view(), name='publications'),
-    url(r'^publication/(?P<pk>\d+)/$', views.PublicationDetail.as_view(), name='publication_detail'),
-    url(r'^publication/(?P<pk>\d+)/curate/$', views.CuratorPublicationDetail.as_view(), name='curator_publication_detail'),
+    url(r'^publication/(?P<pk>\d+)/$', views.CuratorPublicationDetail.as_view(), name='publication_detail'),
     url(r'^publication/workflow/email-preview/$', views.EmailPreview.as_view(), name='invite_email_preview'),
     url(r'^publication/workflow/invite/$', views.ContactAuthor.as_view(), name='send_invites'),
     url(r'^publication/update-model-url/(?P<token>[\w:-]+)/$', views.UpdateModelUrlView.as_view(), name='update_model_url'),
