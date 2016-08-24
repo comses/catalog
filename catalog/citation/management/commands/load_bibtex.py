@@ -25,7 +25,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         filename = options['filename']
         if not os.path.exists(filename):
-            logger.error("Settings file '{}' does not exist".format(filename))
+            logger.error("Settings file %s does not exist", filename)
         else:
             username = options['username']
             user = User.objects.get(username=username)

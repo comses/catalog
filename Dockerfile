@@ -1,10 +1,14 @@
 FROM comses/base
 
-RUN apk add -q --no-cache --virtual=build_dependencies musl-dev gcc python3-dev postgresql-dev libxml2-dev libxslt-dev uwsgi curl git bash postgresql
+RUN apk update && apk upgrade
+RUN apk add -q --no-cache musl-dev gcc python3-dev postgresql-dev libxml2-dev libxslt-dev postgresql build-base pcre-dev linux-headers
 
 ENV PYTHONUNBUFFERED 1
 COPY requirements.txt /tmp/
-RUN pip install -q -r /tmp/requirements.txt
+RUN pip3 install -q -r /tmp/requirements.txt
+
+# utility dependencies
+RUN apk add -q --no-cache curl git bash mutt postfix
 
 ARG cmd="dev.sh"
 

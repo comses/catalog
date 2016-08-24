@@ -127,7 +127,6 @@ def setup_solr(ctx, travis=False):
 
 @task(aliases=['rfd'])
 def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True, force=False):
-    from django.conf import settings
     import django
     django.setup()
     from catalog.citation.models import Publication
@@ -139,12 +138,7 @@ def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True, force=Fa
     if number_of_publications > 0 and not force:
         print("Ignoring restore, database with {0} publications already exists. Use --force to override.".format(number_of_publications))
     else:
-        pgpass_path = os.path.join(os.path.expanduser('~'), '.pgpass')
-        with open(pgpass_path, 'w+') as pgpass:
-            pgpass.write('db:*:template1:{db_user}:{db_password}\n'.format(db_password=settings.DATABASES['default']['PASSWORD'], **env))
-            pgpass.write('db:*:{db_name}:{db_user}:{db_password}\n'.format(db_password=settings.DATABASES['default']['PASSWORD'], **env))
-            ctx.run('chmod 0600 ~/.pgpass')
-
+        create_pgpass_file(ctx)
         ctx.run('dropdb -w --if-exists -e {db_name} -U {db_user} -h db'.format(**env), echo=True, warn=True)
         ctx.run('createdb -w {db_name} -U {db_user} -h db'.format(**env), echo=True, warn=True)
         if os.path.isfile(dumpfile):
@@ -153,6 +147,22 @@ def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True, force=Fa
                     warn=True)
     if init_db_schema:
         initialize_database_schema(ctx)
+
+
+@task(aliases=['pgpass'])
+def create_pgpass_file(ctx, force=False):
+    pgpass_path = os.path.join(os.path.expanduser('~'), '.pgpass')
+    if os.path.isfile(pgpass_path) and not force:
+        return
+    from django.conf import settings
+    with open(pgpass_path, 'w+') as pgpass:
+        db_password = settings.DATABASES['default']['PASSWORD']
+        pgpass.write('db:*:*:{db_user}:{db_password}\n'.format(db_password=db_password, **env))
+        ctx.run('chmod 0600 ~/.pgpass')
+
+def backup(ctx, path='/backup/postgres'):
+    create_pgpass_file(ctx)
+    ctx.run('/code/deploy/backup/autopgsqlbackup.sh -c /code/deploy/backup/autopgsqlbackup.conf')
 
 
 @task(aliases=['idb', 'init_db'])

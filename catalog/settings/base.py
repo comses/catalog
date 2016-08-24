@@ -159,7 +159,7 @@ AUTHENTICATION_BACKENDS = (
 # static files configuration, see https://docs.djangoproject.com/en/1.9/ref/settings/#static-files
 
 STATIC_URL = '/static/'
-STATIC_ROOT = '/var/www/catalog/static/'
+STATIC_ROOT = '/catalog/static/'
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'catalog', 'static').replace('\\', '/'),)
 
 # Media file configuration (for user uploads etc) ####

@@ -1,6 +1,5 @@
 version: '2'
 services:
-## look into https://github.com/nazariyg/Solr-5-for-django-haystack
   solr:
     image: comses/solr
     ports:
@@ -8,7 +7,6 @@ services:
     volumes:
       - solr:/opt/solr/server/solr/mycores
       - ./deploy/solr/conf:/catalog-solr-conf
-      - ./deploy/solr/init.d/set-heap.sh:/docker-entrypoint-initdb.d/set-heap.sh
     entrypoint:
       - docker-entrypoint.sh
       - solr-precreate
@@ -23,35 +21,35 @@ services:
       # FIXME: replace with env_file (https://docs.docker.com/v1.8/compose/yml/#env-file)
       POSTGRES_PASSWORD: CHANGEME_CATALOG_DB_PASSWORD
       POSTGRES_DB: comses_catalog
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./deploy/ssl/dhparam.pem:/etc/nginx/ssl/dhparam.pem
+      - ./deploy/ssl/server.crt:/etc/nginx/ssl/server.crt
+      - ./deploy/ssl/server.key:/etc/nginx/ssl/server.key
+      - ./deploy/nginx/catalog.conf:/etc/nginx/nginx.conf
+      - ./deploy/nginx/uwsgi_params:/catalog/uwsgi_params
+      - uwsgisocket:/catalog/socket
+      - static:/catalog/static
+      - logs:/var/log/nginx
+    command: ["nginx", "-g", "daemon off;"]
+    ports:
+      - "80:80"
+      - "443:443"
+    links:
+      - django
   django:
     build:
       context: ./
     volumes:
       - .:/code
+      - ./deploy/backup/cron-script:/etc/periodic/daily/autopgsqlbackup
       - solr:/etc/solr/mycores/
+      - static:/catalog/static
       - logs:/catalog/logs
-    command: /code/deploy/docker/dev.sh
-    environment:
-      DB_USER: catalog
-      DB_HOST: db
-      DB_NAME: comses_catalog
-      DB_PORT: 5432
-      SOLR_HOST: solr
-      SOLR_PORT: 8983
-      SOLR_CORE_NAME: catalog_core
-    ports:
-      - "8000:8000"
-    links:
-      - db
-      - solr
-  test:
-    build:
-      context: ./
-    volumes:
-      - .:/code
-      - solr:/etc/solr/mycores/
-      - logs:/catalog/logs
-    command: ./deploy/docker/wait-for-it.sh solr:8983 -- /code/deploy/docker/test.sh
+      - backups:/backups/postgres
+      - uwsgisocket:/catalog/socket
+    command: ./deploy/docker/wait-for-it.sh solr:8983 -- /code/deploy/docker/prod.sh
     environment:
       DB_USER: catalog
       DB_HOST: db
@@ -71,4 +69,8 @@ volumes:
   static:
     driver: local
   logs:
+    driver: local
+  backups:
+    driver: local
+  uwsgisocket:
     driver: local

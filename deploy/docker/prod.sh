@@ -1,4 +1,6 @@
 #!/bin/sh
 
 /bin/sh /code/deploy/docker/common.sh
-supervisord -c /code/deploy/supervisord/supervisord.conf
+cd /code
+python manage.py collectstatic --noinput --clear
+uwsgi --ini /code/deploy/uwsgi/catalog.ini
