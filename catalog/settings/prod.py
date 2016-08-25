@@ -2,20 +2,31 @@
 from .base import *
 
 DEBUG = False
+os.environ.setdefault('DB_USER', 'catalog')
+os.environ.setdefault('DB_NAME', 'comses_catalog')
+os.environ.setdefault('DB_HOST', 'db')
+os.environ.setdefault('DB_PORT', '5432')
+os.environ.setdefault('SOLR_HOST', 'solr')
+os.environ.setdefault('SOLR_PORT', '8983')
+os.environ.setdefault('SOLR_CORE_NAME', 'catalog_core')
 
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
-        'URL': 'http://localhost:8983/solr/catalog_core0'
+        'URL': 'http://{0}:{1}/solr/{2}'.format(os.environ.get('SOLR_HOST'),
+                                                os.environ.get('SOLR_PORT'),
+                                                os.environ.get('SOLR_CORE_NAME'))
     },
 }
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'comses_catalog',
-        'USER': 'catalog',
-        'PASSWORD': 'CUSTOMIZE_ME',
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': 'CHANGEME_CATALOG_DB_PASSWORD',
+        'NAME': os.environ.get('DB_NAME'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT'),
     }
 }
 
