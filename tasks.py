@@ -160,7 +160,8 @@ def create_pgpass_file(ctx, force=False):
         pgpass.write('db:*:*:{db_user}:{db_password}\n'.format(db_password=db_password, **env))
         ctx.run('chmod 0600 ~/.pgpass')
 
-def backup(ctx, path='/backup/postgres'):
+@task
+def backup(ctx, path='/backups/postgres'):
     create_pgpass_file(ctx)
     ctx.run('/code/deploy/backup/autopgsqlbackup.sh -c /code/deploy/backup/autopgsqlbackup.conf')
 

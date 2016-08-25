@@ -98,8 +98,8 @@ TEMPLATES = [
             'context_processors': [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'django.core.context_processors.static',
-                "django.core.context_processors.tz",
+                'django.template.context_processors.static',
+                "django.template.context_processors.tz",
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'dealer.contrib.django.context_processor',

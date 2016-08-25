@@ -49,7 +49,7 @@ services:
       - logs:/catalog/logs
       - backups:/backups/postgres
       - uwsgisocket:/catalog/socket
-    command: ./deploy/docker/wait-for-it.sh solr:8983 -- /code/deploy/docker/prod.sh
+    command: /code/deploy/docker/prod.sh
     environment:
       DB_USER: catalog
       DB_HOST: db

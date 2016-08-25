@@ -8,7 +8,9 @@ COPY requirements.txt /tmp/
 RUN pip3 install -q -r /tmp/requirements.txt
 
 # utility dependencies
-RUN apk add -q --no-cache curl git bash mutt postfix
+RUN apk add -q curl git bash mutt ssmtp mailx
+
+COPY deploy/mail/ssmtp.conf /etc/ssmtp/ssmtp.conf
 
 ARG cmd="dev.sh"
 

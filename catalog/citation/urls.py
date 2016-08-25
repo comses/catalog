@@ -5,6 +5,8 @@ from django.views.generic import RedirectView, TemplateView
 
 from . import views
 
+app_name = 'citation'
+
 # django rest framework endpoints that can generate JSON / HTML
 urlpatterns = format_suffix_patterns([
     url(r'^publications/$', views.PublicationList.as_view(), name='publications'),
