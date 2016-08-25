@@ -184,7 +184,9 @@
                 </div>
                 <div class='row'>
                     <div class='col-sm-12 form-group'>
-                        <label class="control-label" for="id_status">Status</label>
+                        <label class="control-label" for="id_status">Status
+                            <span class="label label-as-badge label-info" data-bind="text: status"></span>
+                        </label>
                         <select class="form-control" id="id_status" data-bind="
                             options: publicationStatuses,
                             optionsText: publicationStatus,
@@ -324,7 +326,6 @@
                         default:
                             throw Error('status ' + status + ' invalid');
                     }
-                    name += ' (' + status + ')';
                     return name;
                 };
                 self.getPlatformList = function (query, callback) {
