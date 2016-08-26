@@ -23,7 +23,7 @@ DEFAULT_FROM_EMAIL = 'info@openabm.org'
 EMAIL_HOST = 'smtp.asu.edu'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-ALLOWED_HOSTS = ('.comses.net', 'catalog.comses.net', '.openabm.org')
+ALLOWED_HOSTS = ('.comses.net', 'catalog.comses.net', 'localhost')
 ADMINS = (
     ('Allen Lee', 'allen.lee@asu.edu'),
 )
@@ -178,7 +178,7 @@ def is_accessible(directory_path):
     return os.path.isdir(directory_path) and os.access(directory_path, os.W_OK | os.X_OK)
 
 
-LOG_DIRECTORY = '/opt/catalog/logs'
+LOG_DIRECTORY = '/catalog/logs'
 
 if not is_accessible(LOG_DIRECTORY):
     try:
