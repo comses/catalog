@@ -578,6 +578,10 @@ class AuditLog(models.Model):
             self.payload,
         )
 
+    @property
+    def creator(self):
+        return self.audit_command.creator
+
     def _generate_through_message(self):
         pass
 
