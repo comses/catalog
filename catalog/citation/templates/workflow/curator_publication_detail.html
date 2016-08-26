@@ -27,7 +27,7 @@
                                 </h4>
                             </div>
                             <div class='panel-body'>
-                                <b>Journal:</b><span data-bind="text: journal.name"></span><br>
+                                <b>Journal:</b><span data-bind="text: container.name"></span><br>
                                 <b>Date Published:</b><span data-bind="text: date_published"></span><br>
                                 <b>Last modified:</b> <span data-bind='text:date_modified'></span>
                                 <div><b>Author(s):</b>
@@ -209,8 +209,8 @@
 
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
-        if (!viewModelJson.journal) {
-            viewModelJson.journal = {'name': null};
+        if (!viewModelJson.container) {
+            viewModelJson.container = {'name': null};
         }
         if (!viewModelJson.model_documentation) {
             viewModelJson.model_documentation = {'name': null};

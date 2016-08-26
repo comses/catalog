@@ -200,8 +200,8 @@ class PublicationSerializer(serializers.ModelSerializer):
             PublicationPlatforms.objects.log_get_or_create(audit_command=audit_command,
                                                            publication_id=publication.id,
                                                            platform_id=platform.id)
-        PublicationPlatforms.objects\
-            .exclude(platform__in=Platform.objects.filter(name__in=names))\
+        PublicationPlatforms.objects \
+            .exclude(platform__in=Platform.objects.filter(name__in=names)) \
             .filter(publication=publication) \
             .log_delete(audit_command=audit_command)
 
@@ -214,7 +214,7 @@ class PublicationSerializer(serializers.ModelSerializer):
                                                           publication_id=publication.id,
                                                           sponsor_id=platform.id)
         PublicationSponsors.objects \
-            .exclude(sponsor__in=Sponsor.objects.filter(name__in=names))\
+            .exclude(sponsor__in=Sponsor.objects.filter(name__in=names)) \
             .filter(publication=publication) \
             .log_delete(audit_command=audit_command)
 
@@ -374,10 +374,9 @@ class PublicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Publication
-        fields = ('id', 'title', 'date_published', 'date_modified', 'detail_url', 'curator_detail_url', 'status',
-                  'assigned_curator', 'activity_logs', 'notes', 'model_documentation', 'sponsors', 'platforms',
-                  'container', 'tags', 'creators', 'code_archive_url', 'contact_author_name', 'contact_email',
-                  'activity_logs',)
+        fields = ('id', 'activity_logs', 'assigned_curator', 'code_archive_url', 'contact_author_name', 'contact_email',
+                  'container', 'creators', 'curator_detail_url', 'date_published', 'date_modified', 'detail_url',
+                  'model_documentation', 'notes', 'platforms', 'sponsors', 'status', 'tags', 'title')
 
 
 class ContactFormSerializer(serializers.Serializer):
