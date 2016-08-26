@@ -571,8 +571,7 @@ class AuditLog(models.Model):
     message = models.CharField(max_length=2000, blank=True)
 
     def __str__(self):
-        return u"{} - {} performed {} on {}".format(
-            self.creator,
+        return u"{} performed {} on {}".format(
             self.action,
             self.message,
             self.payload,

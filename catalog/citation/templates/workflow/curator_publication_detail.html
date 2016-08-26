@@ -475,9 +475,18 @@
                     }
                 }
                 ,
+                filter_other_publications_factory: function (current_publication_id) {
+                    return (function (auditlog) {
+                        return (auditlog.table === 'publication' && auditlog.row_id === current_publication_id) ||
+                                (auditlog.table !== 'publication');
+                    });
+                }
+                ,
                 prepare_viewModelJson: function (viewModelJson) {
                     var self = this;
+                    var filter_other_publications = self.filter_other_publications_factory(viewModelJson.id);
                     viewModelJson.activity_logs = viewModelJson.activity_logs.map(function (activity_log) {
+                        activity_log.auditlogs = activity_log.auditlogs.filter(filter_other_publications);
                         activity_log.auditlogs = activity_log.auditlogs.map(function (auditlog) {
                             return self.display_auditlog(auditlog, viewModelJson.id);
                         });
