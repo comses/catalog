@@ -146,9 +146,9 @@
                 <div class='row'>
                     <div class="col-md-12 form-group">
                         <label class="control-label" for="id_tags">Tags</label>
-                        <select multiple class="form-control" id="id_tags" name="tags"
-                                data-bind="selectize: tags, selectedOptions: selectedTags, optionsValue: 'name', options: { create: true, load: getTagList }">
-                        </select>
+                        <div data-bind="foreach: tags" style="line-height: 2em;">
+                            <mark class="bg-info" data-bind="text: name"></mark>
+                        </div>
                     </div>
                 </div>
                 <div class='row'>
@@ -255,7 +255,7 @@
                 self.selectedModelDocumentations = ko.observableArray(ko.utils.arrayMap(self.model_documentation(), function (md) {
                     return md.name();
                 }));
-                self.journals = ko.observableArray([data.journal || ""]);
+                self.containers = ko.observableArray([data.container || ""]);
                 self.googleScholarAuthorSearch = function (creator) {
                     return ko.pureComputed(function () {
                         return $.urls.SEARCH_GOOGLE_SCHOLAR
@@ -379,9 +379,6 @@
                     data_clone.sponsors(ko.utils.arrayMap(data.selectedSponsors(), function (sponsor) {
                         return {'name': sponsor};
                     }));
-                    data_clone.tags(ko.utils.arrayMap(data.selectedTags(), function (tag) {
-                        return {'name': tag};
-                    }));
                     if (data.selectedModelDocumentations().length > 0) {
                         data_clone.model_documentation(ko.utils.arrayMap(data.selectedModelDocumentations(), function (md) {
                             return {'name': md};
@@ -391,14 +388,14 @@
                     else if (data.hasNoModelDocumentation()) {
                         data_clone.model_documentation([{'name': 'None'}]);
                     }
-                    if (data_clone.journal.name() == undefined) {
-                        if (data.journals()[0].name) {
-                            data_clone.journal.name = ko.observable(data.journals()[0].name);
+                    if (data_clone.container.name() === undefined) {
+                        if (data.containers()[0].name) {
+                            data_clone.container.name = ko.observable(data.containers()[0].name);
                         } else {
-                            data_clone.journal = null;
+                            data_clone.container = null;
                         }
-                    } else if (data_clone.journal.name() == "") {
-                        data_clone.journal = null
+                    } else if (data_clone.container.name() === "") {
+                        data_clone.container = null
                     }
                     self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname).done(function (result) {
                         result = DataPreparation.prepare_viewModelJson(result);

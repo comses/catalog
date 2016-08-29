@@ -152,7 +152,7 @@ class PublicationSerializer(serializers.ModelSerializer):
     date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
     notes = NoteSerializer(source='note_set', many=True, read_only=True)
     activity_logs = AuditCommandSerializer(source='get_auditcommands', many=True, read_only=True)
-    tags = TagSerializer(many=True)
+    tags = TagSerializer(many=True, read_only=True)
     platforms = PlatformSerializer(many=True)
     sponsors = SponsorSerializer(many=True)
     container = ContainerSerializer()
@@ -218,19 +218,6 @@ class PublicationSerializer(serializers.ModelSerializer):
             .filter(publication=publication) \
             .log_delete(audit_command=audit_command)
 
-    @staticmethod
-    def save_tags(audit_command, publication, raw_tags):
-        names = [raw_tag['name'] for raw_tag in raw_tags]
-        for name in names:
-            tag, created = Tag.objects.log_get_or_create(audit_command=audit_command, name=name)
-            PublicationTags.objects.log_get_or_create(audit_command=audit_command,
-                                                      publication_id=publication.id,
-                                                      tag_id=tag.id)
-        PublicationTags.objects \
-            .exclude(tag__in=Tag.objects.filter(name__in=names)) \
-            .filter(publication=publication) \
-            .log_delete(audit_command=audit_command)
-
     @classmethod
     def save_related(cls, audit_command, publication, validated_data):
         cls.save_model_documentation(audit_command=audit_command,
@@ -242,9 +229,6 @@ class PublicationSerializer(serializers.ModelSerializer):
         cls.save_sponsor(audit_command=audit_command,
                          publication=publication,
                          raw_sponsors=validated_data['sponsors'])
-        cls.save_tags(audit_command=audit_command,
-                      publication=publication,
-                      raw_tags=validated_data['tags'])
 
     def create(self, audit_command, validated_data):
         ModelClass = self.Meta.model
@@ -282,9 +266,6 @@ class PublicationSerializer(serializers.ModelSerializer):
 
         raw_sponsors = validated_data.pop('sponsors')
         self.save_sponsor(audit_command=audit_command, publication=instance, raw_sponsors=raw_sponsors)
-
-        raw_tags = validated_data.pop('tags')
-        self.save_tags(audit_command=audit_command, publication=instance, raw_tags=raw_tags)
 
         raw_container = validated_data.pop('container')
         container, created = Container.objects.log_get_or_create(
