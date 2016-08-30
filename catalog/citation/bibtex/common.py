@@ -1,23 +1,31 @@
 from . import entry as entry_api
-from .. import models
+from .. import models, merger
 
 import bibtexparser
+import pickle
 import json
-from typing import List
+from typing import Optional
 from collections import namedtuple
+from django.db import transaction
+
+
+class AlreadyExistsError(Exception): pass
 
 
 class Settings:
-    def __init__(self, file_name: str, steps: List[str]):
+    def __init__(self, file_name: str, output_file_name: str, log_file_name: Optional[str]):
         self.file_name = file_name
-        self.steps = steps
+        self.output_file_name = output_file_name
+        self.log_file_name = log_file_name
 
     @classmethod
     def from_file(cls, file_name: str):
         with open(file_name, "r") as f:
             contents = f.read()
             settings = json.loads(contents)
-            return cls(file_name=settings['file_name'], steps=settings['steps'])
+            return cls(file_name=settings['file_name'],
+                       output_file_name=settings['output_file_name'],
+                       log_file_name=settings.get('log_file_name'))
 
 
 def load_bibtex(file_name):
@@ -30,16 +38,17 @@ def load_bibtex(file_name):
 def process_entries(settings, user):
     entries = load_bibtex(settings.file_name)
 
-    audit_command = models.AuditCommand.objects.create(
-        role=models.AuditCommand.Role.CURATOR_EDIT,
-        creator=user,
-        action=models.AuditCommand.Action.LOAD)
-
-    ind = 0
-    for entry in entries:
-        publication = entry_api.process(entry, audit_command)
-        display(publication, ind)
-        ind += 1
+    errors = []
+    duplicates = []
+    for ind, entry in enumerate(entries):
+        error, duplicate = entry_api.process(entry, user)
+        if error:
+            errors.extend(error)
+        if duplicate:
+            duplicates.extend(duplicate)
+        if ind % 20 == 0:
+            print("\nProcessed %s Primary Publications\n" % ind)
+    return {"errors": errors, "duplicates": duplicates}
 
 
 def display(publication, ind):

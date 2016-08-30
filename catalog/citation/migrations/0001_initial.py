@@ -333,7 +333,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='publication',
             name='container',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to='citation.Container'),
+            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='citation.Container'),
         ),
         migrations.AddField(
             model_name='publication',

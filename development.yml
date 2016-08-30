@@ -25,6 +25,8 @@ services:
       # FIXME: replace with env_file (https://docs.docker.com/v1.8/compose/yml/#env-file)
       POSTGRES_PASSWORD: CHANGEME_CATALOG_DB_PASSWORD
       POSTGRES_DB: comses_catalog
+    ports:
+      - "5433:5432"
   django:
     build:
       context: ./

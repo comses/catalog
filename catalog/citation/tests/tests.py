@@ -1,6 +1,6 @@
 from django.test import TestCase
 from ..bibtex import ref as bibtex_ref_api, entry as bibtex_entry_api
-from .. import ingest, merger, models, util
+from .. import merger, models, util
 from django.contrib.auth.models import User
 
 import ast
@@ -48,14 +48,10 @@ class TestPublication(TestCase):
 class TestEntryParsing(TestPublication):
     def test_walderr2013(self):
         user = User.objects.create_user(username='bar', email='a@b.com', password='test')
-        audit_command = models.AuditCommand.objects.create(
-            role=models.AuditCommand.Role.CURATOR_EDIT,
-            action=models.AuditCommand.Action.LOAD,
-            creator=user)
-        publication = bibtex_entry_api.process(entry=self.walderr2013, audit_command=audit_command)
-        names = [a.name for a in models.AuthorAlias.objects.all()]
-        self.assertTrue("ANNIE WALDHERR" in names)
-        self.assertTrue("NANDA WIJERMANS" in names)
+        publication = bibtex_entry_api.process(entry=self.walderr2013, creator=user)
+        names = [a.name for a in models.Author.objects.all()]
+        self.assertIn("ANNIE WALDHERR", names)
+        self.assertIn("NANDA WIJERMANS", names)
 
 
 class TestNameNormalization(TestCase):

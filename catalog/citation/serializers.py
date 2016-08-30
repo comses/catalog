@@ -286,7 +286,6 @@ class PublicationSerializer(serializers.ModelSerializer):
         # FIXME: brittle, reliant on rest_framework.serializers internals
         # Modified from rest_framework/serializers method
         audit_command = AuditCommand.objects.create(creator=user,
-                                                    role=AuditCommand.Role.AUTHOR_EDIT,
                                                     action=AuditCommand.Action.MANUAL)
 
         assert not hasattr(self, 'save_object'), (
@@ -355,6 +354,10 @@ class PublicationSerializer(serializers.ModelSerializer):
                   'notes', 'platforms', 'sponsors', 'status', 'status_options', 'tags', 'apa_citation_string', 'title',
                   'volume', 'pages',
                   )
+
+
+class PublicationMergeSerializer(serializers.Serializer):
+    pass
 
 
 class ContactFormSerializer(serializers.Serializer):

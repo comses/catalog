@@ -113,8 +113,7 @@ def augment_publications(user: User, limit=None):
 
     for (ind, year_author_result) in enumerate(year_author_results):
         audit_command = models.AuditCommand.objects.create(
-            creator=user, action="augment data crossref year author search",
-            role=models.AuditCommand.Role.CURATOR_EDIT)
+            creator=user, action="augment data crossref year author search")
         print("Entry")
         print("\t{ind} Year: {year}, Title: {title}, DOI: {doi} ID: {publication_id}".format(ind=ind,
                                                                                              **year_author_result))

@@ -25,9 +25,7 @@ def process(publication: models.Publication, response_json: Dict, key: str, valu
                                                           raw=raw,
                                                           audit_command=audit_command)
         detached_publication.attach_to(publication.id, None)
-    else:
-        new_publication = None
-    return new_publication
+    return publication
 
 
 def update(publication: models.Publication, audit_command: models.AuditCommand):
@@ -71,7 +69,7 @@ def augment_publications(user: User, limit=None):
 
     for (ind, publication) in enumerate(publications):
         audit_command = models.AuditCommand.objects.create(
-            creator=user, action="augment with crossref doi lookup", role=models.AuditCommand.Role.CURATOR_EDIT)
+            creator=user, action="augment with crossref doi lookup")
         print("{} {}".format(ind, str(publication)))
         other_publication = update(publication, audit_command)
         if isinstance(other_publication, models.Publication):

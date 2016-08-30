@@ -1,7 +1,8 @@
 import re
 from typing import List, Optional
 from ... import util
-from ... import models
+from ... import models, merger, merger_strategies
+from django.contrib.auth.models import User
 
 import datetime
 import logging
@@ -12,27 +13,20 @@ logger = logging.getLogger(__name__)
 class NullError(Exception): pass
 
 
-def make_container(container_str: str, audit_command: models.AuditCommand) -> models.Container:
-    container = models.Container.objects.create()
-    container_alias = models.ContainerAlias.objects.create(
-        container=container,
-        name=container_str)
-
-    return container, container_alias
-
-
-def make_author(publication: models.Publication, raw: models.Raw, author_str: str,
-                audit_command: models.AuditCommand) -> models.Author:
-    cleaned_family_name, cleaned_given_name = models.Author.normalize_author_name(author_str)
-    author = models.Author.objects.log_create(
-        audit_command=audit_command,
-        type=models.Author.INDIVIDUAL)
-    author_alias = models.AuthorAlias.objects.log_create(
-        audit_command=audit_command,
-        author_id=author.id,
-        given_name=cleaned_given_name,
-        family_name=cleaned_family_name,
+def make_container(container_str: str) -> models.Container:
+    container = models.Container.objects.create(
+        name=container_str
     )
+
+    return container
+
+
+def make_author(publication: models.Publication, raw: models.Raw, author_str: str) -> models.Author:
+    cleaned_family_name, cleaned_given_name = models.Author.normalize_author_name(author_str)
+    author = models.Author.objects.create(
+        type=models.Author.INDIVIDUAL,
+        given_name=cleaned_given_name,
+        family_name=cleaned_family_name)
     models.RawAuthors.objects.create(author=author, raw=raw)
     models.PublicationAuthors.objects.create(publication=publication, author=author,
                                              role=models.PublicationAuthors.RoleChoices.AUTHOR)
@@ -81,10 +75,13 @@ def guess_elements(ref):
     return author_str or "", year_str or "", container_str or ""
 
 
+def create_in_memory_publication(doi):
+    return models.Publication(doi=doi)
+
+
 def process(publication: models.Publication,
             ref: str,
-            raw: models.Raw,
-            audit_command: models.AuditCommand) -> models.Publication:
+            creator: User) -> models.Publication:
     author_str = None
     year_str = None
     container_str = None
@@ -93,37 +90,61 @@ def process(publication: models.Publication,
         author_str, year_str, container_str = guess_elements(ref)
 
     doi = make_doi(ref)
+    in_memory_citation = create_in_memory_publication(doi)
+    duplicates = merger_strategies.find_publication_duplicates_on_load(in_memory_citation)
+    if len(duplicates) > 1:
+        merge_group = merger.PublicationMergeGroup.from_list(list(duplicates))
+        if merge_group.is_valid():
+            audit_command = models.AuditCommand.objects.create(action=models.AuditCommand.Action.MERGE,
+                                                               creator=creator)
+            merge_group.merge(audit_command=audit_command)
+            models.PublicationCitations.objects.log_create(audit_command=audit_command, publication_id=publication.id,
+                                                           citation_id=merge_group.final.id)
+            return None, None
+        else:
+            return str(merge_group.errors), None
+    elif len(duplicates) == 1:
+        models.PublicationCitations.objects.create(publication=publication, citation=duplicates[0])
+        return None, models.Raw(key=models.Raw.BIBTEX_REF, value=ref)
+    else:
+        container = make_container(container_str)
+        citation = models.Publication.objects.create(
+            title='',
+            date_published_text=year_str,
+            date_published=make_date_published(year_str),
+            doi=doi,
+            abstract='',
+            is_primary=False,
+            added_by=creator,
+            container=container)
 
-    container, container_alias = make_container(container_str, audit_command)
-    citation = models.Publication.objects.create(
-        title='',
-        date_published_text=year_str,
-        date_published=make_date_published(year_str),
-        doi=doi,
-        abstract='',
-        is_primary=False,
-        added_by=audit_command.creator,
-        container=container)
+        citation_raw = models.Raw.objects.create(
+            key=models.Raw.BIBTEX_REF,
+            value=ref,
+            publication=citation,
+            container=container
+        )
+        make_author(citation, citation_raw, author_str)
+        models.PublicationCitations.objects.create(publication=publication, citation=citation)
 
-    citation_raw = models.Raw.objects.create(
-        key=models.Raw.BIBTEX_REF,
-        value=ref,
-        publication=citation,
-        container=container
-    )
-    make_author(citation, citation_raw, author_str, audit_command)
-
-    models.PublicationCitations.objects.create(publication=publication, citation=citation)
-
-    return citation
+        return None, None
 
 
 def process_many(publication: models.Publication,
                  refs_str: Optional[str],
-                 raw: models.Raw,
-                 audit_command) -> List[models.Publication]:
+                 creator: User) -> List[models.Publication]:
     if refs_str:
         refs = refs_str.split("\n")
     else:
         refs = []
-    return [process(publication, ref, raw, audit_command) for ref in refs]
+
+    duplicates = []
+    errors = []
+    if refs_str:
+        for ref in refs:
+            error, duplicate = process(publication, ref, creator)
+            if error is not None:
+                errors.append(error)
+            if duplicate is not None:
+                duplicates.append(duplicate)
+    return errors, duplicates

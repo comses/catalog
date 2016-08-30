@@ -33,7 +33,6 @@ class DataProcessor(object):
         with open(path, "r") as f:
             names = ast.literal_eval(f.read())
             audit_command = models.AuditCommand.objects.create(action=models.AuditCommand.Action.MANUAL,
-                                                               role=models.AuditCommand.Role.CURATOR_EDIT,
                                                                creator=self.creator)
             for name in names:
                 self.model.objects.log_create(audit_command=audit_command, name=name)
@@ -42,7 +41,6 @@ class DataProcessor(object):
         with open(path, "r") as f:
             names = ast.literal_eval(f.read())
             audit_command = models.AuditCommand.objects.create(action=models.AuditCommand.Action.MANUAL,
-                                                               role=models.AuditCommand.Role.CURATOR_EDIT,
                                                                creator=self.creator)
             self.model.objects.filter(name__in=names).log_delete(audit_command=audit_command)
 
@@ -65,7 +63,6 @@ class DataProcessor(object):
         """
         with transaction.atomic():
             audit_command = models.AuditCommand.objects.create(action=models.AuditCommand.Action.SPLIT,
-                                                               role=models.AuditCommand.Role.CURATOR_EDIT,
                                                                creator=self.creator)
             through_model = self.through_model
             record = self.model.objects.prefetch_related('publications').get(name=name)
@@ -86,8 +83,7 @@ class DataProcessor(object):
     def merge_records(self, names, new_name):
         with transaction.atomic():
             audit_command = models.AuditCommand.objects.create(creator=self.creator,
-                                                               action=models.AuditCommand.Action.MERGE,
-                                                               role=models.AuditCommand.Role.CURATOR_EDIT)
+                                                               action=models.AuditCommand.Action.MERGE)
             records_to_merge = self.model.objects.filter(name__in=names)
             # log the deleted records to merge and the record that will be replacing them
             publications = self.get_related_publications_with_name(names)

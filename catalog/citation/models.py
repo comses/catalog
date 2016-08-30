@@ -121,7 +121,6 @@ class LogManager(models.Manager):
 
 
 class LogQuerySet(models.query.QuerySet):
-
     def log_delete(self, audit_command):
         # TODO test synchronization with solr
         """
@@ -235,7 +234,7 @@ class InvitationEmail(object):
 
 
 class InvitationEmailTemplate(models.Model):
-    name = models.CharField(max_length=32)
+    name = models.CharField(max_length=64)
     text = models.TextField()
     date_added = models.DateTimeField(auto_now_add=True)
     last_modified = models.DateTimeField(auto_now=True)
@@ -249,7 +248,7 @@ class Author(AbstractLogModel):
         (INDIVIDUAL, _('individual')),
         (ORGANIZATION, _('organization')),
     )
-    type = models.TextField(choices=TYPE_CHOICES, max_length=32)
+    type = models.TextField(choices=TYPE_CHOICES, max_length=64)
     given_name = models.CharField(max_length=200)
     family_name = models.CharField(max_length=200)
     orcid = models.TextField(max_length=200)
@@ -264,9 +263,18 @@ class Author(AbstractLogModel):
         return '{0} {1}.'.format(self.given_name, self.family_name)
 
     def __repr__(self):
-        return "Author(orcid={orcid}. given_name={given_name}, family_name={family_name})" \
-            .format(orcid=self.orcid, given_name=self.given_name,
-                    family_name=self.family_name)
+        return "Author(id={id}, orcid={orcid}. given_name={given_name}, family_name={family_name})" \
+            .format(id=self.id, orcid=repr(self.orcid), given_name=repr(self.given_name),
+                    family_name=repr(self.family_name))
+
+    @property
+    def name(self):
+        if self.family_name:
+            if self.given_name:
+                return self.given_name + ' ' + self.family_name
+            else:
+                return self.family_name
+        return self.given_name
 
     @property
     def given_name_initial(self):
@@ -309,7 +317,8 @@ class AuthorAlias(AbstractLogModel):
 
     def __repr__(self):
         return "AuthorAlias(id={id}, family_name={family_name}, given_name={given_name}, author_id={author_id})" \
-            .format(id=self.id, family_name=self.family_name, given_name=self.given_name, author_id=self.author_id)
+            .format(id=self.id, family_name=repr(self.family_name), given_name=repr(self.given_name),
+                    author_id=repr(self.author_id))
 
     class Meta:
         unique_together = ('author', 'given_name', 'family_name')
@@ -418,8 +427,8 @@ class Container(AbstractLogModel):
         return self.name
 
     def __repr__(self):
-        return "Container(issn={issn}, type={type})" \
-            .format(issn=self.issn, type=self.type)
+        return "Container(id={id}, name={name}, issn={issn}, type={type})" \
+            .format(id=self.id, name=repr(self.name), issn=repr(self.issn), type=repr(self.type))
 
     def get_message(self):
         return 'name: {} issn: {}'.format(repr(self.name), repr(self.issn) if self.issn else '\'\'')
@@ -431,7 +440,7 @@ class ContainerAlias(AbstractLogModel):
 
     def __repr__(self):
         return "ContainerAlias(name={name}, container={container})" \
-            .format(name=self.name, container=self.container)
+            .format(name=repr(self.name), container=repr(self.container))
 
     def get_message(self):
         return "{} ({})".format(self.name, self.id)
@@ -443,11 +452,13 @@ class ContainerAlias(AbstractLogModel):
 class Publication(AbstractLogModel):
     Status = Choices(
         ('UNTAGGED', _('Not reviewed: Has not been reviewed by CoMSES')),
-        ('NEEDS_AUTHOR_REVIEW', _('Needs author review: Reviewed by CoMSES, needs a durable model code URL from the author.')),
+        ('NEEDS_AUTHOR_REVIEW',
+         _('Needs author review: Reviewed by CoMSES, needs a durable model code URL from the author.')),
         ('FLAGGED', _('Flagged for internal review by CoMSES staff')),
         ('AUTHOR_UPDATED', _('Updated by author: Awaiting CoMSES review')),
         ('INVALID', _('Not applicable: Publication does not refer to or depend on a specific computational model')),
-        ('COMPLETE', _('Reviewed: Publication has a durable model code URL and has been reviewed and verified by CoMSES')),
+        ('COMPLETE',
+         _('Reviewed: Publication has a durable model code URL and has been reviewed and verified by CoMSES')),
     )
 
     # zotero publication metadata
@@ -456,7 +467,7 @@ class Publication(AbstractLogModel):
     short_title = models.CharField(max_length=255, blank=True)
     zotero_key = models.CharField(max_length=64, null=True, unique=True, blank=True)
     url = models.URLField(blank=True)
-    date_published_text = models.CharField(max_length=32, blank=True)
+    date_published_text = models.CharField(max_length=64, blank=True)
     date_published = models.DateField(null=True, blank=True)
     date_accessed = models.DateField(null=True, blank=True)
     archive = models.CharField(max_length=255, blank=True)
@@ -484,7 +495,7 @@ class Publication(AbstractLogModel):
     added_by = models.ForeignKey(User, related_name='citation_added_publication_set')
 
     # custom fields used by catalog internally
-    status = models.CharField(choices=Status, max_length=32, default=Status.UNTAGGED)
+    status = models.CharField(choices=Status, max_length=64, default=Status.UNTAGGED)
     date_added = models.DateTimeField(auto_now_add=True,
                                       help_text=_('Date this publication was imported into this system'))
     date_modified = models.DateTimeField(auto_now=True,
@@ -502,7 +513,7 @@ class Publication(AbstractLogModel):
     is_primary = models.BooleanField(default=True)
 
     # container specific fields
-    container = models.ForeignKey(Container, null=True, blank=True, on_delete=models.SET_NULL)
+    container = models.ForeignKey(Container, related_name='publications')
     pages = models.CharField(max_length=255, default='', blank=True)
     issn = models.CharField(max_length=255, default='', blank=True)
     volume = models.CharField(max_length=255, default='', blank=True)
@@ -511,10 +522,24 @@ class Publication(AbstractLogModel):
     series_title = models.CharField(max_length=255, default='', blank=True)
     series_text = models.CharField(max_length=255, default='', blank=True)
     doi = models.CharField(max_length=255, default='', blank=True)
+    isi = models.CharField(max_length=255, default='', blank=True)
 
     citations = models.ManyToManyField(
         "self", symmetrical=False, related_name="referenced_by",
         through='PublicationCitations', through_fields=('publication', 'citation'))
+
+    def get_duplicates(self):
+        query = Q()
+        query.connector = query.OR
+        if self.doi:
+            query.children.append(('doi', self.doi))
+        if self.isi:
+            query.children.append(('isi', self.isi))
+
+        if query:
+            return Publication.objects.filter(query).exclude(id=self.id)
+        else:
+            return None
 
     def get_message(self):
         return "{} ({})".format(self.title, self.id)
@@ -556,23 +581,19 @@ class Publication(AbstractLogModel):
         )
 
     def __str__(self):
-        return '{0} {1}. {2}'.format(self.title, self.year_published, self.container)
+        return 'id: {id} {title} {year}. {container}'.format(id=self.id, title=self.title, year=self.year_published,
+                                         container=self.container)
 
 
 class AuditCommand(models.Model):
-    Role = Choices(('AUTHOR_EDIT', _('Author edit')),
-                   ('SYSTEM_LOG', _('System log')),
-                   ('ADMIN_ACTION', _('Administrator activity')),
-                   ('CURATOR_EDIT', _('Curator edit')))
     Action = Choices(('SPLIT', _('Split Record')),
                      ('MERGE', _('Merge Records')),
                      ('LOAD', _('Load from File')),
                      ('MANUAL', _('User entered changes')))
 
-    role = models.CharField(max_length=32, choices=Role)
-    action = models.CharField(max_length=32, choices=Action)
+    action = models.CharField(max_length=64, choices=Action)
     date_added = models.DateTimeField(auto_now_add=True)
-    creator = models.ForeignKey(User, null=True, blank=True, related_name="citation_creator_set",
+    creator = models.ForeignKey(User, related_name="citation_creator_set",
                                 help_text=_('The user who initiated this action, if any.'))
     message = models.TextField(blank=True, help_text=_('A human readable representation of the change made'))
 
@@ -585,7 +606,7 @@ class AuditLog(models.Model):
     Action = Choices(('UPDATE', _('Update')),
                      ('INSERT', _('Insert')),
                      ('DELETE', _('Delete')))
-    action = models.CharField(max_length=32, choices=Action)
+    action = models.CharField(max_length=64, choices=Action)
     row_id = models.BigIntegerField()
     table = models.CharField(max_length=128)
     payload = JSONField(blank=True, null=True,
@@ -666,7 +687,7 @@ class PublicationAuthors(AbstractLogModel):
     )
     publication = models.ForeignKey(Publication, related_name='publication_authors')
     author = models.ForeignKey(Author, related_name='publication_authors')
-    role = models.CharField(choices=RoleChoices, max_length=32)
+    role = models.CharField(choices=RoleChoices, max_length=64)
 
     date_added = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)

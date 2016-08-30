@@ -2,6 +2,7 @@ from typing import Tuple
 from unidecode import unidecode
 import logging
 import re
+from django.db.models.aggregates import Aggregate
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ def create_cas_user(tree):
 
 def sanitize_doi(s):
     if s:
-        s = re.sub("\{|\}", "", s)
+        s = re.sub(r"\{|\}|\\", "", s)
         s = s.lower()
     return s
 
@@ -74,3 +75,24 @@ def last_name_and_initial(normalized_name: str) -> str:
         return "{} {}".format(family, given)
     else:
         return normalized_name
+
+
+class ArrayAgg(Aggregate):
+    function = 'ARRAY_AGG'
+    name = 'ArrayAgg'
+    template = '%(function)s(%(distinct)s%(expressions)s)'
+
+    def __init__(self, expression, distinct=False, **extra):
+        super(ArrayAgg, self).__init__(expression, distinct='DISTINCT ' if distinct else '', **extra)
+
+    def __repr__(self):
+        '{}({}, distinct={})'.format(
+            self.__class__.__name__,
+            self.arg_joiner.join(str(arg) for arg in self.source_expressions),
+            'False' if self.extra['distinct'] == '' else 'True',
+        )
+
+    def convert_value(self, value, expression, connection, context):
+        if not value:
+            return []
+        return value

@@ -10,7 +10,7 @@ class TestModelManagers(TestCase):
         cls.user = User.objects.create_user(username="foo", email="a@b.com", password="bar")
         cls.author_detached = {'orcid': '1234', 'type': 'foo', 'given_name': 'Bob', 'family_name': 'Smith'}
         cls.context = models.AuditCommand.objects.create(
-            creator=cls.user, action=models.AuditCommand.Action.MANUAL, role=models.AuditCommand.Role.SYSTEM_LOG)
+            creator=cls.user, action=models.AuditCommand.Action.MANUAL)
 
     @staticmethod
     def to_dict(instance):

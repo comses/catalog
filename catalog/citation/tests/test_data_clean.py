@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class SplitTests(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         super(SplitTests, cls).setUpTestData()
@@ -18,10 +17,12 @@ class SplitTests(TestCase):
                                             email='bob@bob.com',
                                             password='bobsled')
 
+        container = models.Container.objects.create(issn='', name='jasss')
         platform = models.Platform.objects.create(name=cls.name)
-        publication = models.Publication.objects.create(title="Foo", added_by=cls.user)
+        publication = models.Publication.objects.create(title="Foo", added_by=cls.user, container=container)
         models.PublicationPlatforms.objects.create(publication=publication, platform=platform)
 
+        cls.container = container
         cls.platform_dotnet = platform
         cls.publication_dotnet = publication
 
@@ -44,8 +45,10 @@ class SplitTests(TestCase):
 
     def test_split_plat_multiple_publications(self):
         platform_netlogo = models.Platform.objects.create(name="NetLogo")
-        publication_netlogo_dotnet = models.Publication.objects.create(title="Bar", added_by=self.user)
-        publication_netlogo = models.Publication.objects.create(title="Baz", added_by=self.user)
+        publication_netlogo_dotnet = models.Publication.objects.create(title="Bar", added_by=self.user,
+                                                                       container=self.container)
+        publication_netlogo = models.Publication.objects.create(title="Baz", added_by=self.user,
+                                                                container=self.container)
 
         models.PublicationPlatforms.objects.create(publication=publication_netlogo_dotnet,
                                                    platform=platform_netlogo)
@@ -90,7 +93,6 @@ class SplitTests(TestCase):
 
 
 class MergeTests(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         super(MergeTests, cls).setUpTestData()
@@ -100,11 +102,14 @@ class MergeTests(TestCase):
                                             email='bob@bob.com',
                                             password='bobsled')
 
+        container = models.Container.objects.create(issn='', name='jasss')
         sponsors = [models.Sponsor.objects.create(name=name) for name in cls.names]
-        publication = models.Publication.objects.create(title="Foo", added_by=cls.user)
-        publicationsponsors = [models.PublicationSponsors(publication=publication, sponsor=sponsor) for sponsor in sponsors]
+        publication = models.Publication.objects.create(title="Foo", added_by=cls.user, container=container)
+        publicationsponsors = [models.PublicationSponsors(publication=publication, sponsor=sponsor) for sponsor in
+                               sponsors]
         models.PublicationSponsors.objects.bulk_create(publicationsponsors)
 
+        cls.container = container
         cls.publication = publication
         cls.sponsors = sponsors
 
@@ -128,13 +133,14 @@ class MergeTests(TestCase):
         sponsor_euro_commission = self.sponsors[0]
         sponsor_nsf = models.Sponsor.objects.create(name="United States National Science Foundation (NSF)")
 
-        publication_euro_commission_nsf = models.Publication.objects.create(title="Foo", added_by=self.user)
+        publication_euro_commission_nsf = models.Publication.objects.create(title="Foo", added_by=self.user,
+                                                                            container=self.container)
         models.PublicationSponsors.objects.create(publication=publication_euro_commission_nsf,
                                                   sponsor=sponsor_euro_commission)
         models.PublicationSponsors.objects.create(publication=publication_euro_commission_nsf,
                                                   sponsor=sponsor_nsf)
 
-        publication_nsf = models.Publication.objects.create(title="Bar", added_by=self.user)
+        publication_nsf = models.Publication.objects.create(title="Bar", added_by=self.user, container=self.container)
         models.PublicationSponsors.objects.create(publication=publication_nsf,
                                                   sponsor=sponsor_nsf)
 
