@@ -23,14 +23,16 @@ def make_container(container_str: str, audit_command: models.AuditCommand) -> mo
 
 def make_author(publication: models.Publication, raw: models.Raw, author_str: str,
                 audit_command: models.AuditCommand) -> models.Author:
-    cleaned_author_str = util.last_name_and_initials(util.normalize_name(author_str))
+    cleaned_family_name, cleaned_given_name = models.Author.normalize_author_name(author_str)
     author = models.Author.objects.log_create(
         audit_command=audit_command,
         type=models.Author.INDIVIDUAL)
     author_alias = models.AuthorAlias.objects.log_create(
         audit_command=audit_command,
         author_id=author.id,
-        name=cleaned_author_str)
+        given_name=cleaned_given_name,
+        family_name=cleaned_family_name,
+    )
     models.RawAuthors.objects.create(author=author, raw=raw)
     models.PublicationAuthors.objects.create(publication=publication, author=author,
                                              role=models.PublicationAuthors.RoleChoices.AUTHOR)

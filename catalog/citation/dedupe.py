@@ -11,7 +11,7 @@ class DataProcessor(object):
 
     def __init__(self, model, creator):
         self.model = model
-        self.through_model = model.publications.field.related.through
+        self.through_model = model.publications.through
         self.through_field = model.publications.field.name
         self.through_id_name = model.publications.field.m2m_reverse_name()
         self.creator = creator

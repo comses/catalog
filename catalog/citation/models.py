@@ -44,7 +44,7 @@ def make_payload(instance):
     labels = {}
     for field in instance._meta.concrete_fields:
         data[field.attname] = json_serialize(field.get_internal_type(), getattr(instance, field.attname))
-        if field.many_to_one and field.related.model != User:
+        if field.many_to_one and field.related_model != User:
             label = getattr(instance, field.name).get_message()
             labels[field.name] = label
 
@@ -66,9 +66,9 @@ def make_versioned_payload(instance, changes: Dict):
         new_value = json_serialize(field.get_internal_type(), new_raw_value)
         if new_value != old_value:
             data[field.name] = {'old': old_value, 'new': new_value}
-            if field.many_to_one and field.related.model != User:
+            if field.many_to_one and field.related_model != User:
                 old_label = getattr(instance, field.name).get_message()
-                new_label = field.related.model.objects.get(id=new_value).get_message()
+                new_label = field.related_model.objects.get(id=new_value).get_message()
                 labels[field.name] = \
                     {'old': old_label, 'new': new_label}
 
@@ -344,6 +344,9 @@ class ModelDocumentation(AbstractLogModel):
     date_modified = models.DateTimeField(auto_now=True,
                                          help_text=_('Date this model was last modified on this system'))
 
+    def __str__(self):
+        return "{} ({})".format(self.name, self.id)
+
     def get_message(self):
         return "{} ({})".format(self.name, self.id)
 
@@ -432,12 +435,12 @@ class ContainerAlias(AbstractLogModel):
 
 class Publication(AbstractLogModel):
     Status = Choices(
-        ('UNTAGGED', _('Not reviewed')),
-        ('NEEDS_AUTHOR_REVIEW', _('Curator has reviewed publication, requires author intervention.')),
-        ('FLAGGED', _('Flagged for further internal review by CoMSES staff')),
-        ('AUTHOR_UPDATED', _('Updated by author, needs CoMSES review')),
-        ('INVALID', _('Publication record is not applicable or invalid')),
-        ('COMPLETE', _('Reviewed and verified by CoMSES')),
+        ('UNTAGGED', _('Untagged: Has not been reviewed by CoMSES')),
+        ('NEEDS_AUTHOR_REVIEW', _('Needs Author Review: Reviewed by CoMSES, needs a durable model code URL from the author.')),
+        ('FLAGGED', _('Flagged for internal review by CoMSES staff')),
+        ('AUTHOR_UPDATED', _('Updated by author: Awaiting final CoMSES review')),
+        ('INVALID', _('Invalid: Publication does not refer to or depend on a computational model')),
+        ('COMPLETE', _('Complete: Publication has a durable model code URL and has been reviewed and verified by CoMSES')),
     )
 
     # zotero publication metadata
@@ -530,16 +533,15 @@ class Publication(AbstractLogModel):
         return self._pk_url('citation:publication_detail')
 
     def __str__(self):
-        return "Primary: {}; Date Published: {}; Title: {}; DOI: {}" \
-            .format(self.is_primary,
-                    self.date_published_text,
-                    self.title,
-                    self.doi)
+        return "{0}, {1}. DOI: {2}".format(self.title,
+                                           self.date_published_text,
+                                           self.doi)
 
 
 class AuditCommand(models.Model):
     Role = Choices(('AUTHOR_EDIT', _('Author edit')),
                    ('SYSTEM_LOG', _('System log')),
+                   ('ADMIN_ACTION', _('Administrator activity')),
                    ('CURATOR_EDIT', _('Curator edit')))
     Action = Choices(('SPLIT', _('Split Record')),
                      ('MERGE', _('Merge Records')),
