@@ -62,8 +62,8 @@
                         <li><a target='_blank' href='{{ github_url }}'><i class='fa fa-github'></i> Develop</a></li>
                     </ul>
                     <ul class="nav navbar-nav pull-right">
-                        {% if user.is_authenticated %}    
-                            <li class="dropdown pull-right">            
+                        {% if user.is_authenticated %}
+                            <li class="dropdown pull-right">
                                 <a data-toggle="dropdown" class="dropdown-toggle" href="#">{{ user.username }}<b class="caret"></b></a> 
                                 <!-- Dropdown menu -->
                                 <ul class="dropdown-menu">
@@ -83,7 +83,6 @@
 
         <div id="content" class="container">
             {% block content %}
-                <p>Hello world!</p>
             {% endblock content %}
         </div>
 
@@ -92,9 +91,9 @@
             <div class='container'>
                 {% block footerlinks %}
                 <ul class='nav-footer list-inline hidden-xs'>
-                    <li><a href='http://csid.asu.edu'>Center for Behavior, Institutions, and the Environment</a></li>
+                    <li><a href='http://cbie.asu.edu'>Center for Behavior, Institutions, and the Environment</a></li>
                     <li><a href='http://www.comses.net'>Network for Computational Modeling in the Socio-ecological Sciences</a></li>
-                    <li><a href='http://www.azregents.edu/'>&copy; 2011-{% now "Y" %} Arizona Board of Regents</a></li>
+                    <li><a href='http://www.azregents.edu/'>&copy; 2014-{% now "Y" %} Arizona Board of Regents</a></li>
                     <li>build: {{ TAG }}</li>
                 </ul>
                 {% endblock footerlinks %}

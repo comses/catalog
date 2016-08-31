@@ -1,7 +1,14 @@
-import re
-from typing import Dict, Tuple
-import copy
+from typing import Tuple
 from unidecode import unidecode
+import logging
+import re
+
+logger = logging.getLogger(__name__)
+
+
+def create_cas_user(tree):
+    logger.debug("create_cas_user received tree %s", tree)
+
 
 def sanitize_doi(s):
     if s:

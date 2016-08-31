@@ -4,25 +4,31 @@
 {% block title %}CoMSES Catalog Sign In{% endblock %}
 
 {% block content %}
-<div class="panel panel-default">
-    <div class="panel-heading">
-        <i class="fa fa-lock"></i> Sign in
+<div class="well bg-warning">
+    {# FIXME: replace with styled password reset eventually #}
+    Forgot your password? <a href="{% url 'password_reset' %}">Request a password reset here</a>.
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <form id='signin-form' role="form" class="form-horizontal" method="post">
+            {% csrf_token %}
+            {%  bootstrap_form form layout="horizontal" field_class="col-md-6"%}
+            {% buttons layout='horizontal'%}
+            <button type="submit" class="btn btn-primary">
+                <i class='fa fa-sign-in'></i> Sign In
+            </button>
+            {% endbuttons %}
+        </form>
     </div>
-    <div class='panel-body'>
-        <div class="well bg-warning">
-            {# FIXME: replace with styled password reset eventually #}
-            Forgot your password? <a href="{% url 'password_reset' %}">Request a password reset here</a>.
-        </div>
-        <div class="col-md-8">
-            <form id='signin-form' role="form" class="form-horizontal" method="post">
-                {% csrf_token %}
-                {%  bootstrap_form form layout="horizontal" field_class="col-md-6"%}
-                {% buttons layout='horizontal'%}
-                    <button type="submit" class="btn btn-primary">
-                        <i class='fa fa-sign-in'></i> Sign In
-                    </button>
-                {% endbuttons %}
-            </form>
+    <div class='col-md-6'>
+        <div class="cas-login">
+            <p><img src="{% static 'images/ASU/asu-logo.svg' %}" alt="ASU Logo" width="50%" height='50%'></p>
+            <p>
+            <a class='external' target='_blank' href='https://getprotected.asu.edu/services/auth'>CAS authentication</a> for ASU affiliates
+            </p>
+            <div id="login_submit">
+                <a href="{% url 'cas_login' %}" class='btn submit'><i class='fa fa-sign-in'></i> CAS Login</a>
+            </div>
         </div>
     </div>
 </div>

@@ -19,13 +19,13 @@ DEBUG = True
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
 # email configuration
-DEFAULT_FROM_EMAIL = 'info@openabm.org'
+DEFAULT_FROM_EMAIL = 'info@comses.net'
 EMAIL_HOST = 'smtp.asu.edu'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ALLOWED_HOSTS = ('.comses.net', 'catalog.comses.net', 'localhost')
 ADMINS = (
-    ('Allen Lee', 'allen.lee@asu.edu'),
+    ('CoMSES Net Admin', 'admin@comses.net'),
 )
 MANAGERS = ADMINS
 
@@ -49,13 +49,6 @@ PIPELINE_COMPILERS = (
 )
 
 # Haystack settings
-HAYSTACK_CONNECTIONS = {
-    'default': {
-        'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
-        'URL': 'http://localhost:8983/solr/catalog_core'
-    },
-}
-
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 
 HAYSTACK_SEARCH_RESULTS_PER_PAGE = 25
@@ -118,6 +111,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'cas.middleware.CASMiddleware',
     'dealer.contrib.django.Middleware',
 )
 
@@ -143,6 +137,7 @@ THIRD_PARTY_APPS = (
     'haystack',
     'rest_framework',
     'django_extensions',
+    'cas',
 )
 
 CATALOG_APPS = ('catalog.citation',)
@@ -154,6 +149,19 @@ ACCOUNT_ACTIVATION_DAYS = 30
 
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
+    'cas.backends.CASBackend',
+)
+
+# CAS settings
+CAS_SERVER_URL = 'https://weblogin.asu.edu/cas/'
+CAS_IGNORE_REFERER = True
+CAS_REDIRECT_URL = '/dashboard/'
+CAS_LOGOUT_COMPLETELY = True
+CAS_PROVIDE_URL_TO_LOGOUT = True
+CAS_FORCE_SSL_SERVICE_URL = True
+CAS_AUTO_CREATE_USER = False
+CAS_RESPONSE_CALLBACKS = (
+    'catalog.citation.util.create_cas_user',
 )
 
 # static files configuration, see https://docs.djangoproject.com/en/1.9/ref/settings/#static-files
@@ -269,8 +277,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 15
 }
 
-# import raven
 RAVEN_CONFIG = {
-    'dsn': 'https://public:secret@sentry.commons.asu.edu/4',
+    'dsn': 'https://public:secret@sentry.commons.asu.edu/4?timeout=30',
     # 'release': raven.fetch_git_sha(BASE_DIR),
 }
