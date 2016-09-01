@@ -435,12 +435,12 @@ class ContainerAlias(AbstractLogModel):
 
 class Publication(AbstractLogModel):
     Status = Choices(
-        ('UNTAGGED', _('Untagged: Has not been reviewed by CoMSES')),
-        ('NEEDS_AUTHOR_REVIEW', _('Needs Author Review: Reviewed by CoMSES, needs a durable model code URL from the author.')),
+        ('UNTAGGED', _('Not reviewed: Has not been reviewed by CoMSES')),
+        ('NEEDS_AUTHOR_REVIEW', _('Needs author review: Reviewed by CoMSES, needs a durable model code URL from the author.')),
         ('FLAGGED', _('Flagged for internal review by CoMSES staff')),
-        ('AUTHOR_UPDATED', _('Updated by author: Awaiting final CoMSES review')),
-        ('INVALID', _('Invalid: Publication does not refer to or depend on a computational model')),
-        ('COMPLETE', _('Complete: Publication has a durable model code URL and has been reviewed and verified by CoMSES')),
+        ('AUTHOR_UPDATED', _('Updated by author: Awaiting CoMSES review')),
+        ('INVALID', _('Not applicable: Publication does not refer to or depend on a specific computational model')),
+        ('COMPLETE', _('Reviewed: Publication has a durable model code URL and has been reviewed and verified by CoMSES')),
     )
 
     # zotero publication metadata
