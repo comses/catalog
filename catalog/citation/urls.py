@@ -36,6 +36,3 @@ urlpatterns += [
     url(r'^search/journal/$', views.JournalSearchView.as_view(), name="journal_search"),
     url(r'^search/model-documentation/$', views.ModelDocumentationSearchView.as_view(), name="model_documentation_search"),
 ]
-
-router = routers.DefaultRouter()
-router.register(r'curator', views.CuratorWorkflowViewSet, base_name='curator')

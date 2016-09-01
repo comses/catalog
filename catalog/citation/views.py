@@ -7,7 +7,7 @@ from django.core import signing
 from django.db.models import Count
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, resolve_url
-from django.urls import reverse
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import is_safe_url
 from django.views.decorators.cache import never_cache
@@ -19,9 +19,9 @@ from haystack.query import SearchQuerySet
 from haystack.generic_views import SearchView
 from hashlib import sha1
 from rest_framework.response import Response
-from rest_framework import status, renderers, viewsets, generics
+from rest_framework import status, renderers, generics
 from json import dumps
-from datetime import datetime, timedelta
+from datetime import timedelta, datetime
 
 from .forms import CatalogSearchForm, CatalogAuthenticationForm
 from .models import (Publication, InvitationEmail, Platform, Sponsor, Tag, Container, ModelDocumentation, Note,)
@@ -99,7 +99,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, number_of_publications=25, **kwargs):
         context = super(DashboardView, self).get_context_data(**kwargs)
-        last_week_datetime = datetime.now() - timedelta(days=7)
+        last_week_datetime = timezone.now() - timedelta(days=7)
         context['status'] = Counter()
 
         pub_count = Publication.objects.all().values('status').annotate(total=Count('status')).order_by('-total')
@@ -192,36 +192,6 @@ class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
             return Response(serializer.data)
         logger.warn("serializer failed validation: %s", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class CuratorWorkflowViewSet(viewsets.ModelViewSet):
-    serializer_class = PublicationSerializer
-    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
-    permission_classes = (CanViewReadOnlyOrEditPublication,)
-
-    @property
-    def template_name(self):
-        return 'workflow/curator/{}'.format(self.action)
-
-    def get_queryset(self):
-        return Publication.objects.filter(assigned_curator=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(creator=self.request.user)
-
-    def retrieve(self, request, *args, **kwargs):
-        response = super(CuratorWorkflowViewSet, self).retrieve(request, *args, **kwargs)
-        # can customize response data here
-        return response
-
-    def perform_update(self, serializer):
-        logger.debug("performing update with serializer: %s", serializer)
-        user = self.request.user
-        publication = serializer.save(user=user)
-        logger.debug("%s modified: %s", publication, serializer.modified_data_text)
-
-    def perform_destroy(self, instance):
-        instance.deactivate(self.request.user)
 
 
 class NoteDetail(LoginRequiredMixin, generics.GenericAPIView):
