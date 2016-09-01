@@ -294,39 +294,11 @@
                     }
                     return '#id_code_archive_url';
                 });
-                self.publicationStatuses = ko.observableArray([
-                    'UNTAGGED',
-                    'NEEDS_AUTHOR_REVIEW',
-                    'FLAGGED',
-                    'AUTHOR_UPDATED',
-                    'INVALID',
-                    'COMPLETE'
-                ]);
+                self.publicationStatuses = ko.pureComputed(function() {
+                    return Object.keys(self.status_options);
+                });
                 self.publicationStatus = function (status) {
-                    var name;
-                    switch (status) {
-                        case 'UNTAGGED':
-                            name = 'Not reviewed';
-                            break;
-                        case 'NEEDS_AUTHOR_REVIEW':
-                            name = 'Curator has reviewed publication, requires author intervention.';
-                            break;
-                        case 'FLAGGED':
-                            name = 'Flagged for further internal review by CoMSES staff';
-                            break;
-                        case 'AUTHOR_UPDATED':
-                            name = 'Updated by author, needs CoMSES review';
-                            break;
-                        case 'INVALID':
-                            name = 'Publication record is not applicable or invalid';
-                            break;
-                        case 'COMPLETE':
-                            name = 'Reviewed and verified by CoMSES';
-                            break;
-                        default:
-                            throw Error('status ' + status + ' invalid');
-                    }
-                    return name;
+                    return self.status_options[status];
                 };
                 self.getPlatformList = function (query, callback) {
                     self.makeAsyncRequest(query, callback, "{% url 'citation:platform_search' %}");

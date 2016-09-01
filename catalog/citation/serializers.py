@@ -158,12 +158,16 @@ class PublicationSerializer(serializers.ModelSerializer):
     container = ContainerSerializer()
     model_documentation = ModelDocumentationSerializer(many=True)
     creators = CreatorSerializer(many=True)
+    status_options = serializers.SerializerMethodField()
 
     """
     XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some
     point. See http://www.django-rest-framework.org/api-guide/serializers/#writable-nested-representations for more
     details
     """
+
+    def get_status_options(self, obj):
+        return {choice[0]: str(choice[1]) for choice in Publication.Status}
 
     @staticmethod
     def save_creators(audit_command, publication, raw_creators):
@@ -357,7 +361,7 @@ class PublicationSerializer(serializers.ModelSerializer):
         model = Publication
         fields = ('id', 'activity_logs', 'assigned_curator', 'code_archive_url', 'contact_author_name', 'contact_email',
                   'container', 'creators', 'curator_detail_url', 'date_published', 'date_modified', 'detail_url',
-                  'model_documentation', 'notes', 'platforms', 'sponsors', 'status', 'tags', 'title')
+                  'model_documentation', 'notes', 'platforms', 'sponsors', 'status', 'status_options', 'tags', 'title')
 
 
 class ContactFormSerializer(serializers.Serializer):
