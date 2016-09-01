@@ -15,4 +15,4 @@ class TestPipeline(TestCase):
         # TODO: test actual data instead of just counts.
         self.assertEqual(models.AuditCommand.objects.count(), 23)
         self.assertEqual(models.Publication.objects.count(), 6)
-        self.assertEqual(models.Author.objects.count(), 20)
+        self.assertEqual(models.Author.objects.count(), 18)
