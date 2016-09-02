@@ -9,7 +9,6 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext_lazy as _
 from datetime import datetime, date
 from collections import defaultdict
-from django.core import serializers
 from django.db.models import Q
 import re
 
@@ -122,8 +121,6 @@ class LogManager(models.Manager):
 
 
 class LogQuerySet(models.query.QuerySet):
-    # TODO: get rid of serializers and use a custom encode
-    # serializers.serialize('json', [p])
 
     def log_delete(self, audit_command):
         # TODO test synchronization with solr
@@ -271,6 +268,10 @@ class Author(AbstractLogModel):
             .format(orcid=self.orcid, given_name=self.given_name,
                     family_name=self.family_name)
 
+    @property
+    def given_name_initial(self):
+        return self.given_name[0] if self.given_name else ''
+
     @staticmethod
     def normalize_author_name(author_str: str):
         normalized_name = author_str.upper()
@@ -413,6 +414,9 @@ class Container(AbstractLogModel):
     date_modified = models.DateTimeField(auto_now=True,
                                          help_text=_('Date this container was last modified on this system'))
 
+    def __str__(self):
+        return self.name
+
     def __repr__(self):
         return "Container(issn={issn}, type={type})" \
             .format(issn=self.issn, type=self.type)
@@ -534,21 +538,25 @@ class Publication(AbstractLogModel):
 
     @property
     def year_published(self):
-        return self.date_published.year
+        return self.date_published.year if self.date_published else ''
+
+    @property
+    def container_title(self):
+        return self.container.name.title() if self.container else 'None'
 
     def apa_citation_string(self):
-        apa_authors = ', '.join(['{0}, {1}.'.format(c.family_name, c.given_name[0]) for c in self.creators.all()])
+        apa_authors = ', '.join(['{0}, {1}.'.format(c.family_name, c.given_name_initial) for c in self.creators.all()])
         return "{0} ({1}). {2}. {3}, {4}({5})".format(
             apa_authors,
             self.year_published,
             self.title,
-            self.container.name.title(),
+            self.container_title,
             self.volume,
             self.pages
         )
 
     def __str__(self):
-        return self.apa_citation_string()
+        return '{0} {1}. {2}'.format(self.title, self.year_published, self.container)
 
 
 class AuditCommand(models.Model):
