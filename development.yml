@@ -3,12 +3,12 @@ services:
 ## look into https://github.com/nazariyg/Solr-5-for-django-haystack
   solr:
     image: comses/solr
-    ports:
-      - "8983:8983"
     volumes:
       - solr:/opt/solr/server/solr/mycores
       - ./deploy/solr/conf:/catalog-solr-conf
       - ./deploy/solr/init.d/solr.in.sh:/opt/solr/bin/solr.in.sh
+    ports:
+      - "127.0.0.1:8983:8983"
     environment:
       - SOLR_JAVA_MEM="-Xms2g -Xmx2g"
     entrypoint:
