@@ -12,7 +12,7 @@
 <form id='curatorPublicationDetailForm' method="post" role="form">
     <div class="row">
         <div class="col-md-6">
-            <div class='panel panel-default assigned-panel'>
+            <div class='panel panel-default assigned-panel-group' data-mh='assigned-panel-group'>
                 <div class='panel-heading'>
                     <h4 class='panel-title'>Assigned to
                         <mark>
@@ -197,6 +197,8 @@
 
 {% block javascript %}
     {% include "includes/note_form.html" %}
+ 
+    <script src='//cdnjs.cloudflare.com/ajax/libs/jquery.matchHeight/0.7.0/jquery.matchHeight-min.js'></script>
 
     <script type="text/javascript">
         var viewModelJson = $.parseJSON("{{ json | escapejs }}");
@@ -457,6 +459,7 @@
             };
             var model = new PublicationDetail(viewModelJson);
             ko.applyBindings(model);
+            $('.assigned-panel-group').matchHeight();
         });
     </script>
 {% endblock javascript %}

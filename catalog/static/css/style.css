@@ -9,8 +9,12 @@ body {
 .dashboard-box {
     height: 150px;
 }
-.assigned-panel {
-    height: 470px;
+.row-eq-height {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: -moz-box;
+    display: flex;
 }
 .google-blue {
     color: #4d90fe;
