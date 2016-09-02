@@ -3,205 +3,196 @@
 {% load static %}
 
 {% block content %}
-    <div class="panel panel-default">
-        <div class="panel-heading">
-            <h3 class='panel-title'>
-                <span class='label label-as-badge label-primary'><b>STATUS:</b> <span
-                        data-bind='text: status'></span></span>
-                <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
-                    <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
-                </a>
-            </h3>
-        </div>
-        <div class="panel-body clearfix">
-            <form id='curatorPublicationDetailForm' method="post" role="form">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class='panel panel-default'>
-                            <div class='panel-heading'>
-                                <h4 class='panel-title'>Assigned to
-                                    <mark>
-                                        <span data-bind='ifnot: assigned_curator'>nobody</span>
-                                        <span data-bind='text: assigned_curator'></span>
-                                    </mark>
-                                </h4>
-                            </div>
-                            <div class='panel-body'>
-                                <b>Journal:</b><span data-bind="text: container.name"></span><br>
-                                <b>Date Published:</b><span data-bind="text: date_published"></span><br>
-                                <b>Last modified:</b> <span data-bind='text:date_modified'></span>
-                                <div><b>Author(s):</b>
-                                    <ul class='list-inline' data-bind="foreach: creators">
-                                        <li><a target='_blank'
-                                               data-bind='attr: { href: $root.googleScholarAuthorSearch($data) }'>
-                                            <span data-bind="text: given_name"></span> <span
-                                                data-bind="text: family_name"></span>
+<h4><span class='label label-as-badge label-primary'><b>STATUS:</b> 
+        <span data-bind='text: status'></span></span>
+    <a target='_blank' data-bind="attr: { href: asuLibraryTitleLink() }">
+        <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
+    </a>
+</h4>
+<form id='curatorPublicationDetailForm' method="post" role="form">
+    <div class="row">
+        <div class="col-md-6">
+            <div class='panel panel-default assigned-panel'>
+                <div class='panel-heading'>
+                    <h4 class='panel-title'>Assigned to
+                        <mark>
+                            <span data-bind='ifnot: assigned_curator'>nobody</span>
+                            <span data-bind='text: assigned_curator'></span>
+                        </mark>
+                    </h4>
+                </div>
+                <div class='panel-body'>
+                    <b>Journal:</b> <span data-bind="text: container.name"></span><br>
+                    <b>Volume:</b> <span data-bind='text: volume'></span><br>
+                    <b>Pages:</b> <span data-bind='text: pages'></span><br>
+                    <b>Year Published:</b> <span data-bind="text: year_published"></span><br>
+                    <b>Last modified:</b> <span data-bind='text: date_modified'></span>
+                    <div><b>Author(s):</b>
+                        <ul class='list-inline' data-bind="foreach: creators">
+                            <li><a target='_blank' data-bind='attr: { href: $root.googleScholarAuthorSearch($data) }'>
+                                    <span data-bind="text: given_name"></span> <span data-bind="text: family_name"></span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <ul class='list-group'>
+                        <li class='list-group-item asu-maroon'>
+                            <div class='row'>
+                                <div class='col-sm-4'>
+                                    <i class='fa fa-university'></i>
+                                    <b>ASU Library</b>
+                                </div>
+                                <div class='col-md-8'>
+                                    <div class='btn-group'>
+                                        <a class='btn btn-sm btn-info' target='_blank' data-bind='attr: { href: asuLibraryTitleLink() }'>
+                                            <i class='fa fa-pencil'></i>
+                                            Search Title Only
                                         </a>
-                                        </li>
-                                    </ul>
-                                </div>
-                                <ul class='list-group'>
-                                    <li class='list-group-item google-blue'>
-                                        <i class='fa fa-graduation-cap'></i>
-                                        <b>Google Scholar</b>
-                                        <div class='btn-group'>
-                                            <span class='btn'>
-                                                <a target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
-                                                    <i class='fa fa-pencil'></i> Title Only
-                                                </a>
-                                            </span>
-                                            <span class='btn'>
-                                                <a target='_blank'
-                                                   data-bind="attr: { href: googleScholarAuthorLink() }">
-                                                    <i class='fa fa-pencil-square'></i> Title and Author
-                                                </a>
-                                            </span>
-                                        </div>
-                                    </li>
-                                    <li class='list-group-item asu-maroon'>
-                                        <i class='fa fa-university'></i>
-                                        <b>ASU Libraries</b>
-                                        <div class='btn-group'>
-                                            <span style='margin-left: 13px;' class='btn'>
-                                                <a target='_blank' data-bind='attr: { href: asuLibraryTitleLink() }'>
-                                                    <i class='fa fa-pencil'></i>
-                                                    Title Only
-                                                </a>
-                                            </span>
-                                            <span class='btn'>
-                                                <a target='_blank' data-bind='attr: { href: asuLibraryAuthorLink() }'>
-                                                    <i class='fa fa-pencil-square'></i>
-                                                    Title and Author
-                                                </a>
-                                            </span>
-                                        </div>
-                                    </li>
-                                    <li class='list-group-item'>
-                                        {# FIXME: dirty, hard-coded URL #}
-                                        <a data-bind="attr:{ href: '/publication/'+ id()}">View full bibliographic
-                                            record</a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <note-detail params="notes: notes, pub_id: id"></note-detail>
-                    </div>
-                </div>
-                <div class='row'>
-                    <div class='col-md-12'>
-                        <div class='panel-group' id='activity-accordion' role='tablist' aria-multiselectable='false'>
-                            <div class='panel panel-default'>
-                                <div class='panel-heading'><h5 class='panel-title'><i class='fa fa-history'></i>
-                                    Activity Log</h5></div>
-                                <div class='panel-body' data-bind='foreach: activity_logs'
-                                     style='max-height: 400px; overflow-y: scroll;'>
-                                    <span>
-                                        Creator <strong data-bind='text: creator'></strong>
-                                        in role <i data-bind='text: role'></i> took
-                                        action <mark data-bind='text: action'></mark>
-                                    </span>
-                                    <span class='pull-right'>
-                                        <mark class='bg-info' data-bind='text: date_added'></mark>
-                                    </span>
-                                    <ul class='list-group' data-bind='foreach: auditlogs'>
-                                        <li class='list-group-item'>
-                                            <u data-bind='text: action'></u> on
-                                            <em data-bind='text: table'></em>:
-                                            <span data-bind='text: message'></span>
-                                        </li>
-                                    </ul>
+                                        <a class='btn btn-sm btn-info' target='_blank' data-bind='attr: { href: asuLibraryAuthorLink() }'>
+                                            <i class='fa fa-pencil-square'></i>
+                                            Search Title and Author
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                        </li>
+                        <li class='list-group-item google-blue'>
+                            <div class='row'>
+                                <div class='col-sm-4'>
+                                    <i class='fa fa-graduation-cap'></i>
+                                    <b>Google Scholar</b>
+                                </div>
+                                <div class='col-md-8'>
+                                    <div class='btn-group'>
+                                        <a class='btn btn-sm btn-info' target='_blank' data-bind="attr: { href: googleScholarTitleLink() }">
+                                            <i class='fa fa-pencil'></i> Search Title Only
+                                        </a>
+                                        <a target='_blank' class='btn btn-sm btn-info' data-bind="attr: { href: googleScholarAuthorLink() }">
+                                            <i class='fa fa-pencil-square'></i> Search Title and Author
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <li class='list-group-item'>
+                            APA Citation:
+                            <div data-bind='text: apa_citation_string'></div>
+                        </li>
+                    </ul>
                 </div>
-                <div class="row">
-                    <div class='col-md-6 form-group'>
-                        <label class="control-label" for="id_model_documentation">Model documentation</label>
-                        <label for='model_documentation_none'>
-                            <input type='checkbox' id='model_documentation_none'
-                                   data-bind='click: clearModelDocumentation, checked: hasNoModelDocumentation'>None
-                        </label>
-                        <select multiple class="form-control" id="id_model_documentation" name="model_documentation"
-                                data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selectedModelDocumentations, optionsValue: 'name', options: { optgroups: modelDocumentationCategories(), optgroupField: 'category', optgroupLabelField: 'category', optgroupValueField: 'category', options: modelDocumentationCategoryLists(), plugins: ['optgroup_columns']}">
-                        </select>
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label class="control-label" for="id_platforms">Platforms</label>
-                        <select multiple class="form-control" id="id_platforms" name="platforms"
-                                data-bind="selectize: platforms, selectedOptions: selectedPlatforms, optionsValue: 'name', options: { create: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}">
-                        </select>
-                    </div>
-                </div>
-                <div class='row'>
-                    <div class="col-md-12 form-group">
-                        <label class="control-label" for="id_sponsors">Sponsors</label>
-                        <select multiple class="form-control" id="id_sponsors" name="sponsors"
-                                data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList }">
-                        </select>
-                    </div>
-                </div>
-                <div class='row'>
-                    <div class="col-md-12 form-group">
-                        <label class="control-label" for="id_tags">Tags</label>
-                        <div data-bind="foreach: tags" style="line-height: 2em;">
-                            <mark class="bg-info" data-bind="text: name"></mark>
-                        </div>
-                    </div>
-                </div>
-                <div class='row'>
-                    <div class='col-md-12 form-group'>
-                        <label class="control-label" for="id_code_archive_url">Code Archive URL</label>
-                        <div class='input-group'>
-                            <span class='input-group-addon'><i class='fa fa-code'></i> </span>
-                            <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url"
-                                   placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
-                            <span class='input-group-addon'>
-                                <!-- ko if: validCodeArchiveUrl -->
-                                <strong><a target='_blank' data-bind='attr: {href: codeArchiveUrl()}'>View <i
-                                        class='fa fa-external-link'></i></a></strong>
-                                <!-- /ko -->
-                                <!-- ko ifnot: validCodeArchiveUrl -->
-                                <span>View <i class='fa fa-external-link'></i></span>
-                                <!-- /ko -->
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div class='row'>
-                    <div class="col-md-6 form-group">
-                        <label class="control-label" for="id_contact_author">Contact author name</label>
-                        <input class="form-control" id="id_contact_author" maxlength="75" name="contact_author"
-                               placeholder="Corresponding Author" type="text" data-bind="value: contact_author_name">
-                    </div>
-                    <div class="col-md-6 form-group">
-                        <label class="control-label" for="id_contact_email">Contact email</label>
-                        <input class="form-control" id="id_contact_email" maxlength="75" name="contact_email"
-                               placeholder="Contact email" type="email" data-bind="value: contact_email">
-                    </div>
-                </div>
-                <div class='row'>
-                    <div class='col-sm-12 form-group'>
-                        <label class="control-label" for="id_status">Status
-                            <span class="label label-as-badge label-info" data-bind="text: status"></span>
-                        </label>
-                        <select class="form-control" id="id_status" data-bind="
-                            options: publicationStatuses,
-                            optionsText: publicationStatus,
-                            value: status">
-                        </select>
-                    </div>
-                </div>
-                <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i
-                        class="fa fa-floppy-o"></i> Save
-                </button>
-                <a class='btn btn-default' href='{% url 'citation:curator_workflow' %}?status=UNTAGGED'><i
-                        class='fa fa-arrow-left'></i> Back to assigned publications</a>
-            </form>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <note-detail params="notes: notes, pub_id: id"></note-detail>
         </div>
     </div>
+    <div class='row'>
+        <div class='col-md-12'>
+            <div class='panel-group' id='activity-accordion' role='tablist' aria-multiselectable='false'>
+                <div class='panel panel-default'>
+                    <div class='panel-heading'><h5 class='panel-title'><i class='fa fa-history'></i>
+                            Activity Log</h5></div>
+                    <div class='panel-body' data-bind='foreach: activity_logs'
+                         style='max-height: 400px; overflow-y: scroll;'>
+                        <span>
+                            Creator <strong data-bind='text: creator'></strong>
+                            in role <i data-bind='text: role'></i> took
+                            action <mark data-bind='text: action'></mark>
+                        </span>
+                        <span class='pull-right'>
+                            <mark class='bg-info' data-bind='text: date_added'></mark>
+                        </span>
+                        <ul class='list-group' data-bind='foreach: auditlogs'>
+                            <li class='list-group-item'>
+                                <u data-bind='text: action'></u> on
+                                <em data-bind='text: table'></em>:
+                                <span data-bind='text: message'></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class='col-md-6 form-group'>
+            <label class="control-label" for="id_model_documentation">Model documentation</label>
+            <label for='model_documentation_none'>
+                <input type='checkbox' id='model_documentation_none'
+                                         data-bind='click: clearModelDocumentation, checked: hasNoModelDocumentation'>None
+            </label>
+            <select multiple class="form-control" id="id_model_documentation" name="model_documentation"
+                                                                              data-bind="selectize: modelDocumentationCategoryLists, selectedOptions: selectedModelDocumentations, optionsValue: 'name', options: { optgroups: modelDocumentationCategories(), optgroupField: 'category', optgroupLabelField: 'category', optgroupValueField: 'category', options: modelDocumentationCategoryLists(), plugins: ['optgroup_columns']}">
+            </select>
+        </div>
+        <div class="col-md-6 form-group">
+            <label class="control-label" for="id_platforms">Platforms</label>
+            <select multiple class="form-control" id="id_platforms" name="platforms" 
+                data-bind="selectize: platforms, selectedOptions: selectedPlatforms, optionsValue: 'name', options: { create: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}">
+            </select>
+        </div>
+    </div>
+    <div class='row'>
+        <div class="col-md-12 form-group">
+            <label class="control-label" for="id_sponsors">Sponsors</label>
+            <select multiple class="form-control" id="id_sponsors" name="sponsors" 
+                data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList }">
+            </select>
+        </div>
+    </div>
+    <div class='row'>
+        <div class="col-md-12 form-group">
+            <label class="control-label" for="id_tags">Keywords</label>
+            <div data-bind="foreach: tags" style="line-height: 2em;">
+                <mark class="bg-info" data-bind="text: name"></mark>
+            </div>
+        </div>
+    </div>
+    <div class='row'>
+        <div class='col-md-12 form-group'>
+            <label class="control-label" for="id_code_archive_url">Code Archive URL</label>
+            <div class='input-group'>
+                <span class='input-group-addon'><i class='fa fa-code'></i> </span>
+                <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" 
+                placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
+                <span class='input-group-addon'>
+                    <!-- ko if: validCodeArchiveUrl -->
+                    <strong><a target='_blank' data-bind='attr: {href: codeArchiveUrl()}'>View
+                            <i class='fa fa-external-link'></i></a></strong>
+                    <!-- /ko -->
+                    <!-- ko ifnot: validCodeArchiveUrl -->
+                    <span>View <i class='fa fa-external-link'></i></span>
+                    <!-- /ko -->
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class='row'>
+        <div class="col-md-6 form-group">
+            <label class="control-label" for="id_contact_author">Contact author name</label>
+            <input class="form-control" id="id_contact_author" maxlength="75" name="contact_author" 
+            placeholder="Corresponding Author" type="text" data-bind="value: contact_author_name">
+        </div>
+        <div class="col-md-6 form-group">
+            <label class="control-label" for="id_contact_email">Contact email</label>
+            <input class="form-control" id="id_contact_email" maxlength="75" name="contact_email" 
+            placeholder="Contact email" type="email" data-bind="value: contact_email">
+        </div>
+    </div>
+    <div class='row'>
+        <div class='col-sm-12 form-group'>
+            <label class="control-label" for="id_status">Status
+                <span class="label label-as-badge label-info" data-bind="text: status"></span>
+            </label>
+            <select class="form-control" id="id_status" data-bind="options: publicationStatuses, optionsText: publicationStatus, value: status">
+            </select>
+        </div>
+    </div>
+    <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
+    <a class='btn btn-default' href='{% url 'citation:curator_workflow' %}'>
+        <i class='fa fa-arrow-left'></i> Back to assigned publications
+    </a>
+</form>
 {% endblock content %}
 
 {% block javascript %}

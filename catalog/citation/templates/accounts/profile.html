@@ -8,6 +8,12 @@
         </div>
         <div class="panel-body clearfix">
             <form class="form-horizontal">
+                <div class="form-group">
+                    <label class="col-md-2 control-label" for="id_username">Username</label>
+                    <div class="col-md-4">
+                        <input readonly class="form-control" id="id_username" name="username" placeholder="Username" required="required" type="text" aria-required="true" data-bind="value: username">
+                    </div>
+                </div>
                 <div class="form-group required" aria-required="true">
                     <label class="col-md-2 control-label" for="id_first_name">First name</label>
                     <div class="col-md-4">
@@ -21,16 +27,9 @@
                     </div>
                 </div>
                 <div class="form-group required" aria-required="true">
-                    <label class="col-md-2 control-label" for="id_username">Username</label>
-                    <div class="col-md-4">
-                        <input class="form-control" id="id_username" name="username" placeholder="Username" required="required" type="text" aria-required="true" data-bind="value: username">
-                    </div>
-                </div>
-                <div class="form-group required" aria-required="true">
                     <label class="col-md-2 control-label" for="id_email">Email</label>
                     <div class="col-md-4">
-                        <input class="form-control" id="id_email" name="email" placeholder="Email" required="required" title="We will never share your email." type="text" aria-required="true" data-bind="value: email">
-                        <span class="help-block">We will never share your email.</span>
+                        <input class="form-control" id="id_email" name="email" placeholder="Email" required="required" type="text" aria-required="true" data-bind="value: email">
                     </div>
                 </div>
                 <div class="form-group">
@@ -40,6 +39,7 @@
                 </div>
             </form>
         </div>
+    </div>
 {% endblock content %}
 
 {% block javascript %}

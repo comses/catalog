@@ -4,7 +4,6 @@ from django.core import signing
 from django.core.mail import send_mass_mail, send_mail
 from django.core.validators import URLValidator
 from django.db.models import F
-from django.db.models.manager import BaseManager
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers, pagination
@@ -12,13 +11,9 @@ from collections import OrderedDict
 from rest_framework.utils import model_meta
 from rest_framework.exceptions import ValidationError
 
-from haystack.management.commands import update_index
-from . import search_indexes
-
 from .models import (Tag, Sponsor, Platform, Author, Publication, Container, InvitationEmail,
                      ModelDocumentation, Note, AuditCommand, AuditLog,
-                     PublicationAuthors, PublicationModelDocumentations, PublicationPlatforms, PublicationSponsors,
-                     PublicationTags)
+                     PublicationAuthors, PublicationModelDocumentations, PublicationPlatforms, PublicationSponsors,)
 
 from collections import defaultdict
 from hashlib import sha1
@@ -129,11 +124,6 @@ class ModelDocumentationSerializer(serializers.ModelSerializer):
 class ContainerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Container
-        extra_kwargs = {
-            "name": {
-                "validators": [],
-            },
-        }
 
 
 class CreatorSerializer(serializers.ModelSerializer):
@@ -147,7 +137,6 @@ class PublicationSerializer(serializers.ModelSerializer):
     Serializes publication querysets.
     """
     detail_url = serializers.CharField(source='get_absolute_url', read_only=True)
-    curator_detail_url = serializers.CharField(source='get_curator_url', read_only=True)
     assigned_curator = serializers.StringRelatedField()
     date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
     notes = NoteSerializer(source='note_set', many=True, read_only=True)
@@ -159,6 +148,7 @@ class PublicationSerializer(serializers.ModelSerializer):
     model_documentation = ModelDocumentationSerializer(many=True)
     creators = CreatorSerializer(many=True)
     status_options = serializers.SerializerMethodField()
+    apa_citation_string = serializers.ReadOnlyField()
 
     """
     XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some
@@ -293,6 +283,7 @@ class PublicationSerializer(serializers.ModelSerializer):
         return instance
 
     def save(self, user, **kwargs):
+        # FIXME: brittle, reliant on rest_framework.serializers internals
         # Modified from rest_framework/serializers method
         audit_command = AuditCommand.objects.create(creator=user,
                                                     role=AuditCommand.Role.AUTHOR_EDIT,
@@ -360,8 +351,10 @@ class PublicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Publication
         fields = ('id', 'activity_logs', 'assigned_curator', 'code_archive_url', 'contact_author_name', 'contact_email',
-                  'container', 'creators', 'curator_detail_url', 'date_published', 'date_modified', 'detail_url',
-                  'model_documentation', 'notes', 'platforms', 'sponsors', 'status', 'status_options', 'tags', 'title')
+                  'container', 'creators', 'year_published', 'date_modified', 'detail_url', 'model_documentation',
+                  'notes', 'platforms', 'sponsors', 'status', 'status_options', 'tags', 'apa_citation_string', 'title',
+                  'volume', 'pages',
+                  )
 
 
 class ContactFormSerializer(serializers.Serializer):

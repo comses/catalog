@@ -263,6 +263,9 @@ class Author(AbstractLogModel):
     date_modified = models.DateTimeField(auto_now=True,
                                          help_text=_('Date this model was last modified on this system'))
 
+    def __str__(self):
+        return '{0} {1}.'.format(self.given_name, self.family_name)
+
     def __repr__(self):
         return "Author(orcid={orcid}. given_name={given_name}, family_name={family_name})" \
             .format(orcid=self.orcid, given_name=self.given_name,
@@ -529,13 +532,23 @@ class Publication(AbstractLogModel):
     def get_absolute_url(self):
         return self._pk_url('citation:publication_detail')
 
-    def get_curator_url(self):
-        return self._pk_url('citation:publication_detail')
+    @property
+    def year_published(self):
+        return self.date_published.year
+
+    def apa_citation_string(self):
+        apa_authors = ', '.join(['{0}, {1}.'.format(c.family_name, c.given_name[0]) for c in self.creators.all()])
+        return "{0} ({1}). {2}. {3}, {4}({5})".format(
+            apa_authors,
+            self.year_published,
+            self.title,
+            self.container.name.title(),
+            self.volume,
+            self.pages
+        )
 
     def __str__(self):
-        return "{0}, {1}. DOI: {2}".format(self.title,
-                                           self.date_published_text,
-                                           self.doi)
+        return self.apa_citation_string()
 
 
 class AuditCommand(models.Model):

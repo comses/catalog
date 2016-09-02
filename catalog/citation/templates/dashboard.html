@@ -3,71 +3,63 @@
 {% block content %}
     <div class="row">
         <div class="col-md-2">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{{ search_url }}?q=&publication_start_date=&publication_end_date=&status=">All</a></h3>
-                </div>
-                <div class="panel-body">
-                    <h1 class="text-center">{{status.TOTAL|default:"0"}}</h1>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="panel panel-success">
+            <div class="panel panel-success dashboard-box">
                 <div class="panel-heading">
                     <h3 class="panel-title text-center"><a href="{{ search_url }}?status=COMPLETE">Complete</a></h3>
                 </div>
                 <div class="panel-body">
-                    <h1 class="text-center">{{status.COMPLETE|default:"0"}}</h1>
+                    <h1 class="text-center"><a href="{{ search_url }}?status=COMPLETE">{{status.COMPLETE|default:"0"}}</a></h1>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="panel panel-info">
+            <div class="panel panel-default dashboard-box">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=AUTHOR_UPDATED">Author Updated Code URL</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?q=&publication_start_date=&publication_end_date=&status=">All Publications</a></h3>
                 </div>
                 <div class="panel-body">
-                    <h1 class="text-center">{{status.AUTHOR_UPDATED|default:"0"}}</h1>
+                    <h1 class="text-center"><a href="{{ search_url }}?q=&publication_start_date=&publication_end_date=&status=">{{status.TOTAL|default:"0"}}</a></h1>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="panel panel-info">
+            <div class="panel panel-info dashboard-box">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=UNTAGGED">Untagged</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=UNTAGGED">Not reviewed</a></h3>
                 </div>
                 <div class="panel-body">
-                    <h1 class="text-center">{{status.UNTAGGED|default:"0"}}</h1>
+                    <h1 class="text-center"><a href="{{ search_url }}?status=UNTAGGED">{{status.UNTAGGED|default:"0"}}</a></h1>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="panel panel-warning">
+            <div class="panel panel-warning dashboard-box">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=NEEDS_AUTHOR_REVIEW">Tagged, Needs Author Intervention</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=NEEDS_AUTHOR_REVIEW">Author Review</a></h3>
                 </div>
                 <div class="panel-body">
-                    <h1 class="text-center">{{status.NEEDS_AUTHOR_REVIEW|default:"0"}}</h1>
+                    <h1 class="text-center"><a href="{{ search_url }}?status=NEEDS_AUTHOR_REVIEW">{{status.NEEDS_AUTHOR_REVIEW|default:"0"}}</a></h1>
                 </div>
             </div>
         </div>
         <div class="col-md-2">
-            <div class="panel panel-danger">
+            <div class="panel panel-info dashboard-box">
                 <div class="panel-heading">
-                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=FLAGGED">Flagged for CoMSES Review</a></h3>
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=AUTHOR_UPDATED">Author Updated</a></h3>
                 </div>
                 <div class="panel-body">
-                    <h1 class="text-center">{{status.FLAGGED|default:"0"}}</h1>
+                    <h1 class="text-center"><a href="{{ search_url }}?status=AUTHOR_UPDATED">{{status.AUTHOR_UPDATED|default:"0"}}</a></h1>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col-md-12">
-            <div class='well'>
-                <a class='btn btn-primary' href="{{ curator_workflow_url }}"><i class='fa fa-tasks'></i> Publications assigned to you for tagging <span class="badge">{{untagged_publications_count}}</span></a>
-                <a class='btn btn-primary'><i class='fa fa-history'></i> All recently updated publications <span class='badge'>{{ recently_updated_publications_count }}</span></a>
+        <div class="col-md-2">
+            <div class="panel panel-danger dashboard-box">
+                <div class="panel-heading">
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=FLAGGED">Flagged</a></h3>
+                </div>
+                <div class="panel-body">
+                    <h1 class="text-center"><a href="{{ search_url }}?status=FLAGGED">{{status.FLAGGED|default:"0"}}</a></h1>
+                </div>
             </div>
         </div>
     </div>

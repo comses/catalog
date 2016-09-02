@@ -18,15 +18,17 @@
                     <thead>
                         <tr>
                             <th>Title</th>
-                            <th>Date Published</th>
+                            <th>Last modified</th>
+                            <th>Assigned curator</th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: results">
                         <tr>
                             <td>
-                                <a data-bind="attr:{ href: curator_detail_url() }, text: title"></a>
+                                <a data-bind="attr:{ href: detail_url() }, text: apa_citation_string"></a>
                             </td>
-                            <td data-bind="text: date_published"></td>
+                            <td data-bind='text: date_modified'></td>
+                            <td><mark data-bind='text: assigned_curator'></mark></td>
                         </tr>
                     </tbody>
                 </table>
