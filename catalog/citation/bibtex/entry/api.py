@@ -15,12 +15,8 @@ def make_container(entry) -> models.Container:
     container = models.Container.objects.create(type=container_type_str,
                                                 issn=container_issn_str,
                                                 name=container_str)
-    container_alias, created = models.ContainerAlias.objects.get_or_create(
-        container=container,
-        name=container_str,
-        defaults={'container': container, 'name': container_str})
 
-    return container, container_alias
+    return container
 
 
 def make_author(publication: models.Publication, raw: models.Raw, author_str: str) -> models.Author:
@@ -45,8 +41,8 @@ def make_authors(publication: models.Publication, raw: models.Raw, entry) -> Lis
     author_str = entry.get("author")
     if author_str is not None:
         authors_split = guess_author_str_split(author_str)
-        authors_aliases = [make_author(publication, raw, s) for s in authors_split]
-        return authors_aliases
+        authors = [make_author(publication, raw, s) for s in authors_split]
+        return authors
     else:
         return []
 
@@ -106,7 +102,7 @@ def process(entry: Dict, creator: User) -> Tuple[List[str], List[models.Raw]]:
 
     else:
         date_published_text = make_date_published(entry)
-        container, container_alias = make_container(entry)
+        container = make_container(entry)
         publication = models.Publication.objects.create(
             title=util.sanitize_name(entry.get("title", "")),
             date_published_text=date_published_text,

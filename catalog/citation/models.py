@@ -564,7 +564,7 @@ class Publication(AbstractLogModel):
     @property
     def date_published(self):
         try:
-            return datetime_parse(self.date_published_text)
+            return datetime_parse(self.date_published_text).date()
         except ValueError:
             return None
 
