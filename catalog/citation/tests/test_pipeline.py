@@ -37,6 +37,7 @@ class TestPipeline(TestCase):
         ]
         secondary_publications = [
             '10.1111/j.1523-1739.2004.00520.x',
+            '10.1111/j.1467-8306.2005.00450.x',
         ]
 
         self.assertListEqual(list(p.title for p in models.Publication.objects.filter(is_primary=True)),

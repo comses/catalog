@@ -150,7 +150,6 @@ class Command(BaseCommand):
         item.short_title = data['shortTitle'].strip()
         item.url = data['url'].strip()
         item.date_published_text = data['date'].strip()
-        item.date_published = self.parse_published_date(data['date'].strip())
         item.date_accessed = data['accessDate'].strip() or datetime.now().date()
         item.archive = data['archive'].strip()
         item.archive_location = data['archiveLocation'].strip()

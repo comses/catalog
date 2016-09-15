@@ -513,22 +513,6 @@ class PublicationMergeGroup:
 
         return authors
 
-    # def is_valid_author_merge_group_set_for_publication_merge_group(self):
-    #     authors = self.all_authors()
-    #     merge_group_authors = set()
-    #     for author_merge_group in self.author_merge_group_set:
-    #         merge_group_authors.add(author_merge_group)
-    #         merge_group_authors.update([other.id for other in author_merge_group.others])
-    #
-    #     valid = authors == merge_group_authors
-    #     if not valid:
-    #         missing_authors = authors.difference(merge_group_authors)
-    #         additional_authors = merge_group_authors.difference(authors)
-    #         self._errors.publication_author_errors = {
-    #             'additional': additional_authors,
-    #             'missing': missing_authors}
-    #     return valid
-
     def create_container_merge_group(self, final_container=None, other_containers=None) -> ContainerMergeGroup:
         if final_container is None and other_containers is None:
             final_container = self.final.container

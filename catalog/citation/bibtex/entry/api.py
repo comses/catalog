@@ -60,15 +60,11 @@ def make_references(publication: models.Publication,
 
 def make_date_published(entry) -> Optional[datetime.date]:
     date_published_text = entry.get("year", "")
-    date_published = None
-    if date_published_text:
-        if date_published_text.isnumeric():
-            date_published = datetime.date(int(date_published_text), 1, 1)
-    return date_published, date_published_text
+    return date_published_text
 
 
 def create_in_memory_publication(entry):
-    date_published, date_published_text = make_date_published(entry)
+    date_published_text = make_date_published(entry)
     publication = models.Publication(
         doi=entry.get("doi", ""),
         isi=entry.get("isi", ""),
@@ -109,12 +105,11 @@ def process(entry: Dict, creator: User) -> Tuple[List[str], List[models.Raw]]:
         publication = duplicates[0]
 
     else:
-        date_published, date_published_text = make_date_published(entry)
+        date_published_text = make_date_published(entry)
         container, container_alias = make_container(entry)
         publication = models.Publication.objects.create(
             title=util.sanitize_name(entry.get("title", "")),
             date_published_text=date_published_text,
-            date_published=date_published,
             doi=entry.get("doi", ""),
             isi=entry.get("unique-id", ""),
             abstract=entry.get("abstract", ""),

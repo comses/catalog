@@ -1,7 +1,6 @@
 from haystack import indexes
 from .models import Publication, Platform, Sponsor, Tag, Container, ModelDocumentation
 
-
 ##########################################
 #  Publication query seach/filter index  #
 ##########################################
@@ -9,7 +8,7 @@ from .models import Publication, Platform, Sponsor, Tag, Container, ModelDocumen
 class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     text = indexes.CharField(document=True, use_template=True)
     title = indexes.CharField(model_attr='title')
-    date_published = indexes.DateField(model_attr='date_published', null=True)
+    date_published = indexes.DateTimeField(model_attr='date_published', null=True)
     last_modified = indexes.DateTimeField(model_attr='date_modified')
     contact_email = indexes.BooleanField(model_attr='contact_email')
     status = indexes.CharField(model_attr='status', faceted=True)

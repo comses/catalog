@@ -10,6 +10,7 @@ from django.utils.translation import ugettext_lazy as _
 from datetime import datetime, date
 from collections import defaultdict
 from django.db.models import Q
+from dateutil.parser import parse as datetime_parse
 import re
 
 from model_utils import Choices
@@ -468,7 +469,6 @@ class Publication(AbstractLogModel):
     zotero_key = models.CharField(max_length=64, null=True, unique=True, blank=True)
     url = models.URLField(blank=True)
     date_published_text = models.CharField(max_length=64, blank=True)
-    date_published = models.DateField(null=True, blank=True)
     date_accessed = models.DateField(null=True, blank=True)
     archive = models.CharField(max_length=255, blank=True)
     archive_location = models.CharField(max_length=255, blank=True)
@@ -562,8 +562,18 @@ class Publication(AbstractLogModel):
         return self._pk_url('citation:publication_detail')
 
     @property
+    def date_published(self):
+        try:
+            return datetime_parse(self.date_published_text)
+        except ValueError:
+            return None
+
+    @property
     def year_published(self):
-        return self.date_published.year if self.date_published else ''
+        try:
+            return int(datetime_parse(self.date_published_text).year)
+        except ValueError:
+            return None
 
     @property
     def container_title(self):

@@ -46,14 +46,6 @@ def make_doi(ref: str) -> str:
         return ""
 
 
-def make_date_published(year_str: str) -> int:
-    date_published = None
-    if year_str:
-        if year_str.isnumeric():
-            date_published = datetime.date(int(year_str), 1, 1)
-    return date_published
-
-
 def guess_elements(ref):
     """Guesses which fields belong to a split reference string that has less than normal length"""
     ref = [s.strip() for s in ref.split(",", 3)]
@@ -104,14 +96,14 @@ def process(publication: models.Publication,
         else:
             return str(merge_group.errors), None
     elif len(duplicates) == 1:
-        models.PublicationCitations.objects.create(publication=publication, citation=duplicates[0])
+        models.PublicationCitations.objects.get_or_create(publication=publication,
+                                                          citation=duplicates[0])
         return None, models.Raw(key=models.Raw.BIBTEX_REF, value=ref)
     else:
         container = make_container(container_str)
         citation = models.Publication.objects.create(
             title='',
             date_published_text=year_str,
-            date_published=make_date_published(year_str),
             doi=doi,
             abstract='',
             is_primary=False,
