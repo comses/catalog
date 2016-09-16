@@ -13,6 +13,7 @@ class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     contact_email = indexes.BooleanField(model_attr='contact_email')
     status = indexes.CharField(model_attr='status', faceted=True)
     assigned_curator = indexes.CharField(model_attr='assigned_curator', null=True)
+    flagged = indexes.BooleanField(model_attr='flagged')
 
     def prepare_last_modified(self, obj):
         last_modified = self.prepared_data.get('last_modified')

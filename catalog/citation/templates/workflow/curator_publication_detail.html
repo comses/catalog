@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block content %}
-<h4><span class='label label-as-badge label-primary'><b>STATUS:</b> 
+<h4><span class='label label-as-badge label-primary'><b>STATUS:</b>
         <span data-bind='text: status'></span></span>
     <a target='_blank' data-bind="attr: { href: asuLibraryTitleLink() }">
         <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
@@ -95,8 +95,7 @@
                     <div class='panel-body' data-bind='foreach: activity_logs'
                          style='max-height: 400px; overflow-y: scroll;'>
                         <span>
-                            Creator <strong data-bind='text: creator'></strong>
-                            in role <i data-bind='text: role'></i> took
+                            Creator <strong data-bind='text: creator'></strong> took
                             action <mark data-bind='text: action'></mark>
                         </span>
                         <span class='pull-right'>
@@ -127,7 +126,7 @@
         </div>
         <div class="col-md-6 form-group">
             <label class="control-label" for="id_platforms">Platforms</label>
-            <select multiple class="form-control" id="id_platforms" name="platforms" 
+            <select multiple class="form-control" id="id_platforms" name="platforms"
                 data-bind="selectize: platforms, selectedOptions: selectedPlatforms, optionsValue: 'name', options: { create: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}">
             </select>
         </div>
@@ -135,7 +134,7 @@
     <div class='row'>
         <div class="col-md-12 form-group">
             <label class="control-label" for="id_sponsors">Sponsors</label>
-            <select multiple class="form-control" id="id_sponsors" name="sponsors" 
+            <select multiple class="form-control" id="id_sponsors" name="sponsors"
                 data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList }">
             </select>
         </div>
@@ -153,7 +152,7 @@
             <label class="control-label" for="id_code_archive_url">Code Archive URL</label>
             <div class='input-group'>
                 <span class='input-group-addon'><i class='fa fa-code'></i> </span>
-                <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url" 
+                <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url"
                 placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
                 <span class='input-group-addon'>
                     <!-- ko if: validCodeArchiveUrl -->
@@ -170,22 +169,29 @@
     <div class='row'>
         <div class="col-md-6 form-group">
             <label class="control-label" for="id_contact_author">Contact author name</label>
-            <input class="form-control" id="id_contact_author" maxlength="75" name="contact_author" 
+            <input class="form-control" id="id_contact_author" maxlength="75" name="contact_author"
             placeholder="Corresponding Author" type="text" data-bind="value: contact_author_name">
         </div>
         <div class="col-md-6 form-group">
             <label class="control-label" for="id_contact_email">Contact email</label>
-            <input class="form-control" id="id_contact_email" maxlength="75" name="contact_email" 
+            <input class="form-control" id="id_contact_email" maxlength="75" name="contact_email"
             placeholder="Contact email" type="email" data-bind="value: contact_email">
         </div>
     </div>
     <div class='row'>
-        <div class='col-sm-12 form-group'>
+        <div class='col-md-11 form-group'>
             <label class="control-label" for="id_status">Status
                 <span class="label label-as-badge label-info" data-bind="text: status"></span>
             </label>
             <select class="form-control" id="id_status" data-bind="options: publicationStatuses, optionsText: publicationStatus, value: status">
             </select>
+        </div>
+        <div class='col-md-1 form-group'>
+            <label class="control-label" for="id_flagged">
+                <span class="label label-as-badge label-warning" data-bind="if: flagged">Flagged</span>
+                <span class="label label-as-badge label-complete" data-bind="ifnot: flagged">Unflagged</span>
+            </label>
+            <input class="form-control" type="checkbox" data-bind="checked: flagged">
         </div>
     </div>
     <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
@@ -197,7 +203,7 @@
 
 {% block javascript %}
     {% include "includes/note_form.html" %}
- 
+
     <script src='//cdnjs.cloudflare.com/ajax/libs/jquery.matchHeight/0.7.0/jquery.matchHeight-min.js'></script>
 
     <script type="text/javascript">

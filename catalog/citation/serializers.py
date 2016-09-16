@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core import signing
 from django.core.mail import send_mass_mail, send_mail
 from django.core.validators import URLValidator
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils.translation import ugettext as _
 
 from rest_framework import serializers, pagination
@@ -13,7 +13,7 @@ from rest_framework.exceptions import ValidationError
 
 from .models import (Tag, Sponsor, Platform, Author, Publication, Container, InvitationEmail,
                      ModelDocumentation, Note, AuditCommand, AuditLog,
-                     PublicationAuthors, PublicationModelDocumentations, PublicationPlatforms, PublicationSponsors,)
+                     PublicationAuthors, PublicationModelDocumentations, PublicationPlatforms, PublicationSponsors, )
 
 from collections import defaultdict
 from hashlib import sha1
@@ -78,7 +78,7 @@ class AuditCommandSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AuditCommand
-        read_only_fields = ('id', 'action', 'creator', 'role', 'date_added', 'message', 'auditlogs')
+        read_only_fields = ('id', 'action', 'creator', 'date_added', 'message', 'auditlogs')
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -132,6 +132,46 @@ class CreatorSerializer(serializers.ModelSerializer):
         fields = ('id', 'given_name', 'family_name', 'type', 'email')
 
 
+class PublicationAuditCommand:
+    def __init__(self, id, creator, action, auditlogs, date_added):
+        self.id = id
+        self.creator = creator
+        self.action = action
+        self.auditlogs = auditlogs
+        self.date_added = date_added
+
+    @staticmethod
+    def partition_by_audit_command_id(auditlogs):
+        partioned_auditlogs = defaultdict(lambda: [])
+        for auditlog in auditlogs:
+            partioned_auditlogs[auditlog.audit_command_id].append(auditlog)
+        return partioned_auditlogs
+
+    @classmethod
+    def many_from_queryset(cls, auditlogs):
+        partioned_auditlogs = cls.partition_by_audit_command_id(auditlogs)
+        audit_command_ids = partioned_auditlogs.keys()
+        in_bulk_audit_commands = AuditCommand.objects.select_related('creator').in_bulk(audit_command_ids)
+
+        publications_audit_commands = []
+        for id, audit_command in in_bulk_audit_commands.items():
+            auditlogs = partioned_auditlogs[id]
+            publication_audit_command = cls(id=id, creator=audit_command.creator.username,
+                                            action=audit_command.action, auditlogs=auditlogs,
+                                            date_added=audit_command.date_added)
+            publications_audit_commands.append(publication_audit_command)
+
+        return publications_audit_commands
+
+
+class PublicationAuditCommandSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    creator = serializers.CharField(read_only=True)
+    action = serializers.CharField(read_only=True)
+    auditlogs = AuditLogSerializer(many=True)
+    date_added = serializers.DateTimeField(read_only=True)
+
+
 class PublicationSerializer(serializers.ModelSerializer):
     """
     Serializes publication querysets.
@@ -140,7 +180,7 @@ class PublicationSerializer(serializers.ModelSerializer):
     assigned_curator = serializers.StringRelatedField()
     date_modified = serializers.DateTimeField(read_only=True, format='%m/%d/%Y %H:%M')
     notes = NoteSerializer(source='note_set', many=True, read_only=True)
-    activity_logs = AuditCommandSerializer(source='get_auditcommands', many=True, read_only=True)
+    activity_logs = serializers.SerializerMethodField()
     tags = TagSerializer(many=True, read_only=True)
     platforms = PlatformSerializer(many=True)
     sponsors = SponsorSerializer(many=True)
@@ -149,12 +189,21 @@ class PublicationSerializer(serializers.ModelSerializer):
     creators = CreatorSerializer(many=True)
     status_options = serializers.SerializerMethodField()
     apa_citation_string = serializers.ReadOnlyField()
+    flagged = serializers.BooleanField()
 
     """
     XXX: copy-pasted from default ModelSerializer code but omitting the raise_errors_on_nested_writes. Revisit at some
     point. See http://www.django-rest-framework.org/api-guide/serializers/#writable-nested-representations for more
     details
     """
+
+    def get_activity_logs(self, obj):
+        audit_logs = AuditLog.objects \
+            .filter(Q(table=obj._meta.model_name, row_id=obj.id) |
+                    Q(payload__data__publication_id=obj.id))
+        pacs = PublicationAuditCommand.many_from_queryset(audit_logs)
+        serialized_pacs = [PublicationAuditCommandSerializer(pac).data for pac in pacs]
+        return serialized_pacs
 
     def get_status_options(self, obj):
         return {choice[0]: str(choice[1]) for choice in Publication.Status}
@@ -349,11 +398,12 @@ class PublicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Publication
-        fields = ('id', 'activity_logs', 'assigned_curator', 'code_archive_url', 'contact_author_name', 'contact_email',
-                  'container', 'creators', 'year_published', 'date_modified', 'detail_url', 'model_documentation',
-                  'notes', 'platforms', 'sponsors', 'status', 'status_options', 'tags', 'apa_citation_string', 'title',
-                  'volume', 'pages',
-                  )
+        fields = (
+            'id', 'apa_citation_string', 'activity_logs', 'assigned_curator', 'code_archive_url', 'contact_author_name',
+            'contact_email', 'container', 'creators', 'date_modified', 'detail_url', 'flagged', 'model_documentation',
+            'notes', 'pages', 'platforms', 'sponsors', 'status', 'status_options', 'tags', 'title', 'volume',
+            'year_published',
+        )
 
 
 class PublicationMergeSerializer(serializers.Serializer):

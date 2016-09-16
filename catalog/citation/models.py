@@ -455,7 +455,6 @@ class Publication(AbstractLogModel):
         ('UNTAGGED', _('Not reviewed: Has not been reviewed by CoMSES')),
         ('NEEDS_AUTHOR_REVIEW',
          _('Needs author review: Reviewed by CoMSES, needs a durable model code URL from the author.')),
-        ('FLAGGED', _('Flagged for internal review by CoMSES staff')),
         ('AUTHOR_UPDATED', _('Updated by author: Awaiting CoMSES review')),
         ('INVALID', _('Not applicable: Publication does not refer to or depend on a specific computational model')),
         ('COMPLETE',
@@ -496,6 +495,7 @@ class Publication(AbstractLogModel):
 
     # custom fields used by catalog internally
     status = models.CharField(choices=Status, max_length=64, default=Status.UNTAGGED)
+    flagged = models.BooleanField(default=False)
     date_added = models.DateTimeField(auto_now_add=True,
                                       help_text=_('Date this publication was imported into this system'))
     date_modified = models.DateTimeField(auto_now=True,
@@ -543,12 +543,6 @@ class Publication(AbstractLogModel):
 
     def get_message(self):
         return "{} ({})".format(self.title, self.id)
-
-    def get_auditcommands(self):
-        audit_commands = AuditCommand.objects \
-            .filter(Q(auditlogs__table=self._meta.model_name, auditlogs__row_id=self.id) |
-                    Q(auditlogs__payload__data__publication_id=self.id)).distinct()
-        return audit_commands
 
     def is_editable_by(self, user):
         # eventually consider having permission groups or per-object permissions

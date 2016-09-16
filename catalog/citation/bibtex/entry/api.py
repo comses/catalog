@@ -59,7 +59,7 @@ def make_date_published(entry) -> Optional[datetime.date]:
     return date_published_text
 
 
-def create_in_memory_publication(entry):
+def create_detached_publication(entry):
     date_published_text = make_date_published(entry)
     publication = models.Publication(
         doi=entry.get("doi", ""),
@@ -79,8 +79,8 @@ def process(entry: Dict, creator: User) -> Tuple[List[str], List[models.Raw]]:
     :return: A new publication record, if it was added to the database
     """
 
-    in_memory_publication = create_in_memory_publication(entry)
-    duplicates = merger_strategies.find_publication_duplicates_on_load(in_memory_publication)
+    detached = create_detached_publication(entry)
+    duplicates = merger_strategies.find_publication_duplicates_on_load(detached)
 
     errors = []
     duplicate_warnings = []
@@ -90,13 +90,17 @@ def process(entry: Dict, creator: User) -> Tuple[List[str], List[models.Raw]]:
             audit_command = models.AuditCommand.objects.create(action=models.AuditCommand.Action.MERGE,
                                                                creator=creator)
             merge_group.merge(audit_command)
-            merge_group.final.log_update(audit_command=audit_command, isi=in_memory_publication.isi)
+            merge_group.final.log_update(audit_command=audit_command, isi=detached.isi)
             publication = merge_group.final
         else:
             errors.append(str(merge_group.errors))
             return errors, duplicate_warnings
 
     elif len(duplicates) == 1:
+        if duplicates[0].isi == '' and detached.isi != '':
+            audit_command = models.AuditCommand.objects.create(action=models.AuditCommand.Action.MANUAL,
+                                                               creator=creator)
+            duplicates[0].log_update(audit_command=audit_command, isi=detached.isi)
         duplicate_warnings.append(models.Raw(key=models.Raw.BIBTEX_ENTRY, value=entry))
         publication = duplicates[0]
 

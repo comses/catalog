@@ -19,12 +19,14 @@ class CatalogAuthenticationForm(AuthenticationForm):
 class CatalogSearchForm(SearchForm):
 
     STATUS_CHOICES = [("", "Any")] + Publication.Status
+    FLAGGED = [("", "Any"), ("True", "True"), ("False", "False")]
 
     publication_start_date = forms.DateField(required=False)
     publication_end_date = forms.DateField(required=False)
     contact_email = forms.BooleanField(required=False)
     status = forms.ChoiceField(choices=STATUS_CHOICES, required=False)
     assigned_curator = forms.CharField(required=False)
+    flagged = forms.ChoiceField(choices=FLAGGED, required=False,)
 
     def no_query_found(self):
         return self.searchqueryset.models(Publication).all()
@@ -54,6 +56,12 @@ class CatalogSearchForm(SearchForm):
         # Check to see if assigned_curator was selected.
         if self.cleaned_data['assigned_curator']:
             criteria.update(assigned_curator=self.cleaned_data['assigned_curator'])
+
+        # Check to see if flagged was set
+        if self.cleaned_data['flagged']:
+            flagged_str = self.cleaned_data['flagged']
+            flagged = flagged_str == 'True'
+            criteria.update(flagged=self.cleaned_data['flagged'])
 
         sqs = sqs.filter(**criteria)
 

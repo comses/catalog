@@ -58,7 +58,7 @@
                     <h3 class="panel-title text-center"><a href="{{ search_url }}?status=FLAGGED">Flagged</a></h3>
                 </div>
                 <div class="panel-body">
-                    <h1 class="text-center"><a href="{{ search_url }}?status=FLAGGED">{{status.FLAGGED|default:"0"}}</a></h1>
+                    <h1 class="text-center"><a href="{{ search_url }}?flagged=True">{{flagged|default:"0"}}</a></h1>
                 </div>
             </div>
         </div>

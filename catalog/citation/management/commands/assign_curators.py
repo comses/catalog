@@ -13,19 +13,23 @@ class Command(BaseCommand):
     help = "Assign curators to untagged publications"
 
     def add_arguments(self, parser):
-        parser.add_argument('--usernames',
+        parser.add_argument('-u', '--usernames',
                             required=True,
                             nargs='+',
                             help='List of space separated usernames to assign as curators to untagged publications')
-        parser.add_argument('--N',
+        parser.add_argument('-N',
                             type=int,
                             help='Maximum number of untagged publications to assign')
         parser.add_argument('--verbose',
                             action='store_true')
+        parser.add_argument('-s', '--status',
+                            default='UNTAGGED',
+                            help='Filter by UNFLAGGED or FLAGGED status')
 
     @staticmethod
-    def assign_publications(username, untagged_publication_ids, lower_bound, upper_bound, verbose):
-        print("Giving user {} publications between {} and {}".format(username, lower_bound, upper_bound-1))
+    def assign_publications(username, untagged_publication_ids, lower_bound, upper_bound, verbose, status):
+        print("Giving user {} publications between {} and {} with status {}".format(username, lower_bound,
+                                                                                    upper_bound - 1, status))
         user = User.objects.get(username=username)
         publications = models.Publication.objects.filter(id__in=untagged_publication_ids[lower_bound:upper_bound])
         Command.print_publications(publications, verbose)
@@ -36,19 +40,27 @@ class Command(BaseCommand):
     def print_publications(publications, verbose):
         if verbose:
             for publication in publications:
-                print("\t{}".format(publication.title))
+                print("\tID: {}, Title: {}, DOI: {}".format(publication.id, publication.title or None,
+                                                            publication.doi or None))
 
     def handle(self, *args, **options):
         N = options['N']
         usernames = options['usernames']
         verbose = options['verbose']
+        status = options['status']
+        if status == 'UNTAGGED':
+            filter_expr = {'status': 'UNTAGGED'}
+        elif status == 'FLAGGED':
+            filter_expr = {'flagged': True}
+        else:
+            raise ValueError('status can only be UNTAGGED or FLAGGED')
 
         with transaction.atomic():
-            untagged_publications = models.Publication.objects\
-                .filter(assigned_curator__isnull=True, status='UNTAGGED')[:N]
+            untagged_publications = models.Publication.objects \
+                                        .filter(assigned_curator__isnull=True, **filter_expr).order_by('id')[:N]
             Command.print_publications(untagged_publications, verbose)
-            untagged_publication_ids = list(untagged_publications\
-                .values_list('id', flat=True))
+            untagged_publication_ids = list(untagged_publications \
+                                            .values_list('id', flat=True))
 
             untagged_publications_count = len(untagged_publication_ids)
             if untagged_publications_count == 0:
@@ -58,14 +70,15 @@ class Command(BaseCommand):
 
             first_username = usernames.pop()
             lower_bound = 0
-            upper_bound = n+r
-            self.assign_publications(first_username, untagged_publication_ids, lower_bound, upper_bound, verbose)
+            upper_bound = n + r
+            self.assign_publications(first_username, untagged_publication_ids, lower_bound, upper_bound, verbose,
+                                     status)
 
             for i in range(len(usernames)):
                 username = usernames[i]
-                lower_bound = n*(i+1)+r
-                upperbound = n*(i+2)+r
+                lower_bound = n * (i + 1) + r
+                upper_bound = n * (i + 2) + r
 
-                self.assign_publications(username, untagged_publication_ids, lower_bound, upperbound, verbose)
+                self.assign_publications(username, untagged_publication_ids, lower_bound, upper_bound, verbose, status)
 
             update_index.Command().handle(noinput=True)

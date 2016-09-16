@@ -107,6 +107,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             total_count = item['total']
             context['status'][item['status']] = total_count
             context['status']['TOTAL'] += total_count
+        n_flagged = Publication.objects.filter(flagged=True).count()
+        context['flagged'] = n_flagged
 
         context['untagged_publications_count'] = Publication.objects.filter(status=Publication.Status.UNTAGGED,
                                                                             assigned_curator=self.request.user).count()
