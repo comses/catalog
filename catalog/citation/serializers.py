@@ -164,6 +164,25 @@ class PublicationAuditCommand:
         return publications_audit_commands
 
 
+def publication_audit_command_serializer(auditlogs):
+    partioned_auditlogs = defaultdict(lambda: [])
+    for auditlog in auditlogs:
+        partioned_auditlogs[auditlog.audit_command_id].append(auditlog)
+
+    audit_command_ids = partioned_auditlogs.keys()
+    in_bulk_audit_commands = AuditCommand.objects.select_related('creator').in_bulk(audit_command_ids)
+
+    publications_audit_commands = []
+    for id, audit_command in in_bulk_audit_commands.items():
+        auditlogs = partioned_auditlogs[id]
+        publication_audit_command = dict(id=id, creator=audit_command.creator.username,
+                                         action=audit_command.action, auditlogs=auditlogs,
+                                         date_added=audit_command.date_added)
+        publications_audit_commands.append(publication_audit_command)
+
+    return publications_audit_commands
+
+
 class PublicationAuditCommandSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     creator = serializers.CharField(read_only=True)

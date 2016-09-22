@@ -8,175 +8,158 @@ from .. import models
 
 
 class TestPipeline(TestCase):
-    def test_duplicate_citations(self):
-        User.objects.create_user(username='foo', email='a@b.com', password='test')
+    @staticmethod
+    def load_data():
         cmd = Command()
-        cmd.handle(filename="catalog/citation/tests/data/entries_duplicate_citations.json", username='foo')
+        cmd.handle(filename="catalog/citation/tests/data/all_problematic_entries.bib",
+                   output="catalog/citation/tests/data/all_problematic_entries.invalid",
+                   username='foo')
 
-        primary_publications = [
-            'Addressing Population Health and Health Inequalities: The Role of Fundamental Causes'
+    @classmethod
+    def setUpClass(cls):
+        super(TestPipeline, cls).setUpClass()
+        User.objects.create(username='foo', email='a@b.com', password='test')
+        cls.load_data()
+
+        cls.primary_publication = [
+            'Duplicate Citations One Publication',
+            'Towards realistic and effective Agent-based models of crowd dynamics',
+            'An integrated framework of agent-based modelling and robust optimization for microgrid energy management'
         ]
 
-        secondary_publications = [
+        cls.secondary_publication = [
             '10.2105/ajph.2004.037705',
-            '10.1177/0011128785031001004'
-        ]
-        self.assertListEqual(list(p.title for p in models.Publication.objects.filter(is_primary=True)),
-                             primary_publications)
-        self.assertListEqual(list(p.doi for p in models.Publication.objects.filter(is_primary=False)),
-                             secondary_publications)
-        self.assertEqual(models.AuditCommand.objects.count(), 0)
-
-    def test_ingest_different_publication_counts(self):
-        User.objects.create_user(username='foo', email='a@b.com', password='test')
-        cmd = Command()
-        cmd.handle(filename="catalog/citation/tests/data/entries_inconsistent_publication_counts.json", username='foo')
-
-        primary_publications = [
-            'Agent-based modeling of hunting and subsistence agriculture on indigenous lands: Understanding interactions between social and ecological systems',
-        ]
-        secondary_publications = [
-            '10.1111/j.1523-1739.2004.00520.x',
-            '10.1111/j.1467-8306.2005.00450.x',
+            '10.1016/j.apenergy.2008.09.006',
+            '10.1016/j.enconman.2012.09.001',
+            '10.1016/j.cnsns.2009.10.005',
         ]
 
-        self.assertListEqual(list(p.title for p in models.Publication.objects.filter(is_primary=True)),
-                             primary_publications)
-
-        self.assertEqual(models.AuditCommand.objects.count(), 0)
-        self.assertListEqual(list(p.doi for p in models.Publication.objects.filter(is_primary=False)),
-                             secondary_publications)
-
-    def test_duplicate_publications(self):
-        User.objects.create_user(username='foo', email='a@b.com', password='test')
-        cmd = Command()
-        cmd.handle(filename="catalog/citation/tests/data/entries_duplicate_publications.json", username='foo')
-
-        primary_publications = [
-            'Agent-based modeling of hunting and subsistence agriculture on indigenous lands: Understanding interactions between social and ecological systems',
-        ]
-        secondary_publications = [
-            '10.1111/j.1523-1739.2004.00520.x'
+        cls.duplicate_citation_one_publication_references = [
+            {
+                'title': 'An integrated framework of agent-based modelling and robust optimization for microgrid energy management',
+                'doi': '10.1016/j.apenergy.2014.04.024'
+            },
+            {
+                'title': '',
+                'doi': '10.2105/ajph.2004.037705'
+            }
         ]
 
-        self.assertListEqual(list(p.title for p in models.Publication.objects.filter(is_primary=True)),
-                             primary_publications)
-        self.assertListEqual(list(p.doi for p in models.Publication.objects.filter(is_primary=False)),
-                             secondary_publications)
-        self.assertEqual(models.AuditCommand.objects.count(), 0)
-
-    def test_different_publications_same_citations(self):
-        """If a citation if already in the DB, new publications with a matching citation should point to it
-        and not add an additional identical citation"""
-        User.objects.create_user(username='foo', email='a@b.com', password='test')
-        cmd = Command()
-        cmd.handle(filename="catalog/citation/tests/data/entries_different_publications_same_citations.json",
-                   username='foo')
-
-        primary_publications = [
-            'Towards realistic and effective Agent-based models of crowd dynamics',
-            'Spatial and temporal dynamics of cell generations within an invasion wave: A link to cell lineage tracing',
-
-        ]
-
-        secondary_publications = [
+        # Note that there is only one citation here. The publication with DOI 10.1177/0011128785031001004 was not
+        # included because the primary publication had already appeared once in the BibTeX file and the citation
+        # counts did not match
+        cls.realistic_and_effective_abms_references = [
             '10.2105/ajph.2004.037705'
         ]
 
-        db_primary_publications = models.Publication.objects.annotate(n_citations=Count('citations')).filter(
-            is_primary=True)
-        self.assertListEqual(list(p.title for p in db_primary_publications),
-                             primary_publications)
-        self.assertListEqual(list(p.n_citations for p in db_primary_publications),
-                             [1, 1])
+        cls.microgrid_energy_management_references = {'10.1016/j.apenergy.2008.09.006',
+                                                      '10.1016/j.enconman.2012.09.001', '10.1016/j.cnsns.2009.10.005',
+                                                      '10.1016/j.jtbi.2014.08.016'}
+
+        cls.not_a_publication = [
+            '10.1177/0011128785031001004',
+        ]
+
+        cls.container_names = [
+            {'name': 'NEUROCOMPUTING', 'issn': '0925-2312'},
+            {'name': 'AM J PUBLIC HEALTH', 'issn': ''},
+            {'name': 'JOURNAL OF THEORETICAL BIOLOGY', 'issn': '0022-5193'},
+            # There are two APPL ENERG entries because container entries are deduplicates by ISSN and EISSN only
+            {'name': 'APPL ENERG', 'issn': '0306-2619'},
+            {'issn': '', 'name': 'APPL ENERG'},
+            {'issn': '', 'name': 'ENERG CONVERS MANAGE'},
+            {'issn': '', 'name': 'COMMUN NONLINEAR SCI'},
+        ]
+
+        cls.container_alias_names = [
+            'APPLIED ENERGY',
+        ]
+
+        cls.authors_with_ids_or_emails = [
+            {'family_name': 'Kuznetsova', 'given_name': 'Elizaveta', 'email': 'elizaveta.kuznetsova@uvsq.fr',
+             'researcherid': 'J-4492-2016', 'orcid': ''},
+            {'family_name': 'Li', 'given_name': 'Yan-Fu', 'email': 'yanfu.li@ecp.fr',
+             'researcherid': 'B-6610-2014', 'orcid': '0000-0001-5755-7115'},
+            {'family_name': 'Ruiz', 'given_name': 'Carlos', 'email': 'caruizm@est-econ.uc3m.es',
+             'researcherid': 'B-2183-2012', 'orcid': '0000-0003-1663-1061'},
+            {'family_name': 'Was', 'given_name': 'Jaroslaw', 'email': 'jarek@agh.edu.pl',
+             'researcherid': 'B-5835-2012', 'orcid': ''},
+            {'family_name': 'Zio', 'given_name': 'Enrico', 'email': 'enrico.zio@ecp.fr',
+             'researcherid': '', 'orcid': '0000-0002-7108-637X'},
+        ]
+
+        # The current method of associating emails with authors zips authors and emails together if they are same
+        # length and otherwise does not import emails. This means that some email addresses in the BibTeX do not make
+        # it into the database
+        cls.missing_emails = [
+            'kerryl@unimelb.edu.au'
+        ]
+
+    def test_bibtex_load(self):
+        # The Primary publication "Duplicate Citations One Publication" should have only one secondary publication
+        # because the all secondary entries in the BibTeX file are duplicates. One secondary entry is also the
+        # same publication as the last publication in the file "An integrated framework of agent-based modelling and
+        # robust optimization for microgrid energy management"
+
+        # The Publication "Towards realistic and effective Agent-based models of crowd dynamics" appears three times
+        # as a primary and once as a secondary in the BibTeX file but we should only see one entry in the database
+
+        # The Publication "An integrated framework of agent-based modelling and robust optimization for microgrid
+        # energy management" appears once as a primary and references "Towards realistic and effective Agent-based
+        # models of crowd dynamics"
+
+        # The Primary Publication test ensures that the "An integrated framework of agent-based modelling and robust \
+        # optimization for microgrid energy management" appears in the primary list even though the BibTeX loader first
+        # encounters the reference to it
+        self.assertListEqual(list(p.title for p in models.Publication.objects.filter(is_primary=True)),
+                             self.primary_publication)
         self.assertListEqual(list(p.doi for p in models.Publication.objects.filter(is_primary=False)),
-                             secondary_publications)
-        self.assertEqual(models.AuditCommand.objects.count(), 0)
+                             self.secondary_publication)
 
-    def test_citations_with_duplicates_in_db(self):
-        """Make sure that a merge occurs when multiple secondary duplicates are already in the database"""
-        creator = User.objects.create_user(username='foo', email='a@b.com', password='test')
-        author = models.Author(family_name="Sampson", given_name="RJ")
-        author.save()
-        author.id = None
-        author.save()
+        # This ensures that duplicate secondary publications part of the same primary publication only get added once
+        self.assertListEqual(list(models.Publication.objects.filter(
+            referenced_by=models.Publication.objects.filter(title='Duplicate Citations One Publication'))
+                                  .values('title', 'doi')),
+                             self.duplicate_citation_one_publication_references)
+        self.assertListEqual(list(p.doi for p in models.Publication.objects.filter(
+            referenced_by=models.Publication.objects.filter(
+                title='Towards realistic and effective Agent-based models of crowd dynamics'))),
+                             self.realistic_and_effective_abms_references)
+        self.assertSetEqual(set(p.doi for p in models.Publication.objects.filter(
+            referenced_by=models.Publication.objects.filter(
+                title='An integrated framework of agent-based modelling and robust optimization for microgrid energy management'))),
+                            self.microgrid_energy_management_references)
 
-        container = models.Container(name="AM J PUBLIC HEALTH")
-        container.save()
-        container.id = None
-        container.save()
+        self.assertFalse(models.Publication.objects.filter(doi=self.not_a_publication[0]).exists())
 
-        publication = models.Publication(added_by=creator, doi='10.2105/ajph.2004.037705', container=container,
-                                         is_primary=False)
-        publication.save()
-        publication.id = None
-        publication.save()
+        self.assertListEqual(list(models.Container.objects.all().values('name', 'issn')),
+                             self.container_names)
 
-        cmd = Command()
-        cmd.handle(filename="catalog/citation/tests/data/entries_different_publications_same_citations.json",
-                   username='foo')
+        # ContainerAlias entries are not added right now
+        self.assertFalse(models.ContainerAlias.objects.filter(name='APPLIED ENERGY').exists())
 
-        primary_publications = [
-            'Towards realistic and effective Agent-based models of crowd dynamics',
-            'Spatial and temporal dynamics of cell generations within an invasion wave: A link to cell lineage tracing',
+        # All author entries from the primary publication "An integrated framework of agent-based modelling and robust
+        # optimization for microgrid energy management" should be present even though we loaded the citation first
+        self.assertListEqual(list(
+            models.Author.objects
+                .exclude(email='')
+                .order_by('family_name')
+                .values('family_name', 'given_name', 'email', 'researcherid', 'orcid')),
+            self.authors_with_ids_or_emails)
 
-        ]
+        self.assertFalse(models.Author.objects.filter(email=self.missing_emails[0]).exists())
 
-        secondary_publications = [
-            '10.2105/ajph.2004.037705'
-        ]
+    def test_bibtex_load_idempotent(self):
+        """Loading the same dataset into the database twice should not result in any changes to the database"""
+        n_audit_command = models.AuditCommand.objects.count()
+        n_publications = models.Publication.objects.count()
+        n_authors = models.Author.objects.count()
+        n_containers = models.Container.objects.count()
+        n_raw = models.Raw.objects.count()
+        self.load_data()
 
-        db_primary_publications = models.Publication.objects.annotate(n_citations=Count('citations')).filter(
-            is_primary=True)
-        self.assertListEqual(list(p.title for p in db_primary_publications),
-                             primary_publications)
-        self.assertListEqual(list(p.n_citations for p in db_primary_publications),
-                             [1, 1])
-        self.assertListEqual(list(p.doi for p in models.Publication.objects.filter(is_primary=False)),
-                             secondary_publications)
-        self.assertTrue(models.AuditCommand.objects.count() > 0)
-
-    def test_publication_with_duplicates_in_db(self):
-        """Make sure that a merge occurs when multiple secondary duplicates are already in the database"""
-        creator = User.objects.create_user(username='foo', email='a@b.com', password='test')
-        author = models.Author(family_name="Jaroslaw", given_name="Was")
-        author.save()
-        author.id = None
-        author.save()
-
-        container = models.Container(name="ELSEVIER SCIENCE BV", issn='0925-2312')
-        container.save()
-        container.id = None
-        container.save()
-
-        publication = models.Publication(added_by=creator, doi='10.1016/j.neucom.2014.04.057',
-                                         title='Towards realistic and effective Agent-based models of crowd dynamics',
-                                         date_published_text='2014',
-                                         container=container,
-                                         isi='ISI:000347438600035')
-        publication.save()
-        publication.id = None
-        publication.save()
-
-        cmd = Command()
-        cmd.handle(filename="catalog/citation/tests/data/entries_different_publications_same_citations.json",
-                   username='foo')
-
-        primary_publications = [
-            'Towards realistic and effective Agent-based models of crowd dynamics',
-            'Spatial and temporal dynamics of cell generations within an invasion wave: A link to cell lineage tracing',
-        ]
-
-        secondary_publications = [
-            '10.2105/ajph.2004.037705'
-        ]
-
-        db_primary_publications = models.Publication.objects.annotate(
-            n_citations=Count('citations')).filter(is_primary=True)
-        self.assertListEqual(list(p.title for p in db_primary_publications),
-                             primary_publications)
-        self.assertListEqual(list(p.n_citations for p in db_primary_publications),
-                             [1, 1])
-        self.assertListEqual(list(p.doi for p in models.Publication.objects.filter(is_primary=False)),
-                             secondary_publications)
-        self.assertTrue(models.AuditCommand.objects.count() > 0)
+        self.assertEqual(n_audit_command, models.AuditCommand.objects.count())
+        self.assertEqual(n_publications, models.Publication.objects.count())
+        self.assertEqual(n_authors, models.Author.objects.count())
+        self.assertEqual(n_containers, models.Container.objects.count())
+        self.assertEqual(n_raw, models.Raw.objects.count())

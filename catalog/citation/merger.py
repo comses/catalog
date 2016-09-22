@@ -326,7 +326,7 @@ class PublicationMergeValidationMessage:
             assert final.doi == self.final.doi
         if self.final.isi:
             assert final.isi == self.final.isi
-        others = set(final.get_duplicates())
+        others = set(final.duplicates())
         if others:
             return PublicationMergeGroup(final=self.final, others=others)
 

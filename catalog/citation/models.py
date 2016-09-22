@@ -85,9 +85,10 @@ def make_versioned_payload(instance, changes: Dict):
 class LogManager(models.Manager):
     use_for_related_fields = True
 
-    def log_create(self, audit_command, **kwargs):
+    def log_create(self, audit_command: 'AuditCommand', **kwargs):
         with transaction.atomic():
             instance = self.create(**kwargs)
+            audit_command.save_once()
             AuditLog.objects.create(
                 action='INSERT',
                 row_id=instance.id,
@@ -96,7 +97,7 @@ class LogManager(models.Manager):
                 audit_command=audit_command)
             return instance
 
-    def log_get_or_create(self, audit_command, **kwargs):
+    def log_get_or_create(self, audit_command: 'AuditCommand', **kwargs):
         relation_fields = {relation.attname for relation in self.model._meta.many_to_many}
         defaults = kwargs.pop('defaults', {})
         with transaction.atomic():
@@ -111,6 +112,7 @@ class LogManager(models.Manager):
                 payload = make_versioned_payload(instance, kwargs)
                 row_id = instance.id
             if created or payload:
+                audit_command.save_once()
                 AuditLog.objects.create(
                     action=action,
                     row_id=row_id,
@@ -122,7 +124,7 @@ class LogManager(models.Manager):
 
 
 class LogQuerySet(models.query.QuerySet):
-    def log_delete(self, audit_command):
+    def log_delete(self, audit_command: 'AuditCommand'):
         # TODO test synchronization with solr
         """
         batch delete
@@ -131,7 +133,7 @@ class LogQuerySet(models.query.QuerySet):
         """
         with transaction.atomic():
             instances = self.all()
-
+            audit_command.save_once()
             auditlogs = []
             for instance in instances:
                 payload = make_payload(instance)
@@ -146,7 +148,7 @@ class LogQuerySet(models.query.QuerySet):
             AuditLog.objects.bulk_create(auditlogs)
             instances.delete()
 
-    def log_update(self, audit_command, **kwargs):
+    def log_update(self, audit_command: 'AuditCommand', **kwargs):
         """batch update
 
         does not keep solr index in sync. must resync solr index after calling this method
@@ -154,7 +156,7 @@ class LogQuerySet(models.query.QuerySet):
         auditlogs = []
         with transaction.atomic():
             instances = self.all()
-
+            audit_command.save_once()
             for instance in instances:
                 versioned_payload = make_versioned_payload(instance, kwargs)
                 if versioned_payload:
@@ -179,9 +181,10 @@ class AbstractLogModel(models.Model):
     def get_message(self):
         raise NotImplementedError("get_message must be implemented")
 
-    def log_delete(self, audit_command):
+    def log_delete(self, audit_command: 'AuditCommand'):
         with transaction.atomic():
             payload = make_payload(self)
+            audit_command.save_once()
             auditlogs = \
                 AuditLog.objects.create(
                     action='DELETE',
@@ -192,11 +195,12 @@ class AbstractLogModel(models.Model):
             info = self.delete()
             return info
 
-    def log_update(self, audit_command, **kwargs):
+    def log_update(self, audit_command: 'AuditCommand', **kwargs):
         with transaction.atomic():
             payload = make_versioned_payload(self, kwargs)
             row_id = self.id
             if payload:
+                audit_command.save_once()
                 AuditLog.objects.create(
                     action='UPDATE',
                     row_id=row_id,
@@ -253,6 +257,7 @@ class Author(AbstractLogModel):
     given_name = models.CharField(max_length=200)
     family_name = models.CharField(max_length=200)
     orcid = models.TextField(max_length=200)
+    researcherid = models.TextField(max_length=100, default='')
     email = models.EmailField(blank=True)
 
     date_added = models.DateTimeField(auto_now_add=True,
@@ -264,9 +269,9 @@ class Author(AbstractLogModel):
         return '{0} {1}.'.format(self.given_name, self.family_name)
 
     def __repr__(self):
-        return "Author(id={id}, orcid={orcid}. given_name={given_name}, family_name={family_name})" \
+        return "Author(id={id}, orcid={orcid}, email={email}, given_name={given_name}, family_name={family_name})" \
             .format(id=self.id, orcid=repr(self.orcid), given_name=repr(self.given_name),
-                    family_name=repr(self.family_name))
+                    family_name=repr(self.family_name), email=repr(self.email))
 
     @property
     def name(self):
@@ -283,8 +288,7 @@ class Author(AbstractLogModel):
 
     @staticmethod
     def normalize_author_name(author_str: str):
-        normalized_name = author_str.upper()
-        normalized_name = re.sub(r"\n|\r", " ", normalized_name)
+        normalized_name = re.sub(r"\n|\r", " ", author_str.strip())
         normalized_name = re.sub(r"\.|,|\{|\}", "", normalized_name)
         normalized_name_split = normalized_name.split(' ', 1)
         if len(normalized_name_split) == 2:
@@ -295,6 +299,22 @@ class Author(AbstractLogModel):
 
     def get_message(self):
         return '{} {} ({})'.format(self.given_name, self.family_name, self.id)
+
+    def duplicates(self, **kwargs):
+        query = Author.objects \
+            .filter((Q(orcid=self.orcid) & ~Q(orcid='')) |
+                    (Q(researcherid=self.researcherid) & ~Q(researcherid=''))) \
+            .filter(**kwargs) \
+            .exclude(id=self.id)
+        return query
+
+    def augment(self, audit_command, author):
+        changes = {}
+        for field in ['given_name', 'family_name', 'orcid', 'researcherid', 'email']:
+            if not getattr(author, field) and getattr(self, field):
+                changes[field] = getattr(self, field)
+
+        author.log_update(audit_command=audit_command, **changes)
 
 
 class AuthorAlias(AbstractLogModel):
@@ -415,7 +435,8 @@ class Sponsor(AbstractLogModel):
 
 class Container(AbstractLogModel):
     """Canonical Container"""
-    issn = models.TextField(max_length=500, blank=True, default='')
+    issn = models.TextField(max_length=200, blank=True, default='')
+    eissn = models.TextField(max_length=200, blank=True, default='')
     type = models.TextField(max_length=1000, blank=True, default='')
     name = models.CharField(max_length=300)
 
@@ -433,6 +454,19 @@ class Container(AbstractLogModel):
 
     def get_message(self):
         return 'name: {} issn: {}'.format(repr(self.name), repr(self.issn) if self.issn else '\'\'')
+
+    def duplicates(self):
+        return Container.objects \
+            .filter((Q(issn=self.issn) & ~Q(issn='')) |
+                    (Q(eissn=self.issn) & ~Q(eissn=''))) \
+            .exclude(id=self.id)
+
+    def augment(self, audit_command, container):
+        changes = {}
+        for field in ['issn', 'eissn', 'type', 'name']:
+            if not getattr(container, field) and getattr(self, field):
+                changes[field] = getattr(self, field)
+        container.log_update(audit_command=audit_command, **changes)
 
 
 class ContainerAlias(AbstractLogModel):
@@ -528,18 +562,18 @@ class Publication(AbstractLogModel):
         "self", symmetrical=False, related_name="referenced_by",
         through='PublicationCitations', through_fields=('publication', 'citation'))
 
-    def get_duplicates(self):
-        query = Q()
-        query.connector = query.OR
-        if self.doi:
-            query.children.append(('doi', self.doi))
-        if self.isi:
-            query.children.append(('isi', self.isi))
+    def duplicates(self, query=None, **kwargs):
+        if query is None:
+            query = Publication.objects \
+                .filter((Q(isi=self.isi) & ~Q(isi='')) |
+                        (Q(doi=self.doi) & ~Q(doi='')) |
+                        (Q(date_published_text__iexact=self.date_published_text) &
+                         ~Q(date_published_text='') &
+                         Q(title__iexact=self.title) &
+                         ~Q(title=''))) \
+                .exclude(id=self.id)
 
-        if query:
-            return Publication.objects.filter(query).exclude(id=self.id)
-        else:
-            return None
+        return query.filter(**kwargs)
 
     def get_message(self):
         return "{} ({})".format(self.title, self.id)
@@ -588,6 +622,16 @@ class Publication(AbstractLogModel):
         return 'id: {id} {title} {year}. {container}'.format(id=self.id, title=self.title, year=self.year_published,
                                          container=self.container)
 
+    def augment(self, audit_command, publication):
+        changes = {}
+        for field in ['title', 'abstract', 'date_published_text', 'doi', 'isi']:
+            if not getattr(publication, field) and getattr(self, field):
+                changes[field] = getattr(self, field)
+        if not publication.is_primary and self.is_primary:
+            changes['is_primary'] = True
+
+        publication.log_update(audit_command=audit_command, **changes)
+
 
 class AuditCommand(models.Model):
     Action = Choices(('SPLIT', _('Split Record')),
@@ -600,6 +644,10 @@ class AuditCommand(models.Model):
     creator = models.ForeignKey(User, related_name="citation_creator_set",
                                 help_text=_('The user who initiated this action, if any.'))
     message = models.TextField(blank=True, help_text=_('A human readable representation of the change made'))
+
+    def save_once(self, *args, **kwargs):
+        if self._state.adding:
+            self.save(*args, **kwargs)
 
     class Meta:
         ordering = ['-date_added']
@@ -678,6 +726,9 @@ class Raw(AbstractLogModel):
 
     def get_message(self):
         return '{} ({})'.format(self.key, self.id)
+
+    def __str__(self):
+        return "Raw {key}, {id}".format(key=self.key, id=self.id)
 
 
 class PublicationAuthors(AbstractLogModel):

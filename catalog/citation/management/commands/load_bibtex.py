@@ -17,7 +17,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('-f', '--filename',
                             required=True,
-                            help='settings json file describing how you want to load into the db')
+                            help='BibTeX file to load into the DB')
+        parser.add_argument('-o', '--output',
+                            required=True,
+                            help='File to log errors to')
         parser.add_argument('-u', '--username',
                             required=True,
                             help='username to load the data into the db as')
@@ -29,15 +32,15 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         filename = options['filename']
+        output = options['output']
         username = options['username']
         user = User.objects.get(username=username)
         if not os.path.exists(filename):
-            ValueError("Settings file %s does not exist" % filename)
-        settings = bibtex_api.Settings.from_file(file_name=filename)
-        if os.path.exists(settings.output_file_name):
-            os.unlink(settings.output_file_name)
-        errors_and_duplicates = bibtex_api.process_entries(settings, user)
-        with open(settings.output_file_name, 'wb') as f:
-            print("Saving Duplicate Errors to File %s" % settings.output_file_name)
+            ValueError("File %s does not exist" % filename)
+        if os.path.exists(output):
+            os.unlink(output)
+        errors_and_duplicates = bibtex_api.process_entries(filename, user)
+        with open(output, 'wb') as f:
+            print("Saving Duplicate Errors to File %s" % output)
             pickle.dump(errors_and_duplicates, f)
         print("Done loading")

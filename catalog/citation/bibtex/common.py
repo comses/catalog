@@ -1,31 +1,50 @@
 from . import entry as entry_api
-from .. import models, merger
 
 import bibtexparser
-import pickle
 import json
 from typing import Optional
-from collections import namedtuple
-from django.db import transaction
+
+import textwrap
 
 
 class AlreadyExistsError(Exception): pass
 
 
-class Settings:
-    def __init__(self, file_name: str, output_file_name: str, log_file_name: Optional[str]):
-        self.file_name = file_name
-        self.output_file_name = output_file_name
-        self.log_file_name = log_file_name
+class PublicationLoadErrors:
+    def __init__(self, raw, audit_command, unaugmented_authors, unassigned_emails):
+        self.audit_command = audit_command
+        self.unassigned_emails = unassigned_emails
+        self.unaugmented_authors = unaugmented_authors
+        self.raw = raw
+        self.title = raw.publication.title
 
-    @classmethod
-    def from_file(cls, file_name: str):
-        with open(file_name, "r") as f:
-            contents = f.read()
-            settings = json.loads(contents)
-            return cls(file_name=settings['file_name'],
-                       output_file_name=settings['output_file_name'],
-                       log_file_name=settings.get('log_file_name'))
+    def __bool__(self):
+        return bool(self.unaugmented_authors) or bool(self.unassigned_emails)
+
+    def __str__(self):
+        unaugmented_authors_str = textwrap.indent("\n".join(" - " + str(ua) for ua in self.unaugmented_authors) \
+                                                      if self.unaugmented_authors else "None", "\t")
+        unaugmented_emails_str = textwrap.indent("\n".join(" - " + str(uc) for uc in self.unassigned_emails)
+                                                    if self.unassigned_emails else "None", "\t")
+        template = textwrap.dedent(
+            """
+            Publication Load Errors
+            -----------------------
+            Publication Title: {}
+
+            Raw: {}
+
+            AuditCommand: {}
+
+            Unaugmented Authors:
+            {}
+
+            Unassigned Emails:
+            {}
+
+            """)
+        return template.format(self.title if self.title else "None", str(self.raw), str(self.audit_command), unaugmented_authors_str,
+                               unaugmented_emails_str)
 
 
 def load_bibtex(file_name):
@@ -35,20 +54,17 @@ def load_bibtex(file_name):
         return bib_db.entries
 
 
-def process_entries(settings, user):
-    entries = load_bibtex(settings.file_name)
+def process_entries(file_name, user):
+    entries = load_bibtex(file_name)
 
     errors = []
-    duplicates = []
     for ind, entry in enumerate(entries):
-        error, duplicate = entry_api.process(entry, user)
-        if error:
-            errors.extend(error)
-        if duplicate:
-            duplicates.extend(duplicate)
+        publication_load_error = entry_api.process(entry, user)
+        if publication_load_error:
+            errors.append(publication_load_error)
         if ind % 20 == 0:
             print("\nProcessed %s Primary Publications\n" % ind)
-    return {"errors": errors, "duplicates": duplicates}
+    return errors
 
 
 def display(publication, ind):
