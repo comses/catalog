@@ -102,12 +102,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         last_week_datetime = timezone.now() - timedelta(days=7)
         context['status'] = Counter()
 
-        pub_count = Publication.objects.all().values('status').annotate(total=Count('status')).order_by('-total')
+        pub_count = Publication.objects.filter(is_primary=True).values('status').annotate(total=Count('status')).order_by('-total')
         for item in pub_count:
             total_count = item['total']
             context['status'][item['status']] = total_count
             context['status']['TOTAL'] += total_count
-        n_flagged = Publication.objects.filter(flagged=True).count()
+        n_flagged = Publication.objects.filter(is_primary=True, flagged=True).count()
         context['flagged'] = n_flagged
 
         context['untagged_publications_count'] = Publication.objects.filter(status=Publication.Status.UNTAGGED,
@@ -117,7 +117,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         recently_updated_publications = Publication.objects.exclude(
             status=Publication.Status.AUTHOR_UPDATED)
         context['recently_updated'] = recently_updated_publications.filter(
-            date_modified__gte=last_week_datetime).order_by('-date_modified')[:number_of_publications]
+            date_modified__gte=last_week_datetime, is_primary=True).order_by('-date_modified')[:number_of_publications]
         return context
 
 
@@ -326,14 +326,14 @@ class CuratorWorkflowView(LoginRequiredMixin, SearchView):
 
     def get_context_data(self, **kwargs):
         context = super(CuratorWorkflowView, self).get_context_data(**kwargs)
-        sqs = SearchQuerySet().filter(assigned_curator=self.request.user).facet('status')
+        sqs = SearchQuerySet().filter(assigned_curator=self.request.user, is_primary=True).facet('status')
         context.update(facets=sqs.facet_counts(),
                        total_number_of_records=Publication.objects.filter(assigned_curator=self.request.user).count())
         return context
 
     def get_queryset(self):
         sqs = super(CuratorWorkflowView, self).get_queryset()
-        return sqs.filter(assigned_curator=self.request.user).order_by('-last_modified', '-status')
+        return sqs.filter(assigned_curator=self.request.user, is_primary=True).order_by('-last_modified', '-status')
 
 
 class ContactAuthor(LoginRequiredMixin, generics.GenericAPIView):

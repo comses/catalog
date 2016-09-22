@@ -29,7 +29,7 @@ class CatalogSearchForm(SearchForm):
     flagged = forms.ChoiceField(choices=FLAGGED, required=False,)
 
     def no_query_found(self):
-        return self.searchqueryset.models(Publication).all()
+        return self.searchqueryset.filter(is_primary=True).models(Publication).all()
 
     def search(self):
         # First, store the SearchQuerySet received from other processing.

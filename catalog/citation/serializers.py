@@ -216,6 +216,9 @@ class PublicationSerializer(serializers.ModelSerializer):
     details
     """
 
+    def get_queryset(self):
+        return Publication.objects.filter(is_primary=True)
+
     def get_activity_logs(self, obj):
         audit_logs = AuditLog.objects \
             .filter(Q(table=obj._meta.model_name, row_id=obj.id) |
