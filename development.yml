@@ -8,7 +8,7 @@ services:
       - ./deploy/solr/conf:/catalog-solr-conf
       - ./deploy/solr/init.d/solr.in.sh:/opt/solr/bin/solr.in.sh
     ports:
-      - "127.0.0.1:8983:8983"
+      - "localhost:8983:8983"
     environment:
       - SOLR_JAVA_MEM="-Xms2g -Xmx2g"
     entrypoint:
@@ -22,11 +22,9 @@ services:
       - data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: catalog
-      # FIXME: replace with env_file (https://docs.docker.com/v1.8/compose/yml/#env-file)
+      # FIXME: replace with something more secure, see https://github.com/docker/docker/issues/13490
       POSTGRES_PASSWORD: CHANGEME_CATALOG_DB_PASSWORD
       POSTGRES_DB: comses_catalog
-    ports:
-      - "5433:5432"
   django:
     build:
       context: ./
@@ -44,7 +42,7 @@ services:
       SOLR_PORT: 8983
       SOLR_CORE_NAME: catalog_core
     ports:
-      - "8000:8000"
+      - "localhost:8000:8000"
     links:
       - db
       - solr
