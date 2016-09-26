@@ -259,6 +259,7 @@ class Author(AbstractLogModel):
     orcid = models.TextField(max_length=200)
     researcherid = models.TextField(max_length=100, default='')
     email = models.EmailField(blank=True)
+    user = models.OneToOneField(User, null=True)
 
     date_added = models.DateTimeField(auto_now_add=True,
                                       help_text=_('Date this model was imported into this system'))
@@ -343,6 +344,19 @@ class AuthorAlias(AbstractLogModel):
 
     class Meta:
         unique_together = ('author', 'given_name', 'family_name')
+
+
+class AuthorCorrespondenceTemplate(models.Model):
+    text = models.TextField(max_length=6000)
+    label = models.TextField(max_length=50)
+
+
+class AuthorCorrespondence(models.Model):
+    date_created = models.DateTimeField(auto_now=True)
+    date_responded = models.DateTimeField(blank=True, null=True)
+    template = models.ForeignKey(AuthorCorrespondenceTemplate, related_name='correspondences')
+    author = models.ForeignKey(Author, on_delete=models.PROTECT, related_name='correspondences')
+    hash = models.CharField(max_length=255)
 
 
 class Tag(AbstractLogModel):
@@ -620,7 +634,7 @@ class Publication(AbstractLogModel):
 
     def __str__(self):
         return 'id: {id} {title} {year}. {container}'.format(id=self.id, title=self.title, year=self.year_published,
-                                         container=self.container)
+                                                             container=self.container)
 
     def augment(self, audit_command, publication):
         changes = {}

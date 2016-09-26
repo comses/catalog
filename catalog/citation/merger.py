@@ -103,6 +103,7 @@ class AuthoritativeAuthorMergeGroupSet:
 
 
 class AuthorMergeGroup:
+    # TODO: Deal with AuthorCorrespondence related table on merge
     def __init__(self, final: models.Author, others: Set[models.Author]):
         self.final = final
         self.others = others

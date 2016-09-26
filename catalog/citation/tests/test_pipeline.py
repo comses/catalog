@@ -88,6 +88,23 @@ class TestPipeline(TestCase):
              'researcherid': '', 'orcid': '0000-0002-7108-637X'},
         ]
 
+        cls.authors_duplicate_citation_one_publication = {
+            'Was',
+        }
+
+        cls.authors_of_realistic_and_effective_abms = {
+            'Cheeseman',
+            'Newgreen',
+            'Landman',
+        }
+
+        cls.authors_of_microgrid_energy_management = {
+            'elizaveta.kuznetsova@uvsq.fr',
+            'yanfu.li@ecp.fr',
+            'caruizm@est-econ.uc3m.es',
+            'enrico.zio@ecp.fr',
+        }
+
         # The current method of associating emails with authors zips authors and emails together if they are same
         # length and otherwise does not import emails. This means that some email addresses in the BibTeX do not make
         # it into the database
@@ -146,6 +163,21 @@ class TestPipeline(TestCase):
                 .order_by('family_name')
                 .values('family_name', 'given_name', 'email', 'researcherid', 'orcid')),
             self.authors_with_ids_or_emails)
+
+        self.assertSetEqual(
+            set(a.family_name for a in models.Author.objects.filter(
+                publications=models.Publication.objects.filter(doi='10.1016/j.neucom.2014.04.057'))),
+            self.authors_duplicate_citation_one_publication)
+
+        self.assertSetEqual(
+            set(a.family_name for a in models.Author.objects.filter(
+                publications=models.Publication.objects.filter(doi='10.1016/j.jtbi.2014.08.016'))),
+            self.authors_of_realistic_and_effective_abms)
+
+        self.assertSetEqual(
+            set(a.email for a in models.Author.objects.filter(
+                publications=models.Publication.objects.filter(doi='10.1016/j.apenergy.2014.04.024'))),
+            self.authors_of_microgrid_energy_management)
 
         self.assertFalse(models.Author.objects.filter(email=self.missing_emails[0]).exists())
 
