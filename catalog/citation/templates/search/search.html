@@ -45,12 +45,17 @@
             <h3>Results</h3>
             <table class="table table-striped">
                 <thead>
-                    <tr><th class='col-md-1'>Curator</th> <th class='col-md-8'>Title</th><th class='col-md-3'>Last Modified</th></tr>
+                    <tr><th class='col-md-1'>Curator</th> <th>URL</th><th>Title</th><th class='col-md-3'>Last Modified</th></tr>
                 </thead>
                 <tbody>
                     {% for publication in object_list %}
                         <tr>
                             <td><mark>{{ publication.assigned_curator }}</mark></td>
+                            {%  if publication.code_archive_url != '' %}
+                            <td><i class="fa fa-thumbs-o-up"></i></td>
+                            {% else %}
+                            <td><i class="fa fa-thumbs-down"></i></td>
+                            {% endif %}
                             <td><span class='label label-as-badge label-primary'>{{ publication.status }}</span> <a href="{% url 'citation:publication_detail' publication.pk %}">{{ publication.title }}</td>
                             <td>{{ publication.last_modified }}</td>
                         </tr>

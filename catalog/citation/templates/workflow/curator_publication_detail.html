@@ -8,6 +8,7 @@
     <a target='_blank' data-bind="attr: { href: asuLibraryTitleLink() }">
         <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
     </a>
+    <span class="label label-as-badge label-danger pull-right" data-bind="if: flagged">Flagged</span>
 </h4>
 <form id='curatorPublicationDetailForm' method="post" role="form">
     <div class="row">

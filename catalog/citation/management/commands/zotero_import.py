@@ -199,19 +199,19 @@ class Command(BaseCommand):
         else:
             article = self.set_tags(data, article)
             if not article.code_archive_url:
-                article.status = Publication.Status.NEEDS_AUTHOR_REVIEW
+                article.status = Publication.Status.REVIEWED
             else:
                 # if code_archive_url exists, check for validity and set appropriate status
                 try:
                     response = requests.get(article.code_archive_url)
                     if response.status_code == 200:
-                        article.status = Publication.Status.COMPLETE
+                        article.status = Publication.Status.REVIEWED
                     else:
-                        article.status = Publication.Status.NEEDS_AUTHOR_REVIEW
+                        article.status = Publication.Status.REVIEWED
                 except Exception:
                     logger.exception("Error verifying code archive url %s for publication_id %s",
                                      article.code_archive_url, article.pk)
-                    article.status = Publication.Status.NEEDS_AUTHOR_REVIEW
+                    article.status = Publication.Status.REVIEWED
         article.save()
         return article
 

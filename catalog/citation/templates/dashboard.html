@@ -72,11 +72,16 @@
                 <div class="panel-body">
                     {% if recently_updated %}
                     <table class="table table-striped">
-                        <thead><tr><th class='col-sm-1'>Curator</th><th>Title</th><th class='col-sm-2'>Last Modified</th></thead>
+                        <thead><tr><th class='col-sm-1'>Curator</th><th>URL</th><th>Title</th><th class='col-sm-2'>Last Modified</th></thead>
                         <tbody>
                         {% for pub in recently_updated %}
                             <tr>
                                 <td><mark>{{ pub.assigned_curator }}</mark></td>
+                                {%  if publication.code_archive_url != '' %}
+                                <td><i class="fa fa-thumbs-o-up"></i></td>
+                                {% else %}
+                                <td><i class="fa fa-thumbs-down"></i></td>
+                                {% endif %}
                                 <td><span class='label label-as-badge label-primary'>{{ pub.status }}</span> <a href="{% url 'citation:publication_detail' pub.pk %}">{{ pub.title }} </a></td>
                                 <td>{{ pub.date_modified }}</td>
                             </tr>
@@ -90,7 +95,7 @@
             </div>
         </div>
     </div>
-    <div class="row"> 
+    <div class="row">
         <div class="col-md-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
@@ -111,7 +116,7 @@
                         </tbody>
                     </table>
                     {% else %}
-                        No publications have been updated by authors recently. 
+                        No publications have been updated by authors recently.
                     {% endif %}
                 </div>
             </div>
