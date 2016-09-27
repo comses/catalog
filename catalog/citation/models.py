@@ -539,7 +539,7 @@ class Publication(AbstractLogModel):
     added_by = models.ForeignKey(User, related_name='citation_added_publication_set')
 
     # custom fields used by catalog internally
-    status = models.CharField(choices=Status, max_length=64, default=Status.UNTAGGED)
+    status = models.CharField(choices=Status, max_length=64, default=Status.UNREVIEWED)
     flagged = models.BooleanField(default=False)
     date_added = models.DateTimeField(auto_now_add=True,
                                       help_text=_('Date this publication was imported into this system'))
