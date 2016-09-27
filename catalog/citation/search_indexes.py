@@ -15,6 +15,7 @@ class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     assigned_curator = indexes.CharField(model_attr='assigned_curator', null=True)
     flagged = indexes.BooleanField(model_attr='flagged')
     is_primary = indexes.BooleanField(model_attr='is_primary')
+    is_archived = indexes.BooleanField(model_attr='is_archived')
 
     def prepare_last_modified(self, obj):
         last_modified = self.prepared_data.get('last_modified')

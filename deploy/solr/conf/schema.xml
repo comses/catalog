@@ -166,6 +166,7 @@
     <field name="flagged" type="boolean" indexed="true" stored="true" multiValued="false" />
 
     <field name="is_primary" type="boolean" indexed="true" stored="true" multiValued="false"/>
+    <field name="is_archived" type="boolean" indexed="true" stored="true" multiValued="false" />
   </fields>
 
   <!-- field to use to determine and enforce document uniqueness. -->

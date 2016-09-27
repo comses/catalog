@@ -23,7 +23,7 @@ class Command(BaseCommand):
         parser.add_argument('--verbose',
                             action='store_true')
         parser.add_argument('-s', '--status',
-                            default='UNTAGGED',
+                            default='UNREVIEWED',
                             help='Filter by UNFLAGGED or FLAGGED status')
 
     @staticmethod
@@ -48,12 +48,12 @@ class Command(BaseCommand):
         usernames = options['usernames']
         verbose = options['verbose']
         status = options['status']
-        if status == 'UNTAGGED':
-            filter_expr = {'status': 'UNTAGGED'}
+        if status == 'UNREVIEWED':
+            filter_expr = {'status': 'UNREVIEWED'}
         elif status == 'FLAGGED':
             filter_expr = {'flagged': True}
         else:
-            raise ValueError('status can only be UNTAGGED or FLAGGED')
+            raise ValueError('status can only be UNREVIEWED or FLAGGED')
 
         with transaction.atomic():
             untagged_publications = models.Publication.objects \

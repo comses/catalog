@@ -7,11 +7,13 @@ from django.db import migrations
 def forwards(apps, schema_editor):
     Publication = apps.get_model('citation', 'Publication')
     Publication.objects.filter(status__in=('NEEDS_AUTHOR_REVIEW', 'COMPLETE')).update(status='REVIEWED')
+    Publication.objects.filter(status='UNTAGGED').update(status='UNREVIEWED')
 
 def backwards(apps, schema_editor):
     Publication = apps.get_model('citation', 'Publication')
     Publication.objects.filter(status='REVIEWED', code_archive_url='').update(status='NEEDS_AUTHOR_REVIEW')
     Publication.objects.filter(status='REVIEWED').exclude(code_archive_url='').update(status='COMPLETE')
+    Publication.objects.filter(status='UNREVIEWED').update(status='UNTAGGED')
 
 
 class Migration(migrations.Migration):

@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
-# from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _
 
 from .models import Publication
 
@@ -19,14 +19,15 @@ class CatalogAuthenticationForm(AuthenticationForm):
 class CatalogSearchForm(SearchForm):
 
     STATUS_CHOICES = [("", "Any")] + Publication.Status
-    FLAGGED = [("", "Any"), ("True", "True"), ("False", "False")]
+    ANY_CHOICES = [("", "Any"), ("True", "True"), ("False", "False")]
 
     publication_start_date = forms.DateField(required=False)
     publication_end_date = forms.DateField(required=False)
     contact_email = forms.BooleanField(required=False)
     status = forms.ChoiceField(choices=STATUS_CHOICES, required=False)
     assigned_curator = forms.CharField(required=False)
-    flagged = forms.ChoiceField(choices=FLAGGED, required=False,)
+    flagged = forms.ChoiceField(choices=ANY_CHOICES, required=False)
+    is_archived = forms.ChoiceField(choices=ANY_CHOICES, required=False, label=_("Has code URL"))
 
     def no_query_found(self):
         return self.searchqueryset.filter(is_primary=True).models(Publication).all()
@@ -58,15 +59,18 @@ class CatalogSearchForm(SearchForm):
             criteria.update(assigned_curator=self.cleaned_data['assigned_curator'])
 
         # Check to see if flagged was set
-        if self.cleaned_data['flagged']:
-            flagged_str = self.cleaned_data['flagged']
-            flagged = flagged_str == 'True'
-            criteria.update(flagged=self.cleaned_data['flagged'])
+        flagged_string = self.cleaned_data.get('flagged')
+        if flagged_string:
+            criteria.update(flagged=(flagged_string == "True"))
 
         sqs = sqs.filter(**criteria)
 
         if self.cleaned_data['contact_email']:
-            sqs = sqs.exclude(contact_email__exact='')
+            sqs = sqs.exclude(contact_email='')
+
+        is_archived_string = self.cleaned_data.get('is_archived')
+        if is_archived_string:
+            sqs = sqs.filter(is_archived=(is_archived_string == 'True'))
 
         # if not using query to search, return the results sorted by date
         if not self.cleaned_data['q']:

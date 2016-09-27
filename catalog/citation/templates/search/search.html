@@ -51,10 +51,10 @@
                     {% for publication in object_list %}
                         <tr>
                             <td><mark>{{ publication.assigned_curator }}</mark></td>
-                            {%  if publication.code_archive_url != '' %}
-                            <td><i class="fa fa-thumbs-o-up"></i></td>
+                            {%  if publication.is_archived %}
+                            <td><i class="text-success fa fa-thumbs-o-up"></i></td>
                             {% else %}
-                            <td><i class="fa fa-thumbs-down"></i></td>
+                            <td><i class="text-danger fa fa-thumbs-down"></i></td>
                             {% endif %}
                             <td><span class='label label-as-badge label-primary'>{{ publication.status }}</span> <a href="{% url 'citation:publication_detail' publication.pk %}">{{ publication.title }}</td>
                             <td>{{ publication.last_modified }}</td>

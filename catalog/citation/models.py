@@ -500,7 +500,7 @@ class ContainerAlias(AbstractLogModel):
 
 class Publication(AbstractLogModel):
     Status = Choices(
-        ('UNTAGGED', _('Not reviewed: Has not been reviewed by CoMSES')),
+        ('UNREVIEWED', _('Not reviewed: Has not been reviewed by CoMSES')),
         ('AUTHOR_UPDATED', _('Updated by author: Awaiting CoMSES review')),
         ('INVALID', _('Not applicable: Publication does not refer to a specific computational model')),
         ('REVIEWED', _('Reviewed: Publication metadata reviewed and verified by CoMSES')),
@@ -592,6 +592,10 @@ class Publication(AbstractLogModel):
     def is_editable_by(self, user):
         # eventually consider having permission groups or per-object permissions
         return self.assigned_curator == user
+
+    @property
+    def is_archived(self):
+        return bool(self.code_archive_url)
 
     # TODO: replace primary key lookup with slug
     def _pk_url(self, name):

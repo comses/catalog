@@ -110,8 +110,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         n_flagged = Publication.objects.filter(is_primary=True, flagged=True).count()
         context['flagged'] = n_flagged
 
-        context['untagged_publications_count'] = Publication.objects.filter(status=Publication.Status.UNTAGGED,
-                                                                            assigned_curator=self.request.user).count()
+        context['complete'] = Publication.objects.filter(
+            is_primary=True, status=Publication.Status.REVIEWED).exclude(code_archive_url='').count()
+        context['incomplete'] = context['status']['TOTAL'] - context['complete']
+
+        context['unreviewed_publications_count'] = Publication.objects.filter(
+            status=Publication.Status.UNREVIEWED, assigned_curator=self.request.user).count()
         context['recently_author_updated'] = Publication.objects.filter(
             status=Publication.Status.AUTHOR_UPDATED)
         recently_updated_publications = Publication.objects.exclude(

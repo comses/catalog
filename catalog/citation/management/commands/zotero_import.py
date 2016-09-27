@@ -191,11 +191,11 @@ class Command(BaseCommand):
 
         tags = data['tags']
         if not tags:
-            # if publication has no zotero tags, mark it as untagged (i.e not reviewed)
+            # if publication has no zotero tags, mark it as UNREVIEWED (i.e not reviewed)
             # FIXME: this condition is rarely if ever true. We need to check for the existence of key: value tags
             # instead of just tags in general because the citation import into zotero via the Web of Science already has
             # numerous general tags
-            article.status = Publication.Status.UNTAGGED
+            article.status = Publication.Status.UNREVIEWED
         else:
             article = self.set_tags(data, article)
             if not article.code_archive_url:
