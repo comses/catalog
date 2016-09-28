@@ -33,17 +33,17 @@ class Command(BaseCommand):
         if directory:
             file_paths = [p for p in pathlib.Path(directory).iterdir() if p.is_file()]
         elif filename:
-            file_paths = [pathlib.path(filename)]
+            file_paths = [pathlib.Path(filename)]
         for p in file_paths:
-            self.process_filepath(p, user)
+            self.process_bibtex_file(p, user)
 
-    def process_filepath(self, path, user):
-        output = path.parent.joinpath("invalid-{0}.p".format(path.name))
-        if output.exists():
-            logger.debug("deleting old output file %s", output)
-            output.unlink()
+    def process_bibtex_file(self, path, user):
+        invalid_output_file = path.parent.joinpath("invalid-{0}.p".format(path.name))
+        if invalid_output_file.exists():
+            logger.debug("deleting old invalid_output_file file %s", invalid_output_file)
+            invalid_output_file.unlink()
         errors_and_duplicates = bibtex_api.process_entries(path.absolute().as_posix(), user)
-        with output.open('wb') as f:
-            logger.debug("Pickling duplicate errors to %s", output)
+        with invalid_output_file.open('wb') as f:
+            logger.debug("Pickling duplicate errors to %s", invalid_output_file)
             pickle.dump(errors_and_duplicates, f)
         logger.debug("Done loading")

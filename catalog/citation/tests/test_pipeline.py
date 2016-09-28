@@ -12,7 +12,6 @@ class TestPipeline(TestCase):
     def load_data():
         cmd = Command()
         cmd.handle(filename="catalog/citation/tests/data/all_problematic_entries.bib",
-                   output="catalog/citation/tests/data/all_problematic_entries.invalid",
                    username='foo')
 
     @classmethod
