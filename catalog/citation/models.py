@@ -366,6 +366,9 @@ class Tag(AbstractLogModel):
     date_modified = models.DateTimeField(auto_now=True,
                                          help_text=_('Date this model was last modified on this system'))
 
+    def __str__(self):
+        return self.name
+
     def get_message(self):
         return "{} ({})".format(self.name, self.id)
 
@@ -639,7 +642,7 @@ class Publication(AbstractLogModel):
 
     def augment(self, audit_command, publication):
         changes = {}
-        for field in ['title', 'abstract', 'date_published_text', 'doi', 'isi']:
+        for field in ['title', 'abstract', 'date_published_text', 'doi', 'isi', 'volume', 'pages']:
             if not getattr(publication, field) and getattr(self, field):
                 changes[field] = getattr(self, field)
         if not publication.is_primary and self.is_primary:

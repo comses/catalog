@@ -38,7 +38,7 @@ class Command(BaseCommand):
             self.process_bibtex_file(p, user)
 
     def process_bibtex_file(self, path, user):
-        invalid_output_file = path.parent.joinpath("invalid-{0}.p".format(path.name))
+        invalid_output_file = path.parent.joinpath('invalid', "{0}.p".format(path.name))
         if invalid_output_file.exists():
             logger.debug("deleting old invalid_output_file file %s", invalid_output_file)
             invalid_output_file.unlink()

@@ -9,6 +9,10 @@ from .. import ref
 from ... import models
 from ... import util
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def guess_author_str_split(author_str):
     author_split_and = re.split(r"\band\b", author_str)
@@ -91,6 +95,13 @@ def create_detached_publication(entry, creator):
         date_published_text=date_published_text,
         doi=entry.get("doi", ""),
         isi=entry.get("isi", ""),
+        volume=entry.get('volume', ''),
+        pages=entry.get('pages', ''),
+        # the following are not found in the bibtex data for the most part, perhaps holdovers from Zotero
+        issue=entry.get('issue', ''),
+        series=entry.get('series', ''),
+        series_title=entry.get('series_title', ''),
+        series_text=entry.get('series_text', ''),
         is_primary=True,
         title=util.sanitize_name(entry.get("title", ""))
     )
@@ -198,6 +209,23 @@ def create_container(audit_command: models.AuditCommand, detached_container: mod
     return container
 
 
+def get_keywords(entry):
+    raw_keywords = entry.get('keywords', '')
+    raw_keywords_plus = entry.get('keywords-plus', '')
+    # FIXME: revisit if capitalizing keywords is a bad idea
+    keywords = [rk.strip().capitalize() for rk in raw_keywords.split(';') if rk.strip()]
+    keywords += [rk.strip().capitalize() for rk in raw_keywords_plus.split(';') if rk.strip()]
+    return keywords
+
+
+def attach_keywords(publication, keywords):
+    for k in keywords:
+        tag, created = models.Tag.objects.get_or_create(name__iexact=k, defaults={'name': k})
+        pts, pts_created = models.PublicationTags.objects.get_or_create(publication=publication, tag=tag)
+        if pts_created:
+            logger.debug("publication %s already had tag %s", publication, tag)
+
+
 def process(entry: Dict, creator: User):
     detached_publication = create_detached_publication(entry, creator)
     detached_container = create_detached_container(entry)
@@ -226,6 +254,7 @@ def process(entry: Dict, creator: User):
         publication = detached_publication
         publication.container = container
         publication.save()
+        attach_keywords(publication, get_keywords(entry))
         create_authors(audit_command, publication, detached_authors)
 
         create_citations(publication, entry, creator)
