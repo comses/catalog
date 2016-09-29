@@ -8,7 +8,7 @@ services:
       - ./deploy/solr/conf:/catalog-solr-conf
       - ./deploy/solr/init.d/solr.in.sh:/opt/solr/bin/solr.in.sh
     ports:
-      - "localhost:8983:8983"
+      - "127.0.0.1:8983:8983"
     environment:
       - SOLR_JAVA_MEM="-Xms2g -Xmx2g"
     entrypoint:
@@ -20,8 +20,6 @@ services:
     image: postgres:9
     volumes:
       - data:/var/lib/postgresql/data
-    ports:
-      - "localhost:5433:5432"
     environment:
       POSTGRES_USER: catalog
       # FIXME: replace with something more secure, see https://github.com/docker/docker/issues/13490
@@ -44,7 +42,7 @@ services:
       SOLR_PORT: 8983
       SOLR_CORE_NAME: catalog_core
     ports:
-      - "localhost:8000:8000"
+      - "127.0.0.1:8000:8000"
     links:
       - db
       - solr
