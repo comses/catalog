@@ -45,18 +45,23 @@
             <h3>Results</h3>
             <table class="table table-striped">
                 <thead>
-                    <tr><th class='col-md-1'>Curator</th> <th>URL</th><th>Title</th><th class='col-md-3'>Last Modified</th></tr>
+                    <tr><th class='col-md-3'>Status</th><th class='col-md-6'>Title</th><th class='col-md-2'>Last Modified</th></tr>
                 </thead>
                 <tbody>
                     {% for publication in object_list %}
                         <tr>
-                            <td><mark>{{ publication.assigned_curator }}</mark></td>
-                            {%  if publication.is_archived %}
-                            <td><i class="text-success fa fa-thumbs-o-up"></i></td>
-                            {% else %}
-                            <td><i class="text-danger fa fa-thumbs-down"></i></td>
+                            <td>
+                            {% if publication.flagged %}
+                            <i class='text-danger fa fa-flag'></i>
                             {% endif %}
-                            <td><span class='label label-as-badge label-primary'>{{ publication.status }}</span> <a href="{% url 'citation:publication_detail' publication.pk %}">{{ publication.title }}</td>
+                            <span class='label label-as-badge label-primary'>{{ publication.status }}</span>
+                            {%  if publication.status == "REVIEWED" and publication.is_archived %}
+                            <i class="text-success fa fa-thumbs-o-up"></i>
+                            {% elif publication.status == "REVIEWED" %}
+                            <i class="text-danger fa fa-thumbs-down"></i>
+                            {% endif %}
+                            <mark><small>{{ publication.assigned_curator|default:"No assigned curator" }}</mark></small></td>
+                            <td><a href="{% url 'citation:publication_detail' publication.pk %}">{{ publication.title }}</td>
                             <td>{{ publication.last_modified }}</td>
                         </tr>
                     {% empty %}

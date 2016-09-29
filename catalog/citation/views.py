@@ -112,7 +112,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         context['complete'] = Publication.objects.filter(
             is_primary=True, status=Publication.Status.REVIEWED).exclude(code_archive_url='').count()
-        context['incomplete'] = context['status']['TOTAL'] - context['complete']
+        context['incomplete'] = context['status'][Publication.Status.REVIEWED] - context['complete']
 
         context['unreviewed_publications_count'] = Publication.objects.filter(
             status=Publication.Status.UNREVIEWED, assigned_curator=self.request.user).count()
