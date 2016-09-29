@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from ... import bibtex as bibtex_api
 
 import logging
+import os
 import pathlib
 import pickle
 
@@ -43,6 +44,7 @@ class Command(BaseCommand):
             logger.debug("deleting old invalid_output_file file %s", invalid_output_file)
             invalid_output_file.unlink()
         errors_and_duplicates = bibtex_api.process_entries(path.absolute().as_posix(), user)
+        os.makedirs(str(invalid_output_file.parent.absolute()), exist_ok=True)
         with invalid_output_file.open('wb') as f:
             logger.debug("Pickling duplicate errors to %s", invalid_output_file)
             pickle.dump(errors_and_duplicates, f)
