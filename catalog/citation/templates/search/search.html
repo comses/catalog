@@ -45,7 +45,7 @@
             <h3>Results</h3>
             <table class="table table-striped">
                 <thead>
-                    <tr><th class='col-md-3'>Status</th><th class='col-md-6'>Title</th><th class='col-md-2'>Last Modified</th></tr>
+                    <tr><th class='col-sm-3'>Status</th><th class='col-md-6'>Title</th><th class='col-md-2'>Last Modified</th></tr>
                 </thead>
                 <tbody>
                     {% for publication in object_list %}
@@ -60,7 +60,7 @@
                             {% elif publication.status == "REVIEWED" %}
                             <i class="text-danger fa fa-thumbs-down"></i>
                             {% endif %}
-                            <mark><small>{{ publication.assigned_curator|default:"No assigned curator" }}</mark></small></td>
+                            <mark>{{ publication.assigned_curator|default:"No assigned curator" }}</mark></td>
                             <td><a href="{% url 'citation:publication_detail' publication.pk %}">{{ publication.title }}</td>
                             <td>{{ publication.last_modified }}</td>
                         </tr>

@@ -3,12 +3,13 @@
 {% load static %}
 
 {% block content %}
-<h4><span class='label label-as-badge label-primary'><b>STATUS:</b>
-        <span data-bind='text: status'></span></span>
+<h4 class='publication-title'>
+    <span style='display: none;' class="label label-as-badge label-danger" data-bind="visible: flagged"><i class='fa fa-flag'></i></span> 
+    <span style='display: none;' class='label label-as-badge label-primary' data-bind='visible: true, text: status'></span>
+    <br>
     <a target='_blank' data-bind="attr: { href: asuLibraryTitleLink() }">
-        <span data-bind='text: title'></span> <i class='fa fa-external-link'></i>
+        <span data-bind='text: title'></span>
     </a>
-    <span class="label label-as-badge label-danger pull-right" data-bind="if: flagged">Flagged</span>
 </h4>
 <form id='curatorPublicationDetailForm' method="post" role="form">
     <div class="row">
@@ -182,23 +183,26 @@
     <div class='row'>
         <div class='col-md-11 form-group'>
             <label class="control-label" for="id_status">Status
-                <span class="label label-as-badge label-info" data-bind="text: status"></span>
+                <span class="label label-as-badge label-primary" data-bind="text: status"></span>
             </label>
             <select class="form-control" id="id_status" data-bind="options: publicationStatuses, optionsText: publicationStatus, value: status">
             </select>
         </div>
         <div class='col-md-1 form-group'>
             <label class="control-label" for="id_flagged">
-                <span class="label label-as-badge label-warning" data-bind="if: flagged">Flagged</span>
-                <span class="label label-as-badge label-complete" data-bind="ifnot: flagged">Unflagged</span>
+                <span class="label label-as-badge" data-bind="css: flaggedCssLabel, text: flagged() ? 'Flagged' : 'Unflagged'"></span>
             </label>
             <input class="form-control" type="checkbox" data-bind="checked: flagged">
         </div>
     </div>
-    <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
-    <a class='btn btn-default' href='{% url 'citation:curator_workflow' %}'>
-        <i class='fa fa-arrow-left'></i> Back to assigned publications
-    </a>
+    <div class='row'>
+        <div class='col-md-12 form-group'>
+            <button type="button" class="btn btn-primary" data-bind="click: savePublication"><i class="fa fa-floppy-o"></i> Save</button>
+            <a class='btn btn-default' href='{% url 'citation:curator_workflow' %}'>
+                <i class='fa fa-arrow-left'></i> Back to assigned publications
+            </a>
+        </div>
+    </div>
 </form>
 {% endblock content %}
 
@@ -241,6 +245,9 @@
                         list = list.concat(mdc.modelDocumentationList);
                     });
                     return list;
+                });
+                self.flaggedCssLabel = ko.pureComputed(function() {
+                    return self.flagged() ? "label-danger" : "label-info";
                 });
                 self.modelDocumentationList = ko.observableArray({{model_documentation_list_json|safe}});
                 self.selectedTags = ko.observableArray(ko.utils.arrayMap(self.tags(), function (tag) {
