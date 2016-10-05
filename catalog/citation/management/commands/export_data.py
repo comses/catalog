@@ -1,4 +1,4 @@
-from django.citation.management.base import BaseCommand
+from django.core.management.base import BaseCommand
 from django.db.models import Count
 
 from catalog.citation.models import Publication
