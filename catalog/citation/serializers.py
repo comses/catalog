@@ -205,7 +205,7 @@ class PublicationSerializer(serializers.ModelSerializer):
     sponsors = SponsorSerializer(many=True)
     container = ContainerSerializer()
     model_documentation = ModelDocumentationSerializer(many=True)
-    creators = CreatorSerializer(many=True)
+    creators = CreatorSerializer(many=True, read_only=True)
     status_options = serializers.SerializerMethodField()
     apa_citation_string = serializers.ReadOnlyField()
     flagged = serializers.BooleanField()
@@ -229,20 +229,6 @@ class PublicationSerializer(serializers.ModelSerializer):
 
     def get_status_options(self, obj):
         return {choice[0]: str(choice[1]) for choice in Publication.Status}
-
-    @staticmethod
-    def save_creators(audit_command, publication, raw_creators):
-        for raw_creator in raw_creators:
-            author, created = Author.objects.log_get_or_create(audit_command=audit_command, **raw_creator)
-            PublicationAuthors.objects.log_get_or_create(audit_command=audit_command,
-                                                         publication_id=publication.id,
-                                                         author_id=author.id)
-        filters = {'given_name__in': [raw_creator['given_name'] for raw_creator in raw_creators],
-                   'family_name__in': [raw_creator['family_name'] for raw_creator in raw_creators]}
-        PublicationAuthors.objects \
-            .exclude(author__in=Author.objects.filter(**filters)) \
-            .filter(publication=publication) \
-            .log_delete(audit_command=audit_command)
 
     @staticmethod
     def save_model_documentation(audit_command, publication, raw_model_documentations):
@@ -319,9 +305,6 @@ class PublicationSerializer(serializers.ModelSerializer):
     def update(self, audit_command, instance, validated_data):
         concrete_changes = {}
 
-        raw_creators = validated_data.pop('creators')
-        self.save_creators(audit_command=audit_command, publication=instance, raw_creators=raw_creators)
-
         raw_model_documentations = validated_data.pop('model_documentation')
         self.save_model_documentation(audit_command=audit_command, publication=instance,
                                       raw_model_documentations=raw_model_documentations)
@@ -342,8 +325,8 @@ class PublicationSerializer(serializers.ModelSerializer):
             try:
                 current_data_value = getattr(instance, field_name)
             except AttributeError:
-                raise ValidationError('\'{}\' not a field of publication with id={} and title={}' \
-                                      .format(field_name, instance.id, instance.title))
+                raise ValidationError("'{0}' not a field of publication with id={1} and title={2}".format(
+                    field_name, instance.id, instance.title))
 
             if updated_data_value != current_data_value:
                 concrete_changes[field_name] = updated_data_value

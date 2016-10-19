@@ -176,6 +176,8 @@ class AbstractLogModel(models.Model):
     Class that implements logging for all children
 
     Subclasses should implement a get_message() method
+
+    XXX: consider replacing get_message with simpler __str__ representation?
     """
 
     def get_message(self):
@@ -253,7 +255,7 @@ class Author(AbstractLogModel):
         (INDIVIDUAL, _('individual')),
         (ORGANIZATION, _('organization')),
     )
-    type = models.TextField(choices=TYPE_CHOICES, max_length=64)
+    type = models.TextField(choices=TYPE_CHOICES, default=INDIVIDUAL, max_length=64)
     given_name = models.CharField(max_length=200)
     family_name = models.CharField(max_length=200)
     orcid = models.TextField(max_length=200)
