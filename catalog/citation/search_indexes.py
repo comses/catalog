@@ -26,6 +26,9 @@ class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     def get_model(self):
         return Publication
 
+    def index_queryset(self, using=None):
+        return Publication.objects.filter(is_primary=True)
+
 
 ##########################################
 #       AutoComplete Index Fields        #

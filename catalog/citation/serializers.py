@@ -140,6 +140,9 @@ class PublicationAuditCommand:
         self.auditlogs = auditlogs
         self.date_added = date_added
 
+    def __lt__(self, other):
+        return self.date_added > other.date_added
+
     @staticmethod
     def partition_by_audit_command_id(auditlogs):
         partioned_auditlogs = defaultdict(lambda: [])
@@ -161,6 +164,7 @@ class PublicationAuditCommand:
                                             date_added=audit_command.date_added)
             publications_audit_commands.append(publication_audit_command)
 
+        publications_audit_commands.sort()
         return publications_audit_commands
 
 
@@ -188,7 +192,7 @@ class PublicationAuditCommandSerializer(serializers.Serializer):
     creator = serializers.CharField(read_only=True)
     action = serializers.CharField(read_only=True)
     auditlogs = AuditLogSerializer(many=True)
-    date_added = serializers.DateTimeField(read_only=True)
+    date_added = serializers.DateTimeField(read_only=True, format='%Y/%m/%d %H:%M')
 
 
 class PublicationSerializer(serializers.ModelSerializer):
