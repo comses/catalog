@@ -476,8 +476,7 @@ class Container(AbstractLogModel):
 
     def duplicates(self):
         return Container.objects \
-            .filter((Q(issn=self.issn) & ~Q(issn='')) |
-                    (Q(eissn=self.issn) & ~Q(eissn=''))) \
+            .filter((Q(issn=self.issn) & ~Q(issn='')) | (Q(eissn=self.eissn) & ~Q(eissn=''))) \
             .exclude(id=self.id)
 
     def augment(self, audit_command, container):
