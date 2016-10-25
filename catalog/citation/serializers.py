@@ -207,7 +207,7 @@ class PublicationSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     platforms = PlatformSerializer(many=True)
     sponsors = SponsorSerializer(many=True)
-    container = ContainerSerializer()
+    container = ContainerSerializer(read_only=True)
     model_documentation = ModelDocumentationSerializer(many=True)
     creators = CreatorSerializer(many=True, read_only=True)
     status_options = serializers.SerializerMethodField()
@@ -318,12 +318,6 @@ class PublicationSerializer(serializers.ModelSerializer):
 
         raw_sponsors = validated_data.pop('sponsors')
         self.save_sponsor(audit_command=audit_command, publication=instance, raw_sponsors=raw_sponsors)
-
-        raw_container = validated_data.pop('container')
-        container, created = Container.objects.log_get_or_create(
-            audit_command=audit_command, **raw_container)
-        if container.id != instance.container.id:
-            concrete_changes['container_id'] = container.id
 
         for field_name, updated_data_value in validated_data.items():
             try:

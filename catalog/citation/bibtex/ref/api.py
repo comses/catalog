@@ -123,8 +123,8 @@ def create_citation(publication: models.Publication,
             detached_raw.save()
 
     else:
-        detached_container.save()
-        detached_citation.container = detached_container
+        container = models.Container.objects.get_or_create(name=detached_container.name)
+        detached_citation.container = container
         detached_citation.save()
         detached_author.save()
 
@@ -146,6 +146,7 @@ def _augment_citation(audit_command, detached_citation, detached_author, detache
     duplicate_author = detached_author.duplicates().first()
     if duplicate_author:
         detached_author.augment(audit_command, duplicate_author)
+    # FIXME: check if audit command is transient, replace with pk != -1
     if not audit_command._state.adding:
         detached_raw.publication = duplicate_citation
         detached_raw.container = duplicate_citation.container

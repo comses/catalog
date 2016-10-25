@@ -481,6 +481,9 @@ class Container(AbstractLogModel):
             .exclude(id=self.id)
 
     def augment(self, audit_command, container):
+        """
+        Updates fields on the parameterized container if they are empty
+        """
         changes = {}
         for field in ['issn', 'eissn', 'type', 'name']:
             if not getattr(container, field) and getattr(self, field):
