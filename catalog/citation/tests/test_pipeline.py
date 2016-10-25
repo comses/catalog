@@ -149,9 +149,10 @@ class TestPipeline(TestCase):
         self.assertFalse(models.Publication.objects.filter(doi=self.not_a_publication[0]).exists())
 
         for c in self.container_names:
-            cn = models.Container.objects.get(name=c.name)
+            cn = models.Container.objects.get(name=c.get('name'))
             if cn.name in ('APPL ENERG', 'NEUROCOMPUTING', 'JOURNAL OF THEORETICAL BIOLOGY'):
                 self.assertTrue(cn.issn)
+                self.assertEqual(cn.pk, models.Container.objects.get(issn=c.get('issn')).pk)
 
         # FIXME: ContainerAlias entries are not added right now
         self.assertFalse(models.ContainerAlias.objects.filter(name='APPLIED ENERGY').exists())
