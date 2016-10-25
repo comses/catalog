@@ -123,7 +123,7 @@ def create_citation(publication: models.Publication,
             detached_raw.save()
 
     else:
-        container = models.Container.objects.get_or_create(name=detached_container.name)
+        container, created = models.Container.objects.get_or_create(name=detached_container.name)
         detached_citation.container = container
         detached_citation.save()
         detached_author.save()
