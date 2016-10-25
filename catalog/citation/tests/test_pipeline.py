@@ -148,10 +148,12 @@ class TestPipeline(TestCase):
 
         self.assertFalse(models.Publication.objects.filter(doi=self.not_a_publication[0]).exists())
 
-        self.assertListEqual(list(models.Container.objects.all().values('name', 'issn')),
-                             self.container_names)
+        for c in self.container_names:
+            cn = models.Container.objects.get(name=c.name)
+            if cn.name in ('APPL ENERG', 'NEUROCOMPUTING', 'JOURNAL OF THEORETICAL BIOLOGY'):
+                self.assertTrue(cn.issn)
 
-        # ContainerAlias entries are not added right now
+        # FIXME: ContainerAlias entries are not added right now
         self.assertFalse(models.ContainerAlias.objects.filter(name='APPLIED ENERGY').exists())
 
         # All author entries from the primary publication "An integrated framework of agent-based modelling and robust
