@@ -69,7 +69,7 @@ class NoteSerializer(serializers.ModelSerializer):
 class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditLog
-        read_only_fields = ('id', 'audit_command_id', 'action', 'row_id', 'table', 'payload')
+        fields = read_only_fields = ('id', 'audit_command_id', 'action', 'row_id', 'table', 'payload')
 
 
 class AuditCommandSerializer(serializers.ModelSerializer):
@@ -78,7 +78,7 @@ class AuditCommandSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AuditCommand
-        read_only_fields = ('id', 'action', 'creator', 'date_added', 'message', 'auditlogs')
+        fields = read_only_fields = ('id', 'action', 'creator', 'date_added', 'message', 'auditlogs')
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -89,6 +89,7 @@ class TagSerializer(serializers.ModelSerializer):
                 "validators": [],
             },
         }
+        fields = read_only_fields = ('id', 'name', 'date_modified', 'date_added', )
 
 
 class PlatformSerializer(serializers.ModelSerializer):
@@ -99,6 +100,8 @@ class PlatformSerializer(serializers.ModelSerializer):
                 "validators": [],
             },
         }
+        fields = ('id', 'name', )
+        read_only_fields = ('id',)
 
 
 class SponsorSerializer(serializers.ModelSerializer):
@@ -109,7 +112,8 @@ class SponsorSerializer(serializers.ModelSerializer):
                 "validators": [],
             },
         }
-
+        fields = ('id', 'name', )
+        read_only_fields = ('id', )
 
 class ModelDocumentationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -119,17 +123,21 @@ class ModelDocumentationSerializer(serializers.ModelSerializer):
                 "validators": [],
             },
         }
+        fields = ('id', 'name', )
+        read_only_fields = ('id', )
 
 
 class ContainerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Container
+        fields = '__all__'
 
 
 class CreatorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Author
         fields = ('id', 'given_name', 'family_name', 'type', 'email')
+        read_only_fields = ('id',)
 
 
 class PublicationAuditCommand:
