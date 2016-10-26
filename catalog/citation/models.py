@@ -16,6 +16,8 @@ import re
 from model_utils import Choices
 from typing import Dict, Optional
 
+from . import fields
+
 
 def datetime_json_serialize(datetime_obj: Optional[datetime]):
     return str(datetime_obj)
@@ -258,8 +260,8 @@ class Author(AbstractLogModel):
     type = models.TextField(choices=TYPE_CHOICES, default=INDIVIDUAL, max_length=64)
     given_name = models.CharField(max_length=200)
     family_name = models.CharField(max_length=200)
-    orcid = models.TextField(max_length=200)
-    researcherid = models.TextField(max_length=100, default='')
+    orcid = fields.NonEmptyTextField(max_length=200, unique=True)
+    researcherid = fields.NonEmptyTextField(max_length=100, unique=True)
     email = models.EmailField(blank=True)
     user = models.OneToOneField(User, null=True)
 
@@ -305,19 +307,11 @@ class Author(AbstractLogModel):
 
     def duplicates(self, **kwargs):
         query = Author.objects \
-            .filter((Q(orcid=self.orcid) & ~Q(orcid='')) |
-                    (Q(researcherid=self.researcherid) & ~Q(researcherid=''))) \
+            .filter((Q(orcid=self.orcid) & Q(orcid__isnull=False)) |
+                    (Q(researcherid=self.researcherid) & Q(researcherid__isnull=False))) \
             .filter(**kwargs) \
             .exclude(id=self.id)
         return query
-
-    def augment(self, audit_command, author):
-        changes = {}
-        for field in ['given_name', 'family_name', 'orcid', 'researcherid', 'email']:
-            if not getattr(author, field) and getattr(self, field):
-                changes[field] = getattr(self, field)
-
-        author.log_update(audit_command=audit_command, **changes)
 
 
 class AuthorAlias(AbstractLogModel):
@@ -454,8 +448,8 @@ class Sponsor(AbstractLogModel):
 
 class Container(AbstractLogModel):
     """Canonical Container"""
-    issn = models.TextField(max_length=200, blank=True, default='')
-    eissn = models.TextField(max_length=200, blank=True, default='')
+    issn = fields.NonEmptyTextField(max_length=200, unique=True)
+    eissn = fields.NonEmptyTextField(max_length=200, unique=True)
     type = models.TextField(max_length=1000, blank=True, default='')
     name = models.CharField(max_length=300)
 
@@ -476,18 +470,10 @@ class Container(AbstractLogModel):
 
     def duplicates(self):
         return Container.objects \
-            .filter((Q(issn=self.issn) & ~Q(issn='')) | (Q(eissn=self.eissn) & ~Q(eissn=''))) \
+            .filter((Q(issn=self.issn) & Q(issn__isnull=False)) |
+                    (Q(eissn=self.issn) & Q(eissn__isnull=False)) |
+                    (Q(name=self.name) & ~Q(name=''))) \
             .exclude(id=self.id)
-
-    def augment(self, audit_command, container):
-        """
-        Updates fields on the parameterized container if they are empty
-        """
-        changes = {}
-        for field in ['issn', 'eissn', 'type', 'name']:
-            if not getattr(container, field) and getattr(self, field):
-                changes[field] = getattr(self, field)
-        container.log_update(audit_command=audit_command, **changes)
 
 
 class ContainerAlias(AbstractLogModel):
@@ -573,8 +559,8 @@ class Publication(AbstractLogModel):
     series = models.CharField(max_length=255, default='', blank=True)
     series_title = models.CharField(max_length=255, default='', blank=True)
     series_text = models.CharField(max_length=255, default='', blank=True)
-    doi = models.CharField(max_length=255, default='', blank=True)
-    isi = models.CharField(max_length=255, default='', blank=True)
+    doi = fields.NonEmptyTextField(max_length=255, unique=True)
+    isi = fields.NonEmptyTextField(max_length=255, unique=True)
 
     citations = models.ManyToManyField(
         "self", symmetrical=False, related_name="referenced_by",
@@ -583,8 +569,8 @@ class Publication(AbstractLogModel):
     def duplicates(self, query=None, **kwargs):
         if query is None:
             query = Publication.objects \
-                .filter((Q(isi=self.isi) & ~Q(isi='')) |
-                        (Q(doi=self.doi) & ~Q(doi='')) |
+                .filter((Q(isi=self.isi) & Q(isi__isnull=False)) |
+                        (Q(doi=self.doi) & Q(doi__isnull=False)) |
                         (Q(date_published_text__iexact=self.date_published_text) &
                          ~Q(date_published_text='') &
                          Q(title__iexact=self.title) &
@@ -644,16 +630,6 @@ class Publication(AbstractLogModel):
         return 'id: {id} {title} {year}. {container}'.format(id=self.id, title=self.title, year=self.year_published,
                                                              container=self.container)
 
-    def augment(self, audit_command, publication):
-        changes = {}
-        for field in ['title', 'abstract', 'date_published_text', 'doi', 'isi', 'volume', 'pages']:
-            if not getattr(publication, field) and getattr(self, field):
-                changes[field] = getattr(self, field)
-        if not publication.is_primary and self.is_primary:
-            changes['is_primary'] = True
-
-        publication.log_update(audit_command=audit_command, **changes)
-
 
 class AuditCommand(models.Model):
     Action = Choices(('SPLIT', _('Split Record')),
@@ -670,6 +646,10 @@ class AuditCommand(models.Model):
     def save_once(self, *args, **kwargs):
         if self._state.adding:
             self.save(*args, **kwargs)
+
+    @property
+    def has_been_saved(self):
+        return not self._state.adding
 
     class Meta:
         ordering = ['-date_added']

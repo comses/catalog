@@ -11,6 +11,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class MergeError(ValueError): pass
+
+
 class AuthoritativeAuthorValidationMessage:
     def __init__(self, additional, all):
         self.additional = additional
@@ -198,11 +201,11 @@ class AuthorMergeGroup:
                 if not getattr(self.final, field):
                     changes[field] = getattr(other, field)
 
-            self.final.log_update(audit_command=audit_command, **changes)
             models.RawAuthors.objects.filter(author=other).exclude(
                 raw__in=models.Raw.objects.filter(authors__in=[self.final])).log_update(
                 audit_command=audit_command, author_id=self.final.id)
             other.log_delete(audit_command=audit_command)
+            self.final.log_update(audit_command=audit_command, **changes)
 
 
 class ContainerMergerValidationMessage:
@@ -298,11 +301,11 @@ class ContainerMergeGroup:
                 if not getattr(final_container, field):
                     changes[field] = getattr(other_container, field)
 
-            final_container.log_update(audit_command=audit_command, **changes)
             models.Raw.objects.filter(container=other_container).exclude(
                 id__in=models.Raw.objects.filter(container=final_container)).log_update(
                 audit_command=audit_command, container_id=final_container.id)
             other_container.log_delete(audit_command=audit_command)
+            final_container.log_update(audit_command=audit_command, **changes)
 
 
 class PublicationMergeValidationMessage:
@@ -627,16 +630,52 @@ class PublicationMergeGroup:
         for other in self.others:
             self._delete_deletable_citations(other, audit_command)
 
-        self.final.log_update(audit_command, **changes)
         models.Publication.objects.filter(id__in=[other.id for other in self.others]) \
             .log_delete(audit_command)
+        self.final.log_update(audit_command, **changes)
 
         self._move_citations()
 
 
-def display_merge_publications(publications):
-    print("Merged")
-    for publication in publications:
-        print("\tYear: {}, Title: {}, DOI: {}".format(publication.date_published_text, publication.title,
-                                                      publication.doi))
-    print("\n")
+def merge(final, other, audit_command):
+    matched = set(other.duplicates())
+    matched.discard(final)
+    if matched:
+        cmg = ContainerMergeGroup(final, matched)
+        if cmg.is_valid():
+            cmg.merge(audit_command, force=True)
+        else:
+            logger.error(cmg.errors)
+            raise MergeError(str(cmg.errors))
+
+
+def augment_container(final_container, other_container, audit_command):
+    """Augment final_container missing values with values from other container"""
+    merge(final_container, other_container, audit_command)
+    changes = {}
+    for field in ['issn', 'eissn', 'type', 'name']:
+        if not getattr(final_container, field) and getattr(other_container, field):
+            changes[field] = getattr(other_container, field)
+    final_container.log_update(audit_command=audit_command, **changes)
+
+
+def augment_publication(final_publication, other_publication, audit_command):
+    merge(final_publication, other_publication, audit_command)
+    changes = {}
+    for field in ['title', 'abstract', 'date_published_text', 'doi', 'isi', 'volume', 'pages']:
+        if not getattr(final_publication, field) and getattr(other_publication, field):
+            changes[field] = getattr(other_publication, field)
+    if not final_publication.is_primary and other_publication.is_primary:
+        changes['is_primary'] = True
+
+    final_publication.log_update(audit_command=audit_command, **changes)
+
+
+def augment_author(final_author, other_author, audit_command):
+    merge(final_author, other_author, audit_command)
+    changes = {}
+    for field in ['given_name', 'family_name', 'orcid', 'researcherid', 'email']:
+        if not getattr(final_author, field) and getattr(other_author, field):
+            changes[field] = getattr(other_author, field)
+
+    final_author.log_update(audit_command=audit_command, **changes)

@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 from .. import common
 from .. import ref
-from ... import models
+from ... import models, merger
 from ... import util
 
 import logging
@@ -112,9 +112,10 @@ def create_detached_container(entry):
     container_str = entry.get("journal", "")
     container_type_str = entry.get("type", "")
     container_issn_str = entry.get("issn", "")
-    # container_eissn_str = entry.get("eissn", "")
+    container_eissn_str = entry.get("eissn", "")
     container = models.Container(type=container_type_str,
                                  issn=container_issn_str,
+                                 eissn=container_eissn_str,
                                  name=container_str)
 
     return container
@@ -152,7 +153,7 @@ def augment_authors(audit_command, publication, detached_authors):
         for detached_author in detached_authors:
             duplicate = detached_author.duplicates().first()
             if duplicate:
-                detached_author.augment(audit_command, duplicate)
+                merger.augment_author(duplicate, detached_author, audit_command)
                 augmented_authors.append(duplicate)
             else:
                 unaugmented_authors.append((ref, detached_author))
@@ -182,7 +183,7 @@ def create_authors(audit_command: models.AuditCommand, publication: models.Publi
     for detached_author in detached_authors:
         duplicate = detached_author.duplicates().order_by('date_added').first()
         if duplicate:
-            detached_author.augment(audit_command=audit_command, author=duplicate)
+            merger.augment_author(duplicate, detached_author, audit_command)
             models.PublicationAuthors.objects.log_get_or_create(audit_command=audit_command,
                                                                 publication_id=publication.id, author_id=duplicate.id)
         else:
@@ -202,7 +203,7 @@ def create_citations(publication, entry, creator):
 def create_container(audit_command: models.AuditCommand, detached_container: models.Container):
     container = detached_container.duplicates().order_by('date_added').first()
     if container:
-        detached_container.augment(audit_command=audit_command, container=container)
+        merger.augment_container(container, detached_container, audit_command)
     else:
         container = detached_container
         container.save()
@@ -239,12 +240,12 @@ def process(entry: Dict, creator: User):
     if publication_already_in_db:
         publication = duplicate_publications[0]
         unaugmented_authors = augment_authors(audit_command, publication, detached_authors)
-        detached_publication.augment(audit_command, publication)
-        detached_container.augment(audit_command, publication.container)
+        merger.augment_publication(publication, detached_publication, audit_command)
+        merger.augment_container(publication.container, detached_container, audit_command)
 
         detached_raw.container = publication.container
         detached_raw.publication = publication
-        if not audit_command._state.adding:
+        if audit_command.has_been_saved:
             # Save a raw value if we've done any updates
             detached_raw.save()
 

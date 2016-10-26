@@ -1,7 +1,7 @@
 import re
 from typing import List, Optional
 from ... import util
-from ... import models
+from ... import models, merger
 from .. import common
 from django.contrib.auth.models import User
 
@@ -118,7 +118,7 @@ def create_citation(publication: models.Publication,
         citation = duplicate_citation
         detached_raw.publication = citation
         detached_raw.container = citation.container
-        if not audit_command._state.adding:
+        if not audit_command.has_been_saved:
             # Save a raw value if the state has been updated
             detached_raw.save()
 
@@ -141,13 +141,13 @@ def create_citation(publication: models.Publication,
 
 def _augment_citation(audit_command, detached_citation, detached_author, detached_container, detached_raw,
                       duplicate_citation):
-    detached_citation.augment(audit_command, duplicate_citation)
-    detached_container.augment(audit_command, duplicate_citation.container)
+    merger.augment_publication(duplicate_citation, detached_citation, audit_command)
+    merger.augment_container(duplicate_citation.container, detached_container, audit_command)
     duplicate_author = detached_author.duplicates().first()
     if duplicate_author:
-        detached_author.augment(audit_command, duplicate_author)
-    # FIXME: check if audit command is transient, replace with pk != -1
-    if not audit_command._state.adding:
+        merger.augment_author(duplicate_author, detached_author, audit_command)
+
+    if not audit_command.has_been_saved:
         detached_raw.publication = duplicate_citation
         detached_raw.container = duplicate_citation.container
         detached_raw.save()
