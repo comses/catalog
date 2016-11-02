@@ -2,9 +2,40 @@ from django.contrib.auth.models import User
 from django.contrib import admin
 from django.contrib.admin.helpers import ActionForm
 from django import forms
-
+from django.utils.translation import ugettext_lazy as _
 from .models import AuditCommand, Publication, Note, Tag, Author, Sponsor, Platform, Container, ModelDocumentation
 from .search_indexes import PublicationIndex
+
+
+class PublicationStatusListFilter(admin.SimpleListFilter):
+    # Human-readable title which will be displayed in the
+    # right admin sidebar just above the filter options.
+    title = _('status')
+
+    # Parameter for the filter that will be used in the URL query.
+    parameter_name = 'status'
+
+    def lookups(self, request, model_admin):
+        """
+        Returns a list of tuples. The first element in each
+        tuple is the coded value for the option that will
+        appear in the URL query. The second element is the
+        human-readable name for the option that will appear
+        in the right sidebar.
+        """
+        
+
+        return (
+            tuple([(s[0], s[0]) for s in Publication.Status])
+
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() in Publication.Status:
+            return queryset.filter(status=self.value())
+        else:
+            return queryset.all()
+
 
 
 def assign_curator(modeladmin, request, queryset):
@@ -22,13 +53,13 @@ def assign_curator(modeladmin, request, queryset):
 assign_curator.short_description = 'Assign Curator to Publications'
 
 
-class PublicationCuractorForm(ActionForm):
+class PublicationCuratorForm(ActionForm):
     assigned_curator_id = forms.ModelChoiceField(queryset=User.objects.all(), label='User Name')
 
 
 class PublicationAdmin(admin.ModelAdmin):
-    list_filter = ('assigned_curator', 'is_primary')
-    action_form = PublicationCuractorForm
+    list_filter = ('assigned_curator', 'is_primary', PublicationStatusListFilter)
+    action_form = PublicationCuratorForm
     actions = [assign_curator]
 
 
