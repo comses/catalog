@@ -11,6 +11,7 @@ from datetime import datetime, date
 from collections import defaultdict
 from django.db.models import Q
 from dateutil.parser import parse as datetime_parse
+from django.template.defaultfilters import slugify
 import re
 
 from model_utils import Choices
@@ -130,7 +131,6 @@ class LogQuerySet(models.query.QuerySet):
         # TODO test synchronization with solr
         """
         batch delete
-
         does not keep solr index in sync. must resync solr index after calling this method
         """
         with transaction.atomic():
@@ -152,7 +152,6 @@ class LogQuerySet(models.query.QuerySet):
 
     def log_update(self, audit_command: 'AuditCommand', **kwargs):
         """batch update
-
         does not keep solr index in sync. must resync solr index after calling this method
         """
         auditlogs = []
@@ -176,9 +175,7 @@ class LogQuerySet(models.query.QuerySet):
 class AbstractLogModel(models.Model):
     """
     Class that implements logging for all children
-
     Subclasses should implement a get_message() method
-
     XXX: consider replacing get_message with simpler __str__ representation?
     """
 
@@ -590,9 +587,30 @@ class Publication(AbstractLogModel):
     def is_archived(self):
         return bool(self.code_archive_url)
 
-    # TODO: replace primary key lookup with slug
+
+    @property
+    def slug(self):
+        year_str = None
+        if self.year_published is not None:
+            year_str = str(self.year_published)
+        apa_authors = '-'.join(['{0} {1}'.format(c.given_name, c.family_name) for c in self.creators.all()])
+        slug_text = self.slugify_max("-".join([x for x in [apa_authors, year_str, self.title] if x]),100)
+        return slug_text
+
+    def slugify_max(self, text, max_length=50):
+        slug = slugify(text)
+        if len(slug)<=0:
+            return "-"
+        if len(slug) <= max_length:
+            return slug
+        trimmed_slug = slug[:max_length].rsplit('-', 1)[0]
+        if len(trimmed_slug) <= max_length:
+            return trimmed_slug
+        # First word is > max_length chars, so we have to break it
+        return slug[:max_length]
+    
     def _pk_url(self, name):
-        return reverse(name, args=[self.pk])
+        return reverse(name, args=(self.pk, self.slug))
 
     def get_absolute_url(self):
         return self._pk_url('citation:publication_detail')

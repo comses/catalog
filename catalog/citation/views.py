@@ -14,7 +14,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 
-from django.views.generic import TemplateView, FormView
+from django.views.generic import TemplateView, FormView, RedirectView
 from haystack.query import SearchQuerySet
 from haystack.generic_views import SearchView
 from hashlib import sha1
@@ -22,9 +22,10 @@ from rest_framework.response import Response
 from rest_framework import status, renderers, generics
 from json import dumps
 from datetime import timedelta, datetime
+from django.core.urlresolvers import reverse
 
 from .forms import CatalogSearchForm, CatalogAuthenticationForm
-from .models import (Publication, InvitationEmail, Platform, Sponsor, Tag, Container, ModelDocumentation, Note,)
+from .models import (Publication, InvitationEmail, Platform, Sponsor, Tag, Container, ModelDocumentation, Note, )
 from .permissions import CanViewReadOnlyOrEditPublication
 from .serializers import (PublicationSerializer, CatalogPagination, InvitationSerializer,
                           UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer, NoteSerializer,
@@ -170,6 +171,12 @@ class PublicationList(LoginRequiredMixin, generics.GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class CuratorPublicationDetailRedirect(RedirectView):
+    def get_redirect_url(self, pk):
+        article = Publication.objects.get(id=pk)
+        return reverse('citation:publication_detail', args = (pk, article.slug))
+
+
 class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
     """
     Retrieve, update or delete a publication instance.
@@ -179,8 +186,13 @@ class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
     def get_object(self, pk):
         return get_object_or_404(Publication, pk=pk)
 
-    def get(self, request, pk, format=None):
+    def get(self, request, pk, slug, format=None):
         publication = self.get_object(pk)
+        obj_url = publication.get_absolute_url()
+        
+        if self.request.path != obj_url:
+            return HttpResponseRedirect(obj_url)
+            
         serializer = PublicationSerializer(publication)
         model_documentation_serializer = ModelDocumentationSerializer(ModelDocumentation.objects.all(), many=True)
         return Response({'json': dumps(serializer.data), 'pk': pk,
@@ -204,7 +216,7 @@ class NoteDetail(LoginRequiredMixin, generics.GenericAPIView):
     """
     Retrieve, update or delete a note instance.
     """
-    renderer_classes = (renderers.JSONRenderer, )
+    renderer_classes = (renderers.JSONRenderer,)
 
     def get_object(self, pk):
         return get_object_or_404(Note, pk=pk)
@@ -236,7 +248,7 @@ class NoteList(LoginRequiredMixin, generics.GenericAPIView):
     """
     Get all the notes or create a note
     """
-    renderer_classes = (renderers.JSONRenderer, )
+    renderer_classes = (renderers.JSONRenderer,)
     serializer_class = NoteSerializer
 
     def get(self, request, format=None):
@@ -271,7 +283,6 @@ class EmailPreview(LoginRequiredMixin, generics.GenericAPIView):
 
 
 class AutocompleteView(LoginRequiredMixin, generics.GenericAPIView):
-
     renderer_classes = (renderers.JSONRenderer,)
 
     def get(self, request, format=None):
@@ -284,35 +295,30 @@ class AutocompleteView(LoginRequiredMixin, generics.GenericAPIView):
 
 
 class PlatformSearchView(AutocompleteView):
-
     @property
     def model_class(self):
         return Platform
 
 
 class SponsorSearchView(AutocompleteView):
-
     @property
     def model_class(self):
         return Sponsor
 
 
 class TagSearchView(AutocompleteView):
-
     @property
     def model_class(self):
         return Tag
 
 
 class ModelDocumentationSearchView(AutocompleteView):
-
     @property
     def model_class(self):
         return ModelDocumentation
 
 
 class JournalSearchView(AutocompleteView):
-
     @property
     def model_class(self):
         return Container
@@ -344,7 +350,7 @@ class ContactAuthor(LoginRequiredMixin, generics.GenericAPIView):
     """
     Emails invitations to authors to archive their work
     """
-    renderer_classes = (renderers.JSONRenderer, )
+    renderer_classes = (renderers.JSONRenderer,)
 
     def post(self, request, format=None):
         serializer = InvitationSerializer(data=request.data)
@@ -356,13 +362,12 @@ class ContactAuthor(LoginRequiredMixin, generics.GenericAPIView):
 
 
 class ContactFormView(generics.GenericAPIView):
-
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
         timestamp = str(time.time())
         info = (timestamp, settings.SECRET_KEY)
-        security_hash = sha1("".join(info).encode("ascii"),).hexdigest()
+        security_hash = sha1("".join(info).encode("ascii"), ).hexdigest()
 
         data = {'contact_number': '',
                 'name': '',
@@ -385,7 +390,6 @@ class ContactFormView(generics.GenericAPIView):
 
 
 class UpdateModelUrlView(generics.GenericAPIView):
-
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
     token_expires = 3600 * 168  # Seven days
 
