@@ -6,12 +6,10 @@ from django.utils.translation import ugettext_lazy as _
 from .models import AuditCommand, Publication, Note, Tag, Author, Sponsor, Platform, Container, ModelDocumentation
 from .search_indexes import PublicationIndex
 
-
 class PublicationStatusListFilter(admin.SimpleListFilter):
     # Human-readable title which will be displayed in the
     # right admin sidebar just above the filter options.
     title = _('status')
-
     # Parameter for the filter that will be used in the URL query.
     parameter_name = 'status'
 
@@ -23,20 +21,13 @@ class PublicationStatusListFilter(admin.SimpleListFilter):
         human-readable name for the option that will appear
         in the right sidebar.
         """
-        
-
-        return (
-            tuple([(s[0], s[0]) for s in Publication.Status])
-
-        )
+        return (tuple([(s[0], s[0]) for s in Publication.Status]))
 
     def queryset(self, request, queryset):
         if self.value() in Publication.Status:
             return queryset.filter(status=self.value())
         else:
             return queryset.all()
-
-
 
 def assign_curator(modeladmin, request, queryset):
     assigned_curator_id = request.POST['assigned_curator_id']
@@ -49,19 +40,15 @@ def assign_curator(modeladmin, request, queryset):
     for publication in queryset:
         publication.log_update(audit_command=audit_command, assigned_curator_id=assigned_curator_id)
 
-
 assign_curator.short_description = 'Assign Curator to Publications'
 
-
 class PublicationCuratorForm(ActionForm):
-    assigned_curator_id = forms.ModelChoiceField(queryset=User.objects.all(), label='User Name')
-
+    assigned_curator_id = forms.ModelChoiceField(queryset=User.objects.filter(is_active=True), label='User Name')
 
 class PublicationAdmin(admin.ModelAdmin):
     list_filter = ('assigned_curator', 'is_primary', PublicationStatusListFilter)
     action_form = PublicationCuratorForm
     actions = [assign_curator]
-
 
 admin.site.register(Publication, PublicationAdmin)
 admin.site.register(Note)
