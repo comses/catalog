@@ -171,12 +171,6 @@ class PublicationList(LoginRequiredMixin, generics.GenericAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class CuratorPublicationDetailRedirect(RedirectView):
-    def get_redirect_url(self, pk):
-        article = Publication.objects.get(id=pk)
-        return reverse('citation:publication_detail', args = (pk, article.slug))
-
-
 class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
     """
     Retrieve, update or delete a publication instance.
@@ -208,7 +202,7 @@ class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
         if serializer.is_valid():
             serializer.save(user=request.user)
             return Response(serializer.data)
-        logger.warn("serializer failed validation: %s", serializer.errors)
+        logger.warning("serializer failed validation: %s", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

@@ -93,17 +93,22 @@ class PublicationDetailView(BaseTest):
     def test_publication_detail_view(self):
         management.call_command('zotero_import', test=True)
         url = self.reverse('citation:publication_detail', kwargs={'pk': Publication.objects.first().pk})
-        self.without_login_and_with_login_test(url)
+        self.without_login_and_with_login_test(url, after_status=302)
 
         self.logout()
         url = self.reverse('citation:publication_detail', kwargs={'pk': 999999})
         self.without_login_and_with_login_test(url, after_status=404)
 
+        # test to make sure that an incorrect slug values redirect to canonical slug values
+        url = self.reverse('citation:publication_detail', kwargs={'pk': Publication.objects.first().pk, 'slug': '_'})
+        response = self.get(url)
+        self.assertEqual(response.url, Publication.objects.first().get_absolute_url())
+
         self.logout()
         url = self.reverse('citation:publication_detail',
                            query_parameters={'format': 'json'},
-                           kwargs={'pk': Publication.objects.all()[0].pk})
-        self.without_login_and_with_login_test(url)
+                           kwargs={'pk': Publication.objects.first().pk})
+        self.without_login_and_with_login_test(url, after_status=302)
 
         self.logout()
         url = self.reverse('citation:publication_detail', query_parameters={
