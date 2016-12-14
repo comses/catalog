@@ -90,24 +90,26 @@ class PublicationsViewTest(BaseTest):
 
 class PublicationDetailView(BaseTest):
 
-    def test_publication_detail_view(self):
+    def test_canonical_publication_detail_view(self):
         management.call_command('zotero_import', test=True)
-        url = self.reverse('citation:publication_detail', kwargs={'pk': Publication.objects.first().pk})
+        p = Publication.objects.first()
+        url = self.reverse('citation:publication_detail', kwargs={'pk': p.pk})
         self.without_login_and_with_login_test(url, after_status=302)
 
         self.logout()
         url = self.reverse('citation:publication_detail', kwargs={'pk': 999999})
         self.without_login_and_with_login_test(url, after_status=404)
 
-        # test to make sure that an incorrect slug values redirect to canonical slug values
-        url = self.reverse('citation:publication_detail', kwargs={'pk': Publication.objects.first().pk, 'slug': '_'})
-        response = self.get(url)
-        self.assertEqual(response.url, Publication.objects.first().get_absolute_url())
+        # test that invalid slug values redirect to canonical slug values
+        for invalid_slug in ('_', 'farfle', 'slartibartfast', 'canon', '19'):
+            url = self.reverse('citation:publication_detail', kwargs={'pk': p.pk, 'slug': invalid_slug})
+            response = self.get(url)
+            self.assertEqual(response.url, p.get_absolute_url())
 
         self.logout()
         url = self.reverse('citation:publication_detail',
                            query_parameters={'format': 'json'},
-                           kwargs={'pk': Publication.objects.first().pk})
+                           kwargs={'pk': p.pk})
         self.without_login_and_with_login_test(url, after_status=302)
 
         self.logout()

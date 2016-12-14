@@ -14,7 +14,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 
-from django.views.generic import TemplateView, FormView, RedirectView
+from django.views.generic import TemplateView, FormView
 from haystack.query import SearchQuerySet
 from haystack.generic_views import SearchView
 from hashlib import sha1
@@ -182,11 +182,9 @@ class CuratorPublicationDetail(LoginRequiredMixin, generics.GenericAPIView):
 
     def get(self, request, pk, slug, format=None):
         publication = self.get_object(pk)
-        obj_url = publication.get_absolute_url()
-        
-        if self.request.path != obj_url:
-            return HttpResponseRedirect(obj_url)
-            
+        canonical_url = publication.get_absolute_url()
+        if self.request.path != canonical_url:
+            return HttpResponseRedirect(canonical_url)
         serializer = PublicationSerializer(publication)
         model_documentation_serializer = ModelDocumentationSerializer(ModelDocumentation.objects.all(), many=True)
         return Response({'json': dumps(serializer.data), 'pk': pk,
