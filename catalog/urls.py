@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from cas import views as cas_views
 
-from .citation.views import LoginView
+from catalog.core.views import LoginView
 
 urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
@@ -14,5 +14,6 @@ urlpatterns = [
     url(r'^accounts/password_change/done$', auth_views.password_change_done, name='password_change_done'),
     url(r'^accounts/password_reset/$', auth_views.password_reset, name='password_reset'),
     url(r'^accounts/password_reset_done/$', auth_views.password_reset_done, name='password_reset_done'),
-    url(r'', include('catalog.citation.urls')),
+    url(r'^citation/', include('citation.urls')),
+    url(r'', include('catalog.core.urls')),
 ]

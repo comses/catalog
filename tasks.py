@@ -129,7 +129,7 @@ def setup_solr(ctx, travis=False):
 def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True, force=False):
     import django
     django.setup()
-    from catalog.citation.models import Publication
+    from citation.models import Publication
     number_of_publications = 0
     try:
         number_of_publications = Publication.objects.count()

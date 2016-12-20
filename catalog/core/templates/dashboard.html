@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-primary dashboard-box">
+                <div class="panel-heading">
+                    <h3 class="panel-title text-center"><i class='fa fa-check-circle'></i> Complete | <i class='fa fa-circle-o-notch'></i> Missing Code | <i class='fa fa-list'></i> All Publications</a></h3>
+                </div>
+                <div class="panel-body">
+                    <h1 class="text-center">
+                        <a class='text-success' href="{{ search_url }}?status=REVIEWED&is_archived=True"><i class='fa fa-check-circle'></i> {{complete|default:"0"}} </a> |
+                        <a class='text-danger' href="{{ search_url }}?status=REVIEWED&is_archived=False"><i class='fa fa-circle-o-notch'></i> {{incomplete|default:"0"}} </a> |
+                        <a class='text-default' href="{{ search_url }}?q="><i class='fa fa-list'></i> {{status.TOTAL|default:"0"}}</a>
+                    </h1>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="panel panel-warning dashboard-box">
+                <div class="panel-heading">
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=UNREVIEWED">Unreviewed</a></h3>
+                </div>
+                <div class="panel-body">
+                    <h1 class="text-center"><a href="{{ search_url }}?status=UNREVIEWED">{{status.UNREVIEWED|default:"0"}}</a></h1>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="panel panel-info dashboard-box">
+                <div class="panel-heading">
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?status=AUTHOR_UPDATED">Author Updated</a></h3>
+                </div>
+                <div class="panel-body">
+                    <h1 class="text-center"><a href="{{ search_url }}?status=AUTHOR_UPDATED">{{status.AUTHOR_UPDATED|default:"0"}}</a></h1>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="panel panel-danger dashboard-box">
+                <div class="panel-heading">
+                    <h3 class="panel-title text-center"><a href="{{ search_url }}?flagged=True">Flagged</a></h3>
+                </div>
+                <div class="panel-body">
+                    <h1 class="text-center"><a href="{{ search_url }}?flagged=True">{{flagged|default:"0"}}</a></h1>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Recently Updated Publications</h3>
+                </div>
+                <div class="panel-body">
+                    {% if recently_updated %}
+                    <table class="table table-striped">
+                        <thead><tr><th class='col-sm-3'>Status</th><th class='col-lg-6 col-sm-6'>Title</th><th class='col-lg-2 col-sm-2'>Last Modified</th></thead>
+                        <tbody>
+                        {% for pub in recently_updated %}
+                            <tr>
+                                {% if publication.flagged %}
+                                <i class='text-danger fa fa-flag'></i>
+                                {% endif %}
+                                <td><span class='label label-as-badge label-primary'>{{ pub.status }}</span>
+                                {%  if pub.status == "REVIEWED" and pub.is_archived %}
+                                <i class="text-success fa fa-thumbs-o-up"></i>
+                                {% elif pub.status == "REVIEWED" %}
+                                <i class="text-danger fa fa-thumbs-down"></i>
+                                {% endif %}
+                                <mark>{{ pub.assigned_curator|default:"None assigned" }}</mark></td>
+                                <td> <a href="{% url 'citation:publication_detail' pub.pk %}">{{ pub.title }} </a></td>
+                                <td>{{ pub.date_modified }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                        No recently updated publications found.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Recent Author Updates</h3>
+                </div>
+                <div class="panel-body">
+                    {% if recently_author_updated|length > 0 %}
+                    <table class="table">
+                        <thead><tr><th>ID</th><th>Date Modified</th><th>Publication Title</th></thead>
+                        <tbody>
+                        {% for pub in recently_author_updated %}
+                            <tr>
+                                <td>{{ pub.pk}}</td>
+                                <td>{{ pub.date_modified }}</td>
+                                <td><a href="{% url publication_detail_url pub.pk %}">{{ pub.title }}</a></td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                        No publications have been updated by authors recently.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
