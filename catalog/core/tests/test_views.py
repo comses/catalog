@@ -7,17 +7,16 @@ from .common import BaseTest
 import json
 import time
 
-
 CONTACT_US_URL = 'core:contact_us'
 DASHBOARD_URL = 'core:dashboard'
-HAYSTACK_SEARCH_URL = 'citation:haystack_search'
+HAYSTACK_SEARCH_URL = 'core:haystack_search'
 INVITE_EMAIL_PREVIEW_URL = 'core:invite_email_preview'
 PUBLICATIONS_URL = 'citation:publications'
 PUBLICATION_DETAIL_URL = 'citation:publication_detail'
 USER_PROFILE_URL = 'core:user_profile'
 
-class AuthTest(BaseTest):
 
+class AuthTest(BaseTest):
     def test_login(self):
         response = self.get(self.login_url)
         self.assertTrue(200, response.status_code)
@@ -45,7 +44,6 @@ class AuthTest(BaseTest):
 
 
 class ProfileViewTest(BaseTest):
-
     def test_profile_view(self):
         self.without_login_and_with_login_test('core:user_profile')
 
@@ -73,19 +71,16 @@ class ProfileViewTest(BaseTest):
 
 
 class IndexViewTest(BaseTest):
-
     def test_index_view(self):
         self.without_login_and_with_login_test(self.index_url, before_status=200)
 
 
 class DashboardViewTest(BaseTest):
-
     def test_dashboard_view(self):
         self.without_login_and_with_login_test(DASHBOARD_URL)
 
 
 class PublicationsViewTest(BaseTest):
-
     def test_publications_view(self):
         self.without_login_and_with_login_test(PUBLICATIONS_URL)
 
@@ -97,7 +92,6 @@ class PublicationsViewTest(BaseTest):
 
 
 class PublicationDetailView(BaseTest):
-
     def test_canonical_publication_detail_view(self):
         management.call_command('zotero_import', test=True)
         p = Publication.objects.first()
@@ -123,12 +117,11 @@ class PublicationDetailView(BaseTest):
 
         self.logout()
         url = self.reverse(PUBLICATION_DETAIL_URL, query_parameters={
-                           'format': 'json'}, kwargs={'pk': 999999})
+            'format': 'json'}, kwargs={'pk': 999999})
         self.without_login_and_with_login_test(url, after_status=404)
 
 
 class SearchViewTest(BaseTest):
-
     def test_search_with_no_query_parameters(self):
         self.without_login_and_with_login_test(
             self.reverse(HAYSTACK_SEARCH_URL))
@@ -159,7 +152,6 @@ class SearchViewTest(BaseTest):
 
 
 class ContactViewTest(BaseTest):
-
     def test_contact_view(self):
         self.without_login_and_with_login_test(
             self.reverse(CONTACT_US_URL), before_status=200)
@@ -234,7 +226,6 @@ class ContactViewTest(BaseTest):
 
 
 class EmailPreviewTest(BaseTest):
-
     def test_email_preview_without_query_parameters(self):
         self.login()
         response = self.get(INVITE_EMAIL_PREVIEW_URL)
@@ -249,6 +240,5 @@ class EmailPreviewTest(BaseTest):
 
 
 class CuratorWorkflowTest(BaseTest):
-
     def test_edits(self):
         pass
