@@ -72,3 +72,9 @@ class BaseTest(TestCase):
             url = self.reverse(url)
         response = self.client.post(url, *args, **kwargs)
         return response
+
+    def put(self, url, *args, **kwargs):
+        if ':' in url:
+            url = self.reverse(url)
+        response = self.client.put(url, *args, **kwargs)
+        return response

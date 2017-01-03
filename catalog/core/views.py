@@ -274,6 +274,11 @@ class JournalSearchView(AutocompleteView):
 class CatalogSearchView(LoginRequiredMixin, SearchView):
     """ generic django haystack SearchView using a custom form """
     form_class = CatalogSearchForm
+    """ Retrieving the tags value from request and passing it to the CatalogSearchForm"""
+    def get_form_kwargs(self):
+        kw = super(CatalogSearchView, self).get_form_kwargs()
+        kw['tag_list'] = self.request.GET.getlist('tags')
+        return kw
 
 
 class CuratorWorkflowView(LoginRequiredMixin, SearchView):

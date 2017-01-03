@@ -133,6 +133,25 @@
                 }
             };
 
+            var TagListViewModel = function(){
+                var self= this;
+                self.tags = ko.observableArray();
+                self.selectedTags = ko.observableArray();
+                self.getTagList = function (query, callback) {
+                    self.makeAsyncRequest(query, callback, "{% url 'core:tag_search' %}");
+                };
+
+            self.makeAsyncRequest = function (query, callback, url) {
+                    if (!query.length) return callback();
+                    $.getJSON(url + "?q=" + encodeURIComponent(query))
+                            .done(function (res) {
+                                callback(JSON.parse(res).slice(0, 5));
+                            }).fail(function () {
+                        callback();
+                    });
+                };
+            };
+
             var Step = function(id, name, template, model, prvbtntxt, nxtbtntxt) {
                 var self = this;
 
@@ -151,7 +170,7 @@
             var WizardViewModel = function() {
                 var self = this;
                 self.stepModels = ko.observableArray([
-                    new Step(1, "Select Publications", "choicePubTmpl", {}, "", "Construct Email "),
+                    new Step(1, "Select Publications", "choicePubTmpl", new TagListViewModel(), "", "Construct Email "),
                     new Step(2, "Contruct Email", "inviteFormTmpl", new InvitationViewModel(), " Select Publications", "Submit "),
                     new Step(3, "Done", "basicTmpl", { message: "Completed." }, "", "Done "),
                 ]);
