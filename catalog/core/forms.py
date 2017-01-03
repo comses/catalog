@@ -3,7 +3,6 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.utils.translation import ugettext_lazy as _
 
 from citation.models import Publication
-
 from haystack.forms import SearchForm
 
 import logging
@@ -23,12 +22,24 @@ class CatalogSearchForm(SearchForm):
     publication_end_date = forms.DateField(required=False)
     contact_email = forms.BooleanField(required=False)
     status = forms.ChoiceField(choices=STATUS_CHOICES, required=False)
+    tags = forms.CharField(required=False, widget=forms.Select(attrs={'multiple': "multiple", 'name': "tags",
+                                                                      'data-bind': "selectize: tags, selectedOptions: selectedTags, optionsCaption: 'Keywords', optionsValue: 'name', options: { create: false, load: getTagList, hideSelected: true }, value: SelectedTags"}))
+    authors = forms.CharField(required=False)
     assigned_curator = forms.CharField(required=False)
     flagged = forms.ChoiceField(choices=ANY_CHOICES, required=False)
     is_archived = forms.ChoiceField(choices=ANY_CHOICES, required=False, label=_("Has code URL"))
 
     def no_query_found(self):
         return self.searchqueryset.filter(is_primary=True).models(Publication).all()
+
+    def __init__(self, *args, **kwargs):
+        self.tags = kwargs.pop('tag_list', None)
+        super(CatalogSearchForm, self).__init__(*args, **kwargs)
+
+    def clean(self):
+        super(CatalogSearchForm, self).clean()
+        cleaned_data = self.cleaned_data
+        cleaned_data['tags'] = self.tags
 
     def search(self):
         # First, store the SearchQuerySet received from other processing.
@@ -51,6 +62,16 @@ class CatalogSearchForm(SearchForm):
         # Check to see if status was selected.
         if self.cleaned_data['status']:
             criteria.update(status=self.cleaned_data['status'])
+
+        # Check to see if tags was selected.
+        if self.cleaned_data['tags']:
+            tags_object = self.cleaned_data['tags']
+            sqs = sqs.filter(tags__in=tags_object)
+
+        # Check to see if authors was selected.
+        if self.cleaned_data['authors']:
+            authors_object = self.cleaned_data['authors'].split()
+            sqs = sqs.filter(authors__in=authors_object)
 
         # Check to see if assigned_curator was selected.
         if self.cleaned_data['assigned_curator']:

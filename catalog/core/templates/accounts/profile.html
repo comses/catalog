@@ -63,9 +63,16 @@
                             humane.log("Profile updated.")
                         },
                         error: function(result) {
-                            console.log(result);
-                            humane.log(["Couldn't update profile: ", result.errors], {timeout: 7500});
-                            console.log(result.errors);
+                            var errobj= JSON.parse(JSON.parse(result.responseText).errors);
+                            console.log(errobj.email);
+                            if(errobj.email){
+                            humane.log([errobj.email], {timeout: 7500});
+                            console.log(errobj.email);
+                            }
+                            else{
+                            humane.log(["Profile couldn't be updated"], {timeout: 7500});
+                            console.log("Profile couldn't be updated");
+                            }
                         }
                     });
                 }

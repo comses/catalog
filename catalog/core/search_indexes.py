@@ -12,6 +12,8 @@ class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     last_modified = indexes.DateTimeField(model_attr='date_modified')
     contact_email = indexes.BooleanField(model_attr='contact_email')
     status = indexes.CharField(model_attr='status', faceted=True)
+    tags = indexes.EdgeNgramField(model_attr='tags__name', null=True)
+    authors = indexes.EdgeNgramField(model_attr='creators__name', null=True)
     assigned_curator = indexes.CharField(model_attr='assigned_curator', null=True)
     flagged = indexes.BooleanField(model_attr='flagged')
     is_primary = indexes.BooleanField(model_attr='is_primary')
