@@ -161,7 +161,7 @@ CAS_PROVIDE_URL_TO_LOGOUT = True
 CAS_FORCE_SSL_SERVICE_URL = True
 CAS_AUTO_CREATE_USER = False
 CAS_RESPONSE_CALLBACKS = (
-    'catalog.citation.util.create_cas_user',
+    'catalog.core.util.create_cas_user',
 )
 
 # static files configuration, see https://docs.djangoproject.com/en/1.9/ref/settings/#static-files
