@@ -45,7 +45,7 @@ services:
     image: catalog_django
     volumes:
       - .:/code
-      - ./deploy/backup/cron-script:/etc/periodic/daily/autopgsqlbackup
+      - ./deploy/backup/cron-script:/etc/cron.daily/autopgsqlbackup
       - solr:/etc/solr/mycores/
       - static:/catalog/static
       - logs:/catalog/logs
