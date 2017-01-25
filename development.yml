@@ -28,8 +28,8 @@ services:
       POSTGRES_PASSWORD: CHANGEME_CATALOG_DB_PASSWORD
       POSTGRES_DB: comses_catalog
   django:
-    build:
-      context: ./
+    build: ./
+    image: catalog_django
     volumes:
       - .:/code
       - solr:/etc/solr/mycores/
@@ -49,8 +49,7 @@ services:
       - db
       - solr
   test:
-    build:
-      context: ./
+    image: catalog_django
     volumes:
       - .:/code
       - solr:/etc/solr/mycores/

@@ -11,30 +11,20 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ['DJANGO_SETTINGS_MODULE'] = 'catalog.settings'
 
-#
-# # default env configuration
-# env.roledefs = {
-#     'localhost': ['localhost'],
-#     'staging': ['dev-catalog.comses.net'],
-#     'prod': ['catalog.comses.net'],
-# }
-env = {'python': 'python3',
-       'project_name': 'catalog',
-       'project_conf': 'catalog.settings',
-       'db_user': 'catalog',
-       'db_name': 'comses_catalog',
-       'database': 'default',
-       'coverage_omit_patterns': ('test', 'settings', 'migrations', 'wsgi', 'management', 'tasks', 'apps.py'),
-       'solr_version': '4.10.4',
-       'vcs': 'git'}
-env['solr_conf_dir'] = 'solr-{}/example/solr/catalog/conf'.format(env['solr_version'])
-env['virtualenv_path'] = '%s/.virtualenvs/%s' % (os.getenv('HOME'), env['project_name'])
+from django.conf import settings
+
+env = {
+    'python': 'python3',
+    'project_name': 'catalog',
+    'project_conf': os.environ['DJANGO_SETTINGS_MODULE'],
+    'db_name': settings.DATABASES['default']['NAME'],
+    'db_host': settings.DATABASES['default']['HOST'],
+    'db_user': settings.DATABASES['default']['USER'],
+    'coverage_omit_patterns': ('test', 'settings', 'migrations', 'wsgi', 'management', 'tasks', 'apps.py'),
+    'solr_version': '4.10.4',
+}
 
 logger = logging.getLogger(__name__)
-
-# # django integration for access to settings, etc.
-# django.project(env.project_name)
-# from django.conf import settings as catalog_settings
 
 
 @task
@@ -97,15 +87,15 @@ def clean_data(ctx, creator=None):
     print("Splitting")
     datafiles = ['sponsor.split', 'platform.split']
     for d in datafiles:
-        ctx.run('python manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator))
+        ctx.run('{python} manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator, **env))
     print("Merging")
     datafiles = ['sponsor.merge', 'platform.merge', 'model_documentation.merge']
     for d in datafiles:
-        ctx.run('python manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator))
+        ctx.run('{python} manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator, **env))
     print("Deleting")
     datafiles = ['sponsor.delete', 'platform.delete']
     for d in datafiles:
-        ctx.run('python manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator))
+        ctx.run('{python} manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator, **env))
 
 @task
 def setup_solr(ctx, travis=False):
@@ -125,6 +115,16 @@ def setup_solr(ctx, travis=False):
               'cp schema.xml {catalog_path}/conf/.'.format(catalog_path=catalog_path))
 
 
+@task(aliases=['rdb', 'resetdb'])
+def reset_database(ctx):
+    create_pgpass_file(ctx)
+    ctx.run('psql -h {db_host} -c "alter database {db_name} connection limit 1;" -w {db_name} {db_user}'.format(**env),
+            echo=True, warn=True)
+    ctx.run('psql -h {db_host} -c "select pg_terminate_backend(pid) from pg_stat_activity where datname=\'{db_name}\'" -w {db_name} {db_user}'.format(**env),
+            echo=True, warn=True)
+    ctx.run('dropdb -w --if-exists -e {db_name} -U {db_user} -h {db_host}'.format(**env), echo=True, warn=True)
+    ctx.run('createdb -w {db_name} -U {db_user} -h {db_host}'.format(**env), echo=True, warn=True)
+
 @task(aliases=['rfd'])
 def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True, force=False):
     import django
@@ -138,9 +138,7 @@ def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True, force=Fa
     if number_of_publications > 0 and not force:
         print("Ignoring restore, database with {0} publications already exists. Use --force to override.".format(number_of_publications))
     else:
-        create_pgpass_file(ctx)
-        ctx.run('dropdb -w --if-exists -e {db_name} -U {db_user} -h db'.format(**env), echo=True, warn=True)
-        ctx.run('createdb -w {db_name} -U {db_user} -h db'.format(**env), echo=True, warn=True)
+        reset_database(ctx)
         if os.path.isfile(dumpfile):
             logger.debug("loading data from %s", dumpfile)
             ctx.run('psql -w -q -h db {db_name} {db_user} < {dumpfile}'.format(dumpfile=dumpfile, **env),
@@ -154,7 +152,6 @@ def create_pgpass_file(ctx, force=False):
     pgpass_path = os.path.join(os.path.expanduser('~'), '.pgpass')
     if os.path.isfile(pgpass_path) and not force:
         return
-    from django.conf import settings
     with open(pgpass_path, 'w+') as pgpass:
         db_password = settings.DATABASES['default']['PASSWORD']
         pgpass.write('db:*:*:{db_user}:{db_password}\n'.format(db_password=db_password, **env))
@@ -168,26 +165,26 @@ def backup(ctx, path='/backups/postgres'):
 
 @task(aliases=['idb', 'init_db'])
 def initialize_database_schema(ctx):
-    ctx.run('python manage.py makemigrations')
-    ctx.run('yes | python manage.py migrate')
+    ctx.run('{python} manage.py makemigrations'.format(**env))
+    ctx.run('yes | {python} manage.py migrate'.format(**env))
 
 
 @task(aliases=['zi'])
 def zotero_import(ctx, group=None, collection=None):
-    _command = 'python manage.py zotero_import'
+    _command = '{python} manage.py zotero_import'
     if group:
         _command += ' --group=%s' % group
     if collection:
         _command += ' --collection=%s' % collection
-    ctx.run(_command)
+    ctx.run(_command.format(**env))
 
 
 @task(aliases=['ri'])
 def rebuild_index(ctx, noinput=False):
-    cmd = 'python manage.py rebuild_index'
+    cmd = '{python} manage.py rebuild_index'
     if noinput:
         cmd += ' --noinput'
-    ctx.run(cmd)
+    ctx.run(cmd.format(**env))
 
 
 @task
