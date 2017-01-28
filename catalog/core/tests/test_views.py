@@ -120,6 +120,14 @@ class PublicationDetailView(BaseTest):
             'format': 'json'}, kwargs={'pk': 999999})
         self.without_login_and_with_login_test(url, after_status=404)
 
+    # Test that publication detail is saved successfully or not
+    def test_publication_detail_save_with_all_valid_fields(self):
+        management.call_command('zotero_import', test=True)
+        p = Publication.objects.first()
+        url = self.reverse('citation:publication_detail', query_parameters={'format': 'json'},
+                           kwargs={'pk': p.pk, 'slug': 'garbage-text'})
+        response = self.put(url, {})
+        self.assertTrue(200, response.status_code)
 
 class SearchViewTest(BaseTest):
     def test_search_with_no_query_parameters(self):
