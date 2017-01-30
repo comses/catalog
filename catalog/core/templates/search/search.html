@@ -17,20 +17,6 @@
                 <h4 data-bind="text: name"></h4>
             </div>
             <div class="panel-body" data-bind="template: { name: getTemplate, data: model }"></div>
-            <div class="clearfix">
-                <!-- ko if: $root.canGoPrevious -->
-                <button id="prevBtn" class="btn btn-primary pull-left" data-bind="click: $root.goPrevious">
-                    <i class="fa fa-arrow-left"></i><span data-bind="text: prvBtnTxt"></span></button>
-                <!-- /ko -->
-                <!-- ko if: $root.canGoNext -->
-                <button id="nextBtn" class="btn btn-primary pull-right" data-bind="click: $root.goNext" data-loading-text="Loading...">
-                    <span data-bind="text: nxtBtnTxt"></span> <i class="fa fa-arrow-right"></i></button>
-                <!-- /ko -->
-                <!-- ko ifnot: $root.canGoNext -->
-                <button class="btn btn-primary pull-right" data-bind="click: $root.endWizard">
-                    Done <i class="fa fa-arrow-right"></i></button>
-                <!-- /ko -->
-            </div>
         </div>
     </script>
 
@@ -167,6 +153,9 @@
                 }
             };
 
+            /*
+             * FIXME: email construction not currently implemented, rework later
+             */
             var WizardViewModel = function() {
                 var self = this;
                 self.stepModels = ko.observableArray([
