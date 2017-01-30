@@ -1,8 +1,6 @@
 {% extends 'base.html' %}
 {% load bootstrap3 %}
 
-{% url 'citation:publication_detail' as publication_detail_url %}
-
 {% block content %}
 <div class='row'>
     <div class='panel panel-default'>
@@ -34,11 +32,10 @@
                     <tr><th>Status</th><th>Title</th><th class='col-sm-2'>Last Modified</th></tr>
                 </thead>
                 <tbody>
-                    {% for result in object_list %}
+                    {% for result in page_obj.object_list %}
                     <tr>
                         <td><span class='label label-as-badge label-primary label-{{result.status|lower}}'>{{ result.status }}</span></td>
-                        <td><a href="{% url publication_detail_url result.pk %}">{{ result.title }}</td>
-                        <td><a href="{% url publication_detail_url result.pk %}">{{ result.title }}</td>
+                        <td><a href="{% url 'citation:publication_detail' result.pk %}">{{ result.title }}</td>
                         <td>{{ result.last_modified }}</td>
                     </tr>
                     {% empty %}

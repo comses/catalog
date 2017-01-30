@@ -14,6 +14,16 @@ INVITE_EMAIL_PREVIEW_URL = 'core:invite_email_preview'
 PUBLICATIONS_URL = 'citation:publications'
 PUBLICATION_DETAIL_URL = 'citation:publication_detail'
 USER_PROFILE_URL = 'core:user_profile'
+WORKFLOW_URL = 'core:curator_workflow'
+
+
+class UrlTest(BaseTest):
+    TEST_URLS = (CONTACT_US_URL, DASHBOARD_URL, HAYSTACK_SEARCH_URL, PUBLICATIONS_URL, USER_PROFILE_URL, WORKFLOW_URL)
+    def test_urls(self):
+        self.login()
+        for url in UrlTest.TEST_URLS:
+            response = self.get(url)
+            self.assertTrue(200, response.status_code)
 
 
 class AuthTest(BaseTest):
