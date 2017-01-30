@@ -20,8 +20,6 @@ services:
     image: postgres:9
     volumes:
       - data:/var/lib/postgresql/data
-    ports:
-      - "127.0.0.1:5433:5432"
     environment:
       POSTGRES_USER: catalog
       # FIXME: replace with something more secure, see https://github.com/docker/docker/issues/13490
