@@ -1,0 +1,3 @@
+[submodule "citation"]
+	path = citation
+	url = ssh://git@github.com/comses/citation.git
