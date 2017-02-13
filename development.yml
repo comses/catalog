@@ -1,6 +1,5 @@
 version: '2'
 services:
-## look into https://github.com/nazariyg/Solr-5-for-django-haystack
   solr:
     image: comses/solr
     volumes:
@@ -27,7 +26,7 @@ services:
       POSTGRES_DB: comses_catalog
   django:
     build: ./
-    image: catalog_django
+    image: comses/catalog
     volumes:
       - .:/code
       - solr:/etc/solr/mycores/
@@ -47,7 +46,7 @@ services:
       - db
       - solr
   test:
-    image: catalog_django
+    image: comses/catalog
     volumes:
       - .:/code
       - solr:/etc/solr/mycores/

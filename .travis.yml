@@ -7,7 +7,7 @@ notifications:
 services:
   - docker
 env: 
-  DOCKER_COMPOSE_VERSION: 1.8.0
+  DOCKER_COMPOSE_VERSION: 1.10.0
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y docker-engine
@@ -16,7 +16,11 @@ before_install:
   - sudo mv docker-compose /usr/local/bin
   - ln -s development.yml docker-compose.yml 
   - docker-compose version
-install: true # skip standard python install
-script:
+install: 
+  - pip install python-coveralls
   - docker-compose build 2> /dev/null
-  - docker-compose run -e RUN_COVERALLS=true test
+script:
+  - docker-compose run --rm test
+after_success:
+  - coveralls
+  - docker-compose down -v
