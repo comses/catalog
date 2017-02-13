@@ -22,6 +22,7 @@ class CatalogSearchForm(SearchForm):
     publication_end_date = forms.DateField(required=False)
     contact_email = forms.BooleanField(required=False)
     status = forms.ChoiceField(choices=STATUS_CHOICES, required=False)
+    journal = forms.CharField(required=False)
     tags = forms.CharField(required=False, widget=forms.Select(attrs={'multiple': "multiple", 'name': "tags",
                                                                       'data-bind': "selectize: tags, selectedOptions: selectedTags, optionsCaption: 'Keywords', optionsValue: 'name', options: { create: false, load: getTagList, hideSelected: true }, value: SelectedTags"}))
     authors = forms.CharField(required=False)
@@ -62,6 +63,11 @@ class CatalogSearchForm(SearchForm):
         # Check to see if status was selected.
         if self.cleaned_data['status']:
             criteria.update(status=self.cleaned_data['status'])
+
+        # Check to see if journal was selected.
+        if self.cleaned_data['journal']:
+            journal_object = self.cleaned_data['journal'].split()
+            sqs = sqs.filter(container__in=journal_object)
 
         # Check to see if tags was selected.
         if self.cleaned_data['tags']:

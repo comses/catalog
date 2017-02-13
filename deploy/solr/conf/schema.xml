@@ -155,6 +155,8 @@
 
     <field name="status" type="text_en" indexed="true" stored="true" multiValued="false" />
 
+    <field name="container" type="ngram" indexed="true" stored="true" multiValued="true"/>
+
     <field name="tags" type="ngram" indexed="true" stored="true" multiValued="true"/>
 
     <field name="authors" type="ngram" indexed="true" stored="true" multiValued="true" />
