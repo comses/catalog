@@ -20,7 +20,7 @@ install:
   - pip install python-coveralls
   - docker-compose build 2> /dev/null
 script:
-  - docker-compose run --rm test
+  - docker-compose run --rm django /code/deploy/docker/test.sh
 after_success:
   - coveralls
   - docker-compose down -v

@@ -45,25 +45,6 @@ services:
     links:
       - db
       - solr
-  test:
-    image: comses/catalog
-    volumes:
-      - .:/code
-      - solr:/etc/solr/mycores/
-      - logs:/catalog/logs
-    command: /code/deploy/docker/test.sh
-    environment:
-      DB_USER: catalog
-      DB_HOST: db
-      DB_NAME: comses_catalog
-      DB_PORT: 5432
-      SOLR_HOST: solr
-      SOLR_PORT: 8983
-      SOLR_CORE_NAME: catalog_core
-      TRAVIS_BRANCH: master
-    links:
-      - db
-      - solr
 volumes:
   solr:
     driver: local
