@@ -107,4 +107,20 @@ body {
 input#id_contact_number {
     display: none;
 }
-
+.contribution-group-item {
+    position: relative;
+    display: inline-table;
+    background-color: #ffffff;
+    border: 1px solid #dddddd;
+    font-size: small;
+    padding: 0px 10px;
+    vertical-align: middle;
+    }
+.contribution-group-item p{
+    display: inline-block;
+    padding: 0px 7px;
+    margin: 0px 0px 3px;
+}
+.contribution-group-item p:first-child{
+    color: #008ed6;
+}
