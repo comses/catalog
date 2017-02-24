@@ -19,7 +19,7 @@
                         <tr>
                             <th>Title</th>
                             <th>Last modified</th>
-                            <th>Assigned curator</th>
+                            <th>Contribution</th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: results">
@@ -28,7 +28,8 @@
                                 <a data-bind="attr:{ href: detail_url() }, text: apa_citation_string"></a>
                             </td>
                             <td data-bind='text: date_modified'></td>
-                            <td><mark data-bind='text: assigned_curator'></mark></td>
+                            <td><div class='contribution-group-item' data-bind='foreach: contributor_data'> <p>
+                                <data data-bind='text: creator'></data> (<b data-bind='text: contribution'></b>%) - <data data-bind='text: date_added'></data> </p></div></td>
                         </tr>
                     </tbody>
                 </table>
