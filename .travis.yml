@@ -17,10 +17,9 @@ before_install:
   - ln -s development.yml docker-compose.yml 
   - docker-compose version
 install: 
-  - pip install python-coveralls
+  - pip install python-coveralls coverage
   - docker-compose build 2> /dev/null
 script:
   - docker-compose run --rm django /code/deploy/docker/test.sh
 after_success:
-  - coveralls
-  - docker-compose down -v
+  - mv .coverage{,.123} && coverage combine --append && coveralls
