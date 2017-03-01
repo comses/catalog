@@ -33,6 +33,7 @@ services:
       - logs:/catalog/logs
     command: /code/deploy/docker/dev.sh
     environment:
+      LANG: "C.UTF-8"
       DB_USER: catalog
       DB_HOST: db
       DB_NAME: comses_catalog

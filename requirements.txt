@@ -14,7 +14,6 @@ psycopg2==2.6.2
 pysolr==3.6.0
 raven==5.32.0
 uWSGI==2.0.14
--e git+https://github.com/comses/citation.git#egg=citation
 # dev requirements, factor out later
 coverage
 django-debug-toolbar
