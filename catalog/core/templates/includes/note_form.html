@@ -1,5 +1,4 @@
 {% url 'citation:notes' as notes_url %}
-{% url 'citation:note_detail' as note_url %}
 
 <script type="text/html" id="note_form">
 <div id='notes' class='panel panel-default assigned-panel-group' data-mh='assigned-panel-group'>
@@ -76,7 +75,8 @@
         };
         self.removeNote = function() {
            var note = this;
-           self.makeRequest("DELETE", ko.toJSON(note), "{{note_url}}"+note.id())
+           // FIXME: construction of note detail endpoint should be centralized.
+           self.makeRequest("DELETE", ko.toJSON(note), "/note/"+note.id())
                 .done(function(result) {
                     note.is_deleted(true);
                 });
@@ -84,7 +84,7 @@
         self.saveNote = function(data, event) { 
             if(self.modalNoteData().id != -1) {
                 // FIXME: construction of note detail endpoint should be centralized.
-                self.makeRequest("PUT", ko.toJSON(self.modalNoteData()), "{{note_url}}"+self.modalNoteData().id)
+                self.makeRequest("PUT", ko.toJSON(self.modalNoteData()), "/note/"+self.modalNoteData().id)
                     .done(function(result) {
                         self.selectedNote().text(self.modalNoteData().text);
                         self.hideNoteModal();
