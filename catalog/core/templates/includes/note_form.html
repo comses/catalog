@@ -76,14 +76,15 @@
         };
         self.removeNote = function() {
            var note = this;
-            self.makeRequest("DELETE", ko.toJSON(note), "/citation/note/"+note.id())
+           self.makeRequest("DELETE", ko.toJSON(note), "{{note_url}}"+note.id())
                 .done(function(result) {
                     note.is_deleted(true);
                 });
         };
         self.saveNote = function(data, event) { 
             if(self.modalNoteData().id != -1) {
-                self.makeRequest("PUT", ko.toJSON(self.modalNoteData()), "/citation/note/"+self.modalNoteData().id)
+                // FIXME: construction of note detail endpoint should be centralized.
+                self.makeRequest("PUT", ko.toJSON(self.modalNoteData()), "{{note_url}}"+self.modalNoteData().id)
                     .done(function(result) {
                         self.selectedNote().text(self.modalNoteData().text);
                         self.hideNoteModal();
