@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -q -y libxml2-dev python3-dev python3-pip 
     && apt-get update && apt-get install -q -y postgresql-client-9.6 libpq-dev
 
 ENV PYTHONUNBUFFERED 1
+COPY citation /code/citation
 COPY requirements.txt /tmp/
 RUN pip3 install -q -r /tmp/requirements.txt
 
