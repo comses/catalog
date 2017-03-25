@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
-from django.core import management
-from citation.models import Publication
-
+from citation.models import Publication, Container
+from hypothesis.extra.django.models import models
+from hypothesis import given, strategies as st, settings
 from .common import BaseTest
 
 import json
@@ -15,7 +15,7 @@ PUBLICATIONS_URL = 'citation:publications'
 PUBLICATION_DETAIL_URL = 'citation:publication_detail'
 USER_PROFILE_URL = 'core:user_profile'
 WORKFLOW_URL = 'core:curator_workflow'
-
+SENT_INVITES_URL = 'core:send_invites'
 
 class UrlTest(BaseTest):
     TEST_URLS = (CONTACT_US_URL, DASHBOARD_URL, HAYSTACK_SEARCH_URL, PUBLICATIONS_URL, USER_PROFILE_URL, WORKFLOW_URL)
@@ -80,6 +80,22 @@ class ProfileViewTest(BaseTest):
         self.assertTrue(400, response.status_code)
 
 
+class ContactAuthor(BaseTest):
+    @settings(max_examples=15)
+    @given(st.text(), st.text())
+    def test_contact_author_with_and_without_query_parameters(self, sub, text):
+        self.login()
+        if sub.strip() is not '' and text.strip() is not '':
+            url = self.reverse('core:send_invites', query_parameters={'format': 'json'})
+            response = self.post(url, {'invitation_subject': sub,
+                                       'invitation_text': text
+                                       })
+            self.assertTrue(200, response.status_code)
+        else:
+            response = self.post(SENT_INVITES_URL)
+            self.assertEqual(400, response.status_code)
+
+
 class IndexViewTest(BaseTest):
     def test_index_view(self):
         self.without_login_and_with_login_test(self.index_url, before_status=200)
@@ -87,6 +103,11 @@ class IndexViewTest(BaseTest):
 
 class DashboardViewTest(BaseTest):
     def test_dashboard_view(self):
+        models(Publication, container=models(Container),
+                   added_by=models(User),
+                   code_archive_url=st.text(),
+                   url=st.text(), zotero_key=st.just(None),
+                   is_primary=True).example()
         self.without_login_and_with_login_test(DASHBOARD_URL)
 
 
@@ -103,8 +124,10 @@ class PublicationsViewTest(BaseTest):
 
 class PublicationDetailView(BaseTest):
     def test_canonical_publication_detail_view(self):
-        management.call_command('zotero_import', test=True)
-        p = Publication.objects.first()
+        p = models(Publication, container=models(Container),
+                   added_by=models(User),
+                   code_archive_url=st.text(),
+                   url=st.text(), zotero_key=st.just(None)).example()
 
         url = self.reverse(PUBLICATION_DETAIL_URL, kwargs={'pk': p.pk})
         self.without_login_and_with_login_test(url, after_status=302)
@@ -132,9 +155,11 @@ class PublicationDetailView(BaseTest):
 
     # Test that publication detail is saved successfully or not
     def test_publication_detail_save_with_all_valid_fields(self):
-        management.call_command('zotero_import', test=True)
-        p = Publication.objects.first()
-        url = self.reverse('citation:publication_detail', query_parameters={'format': 'json'},
+        p = models(Publication, container=models(Container),
+                   added_by=models(User),
+                   code_archive_url=st.text(),
+                   url=st.text(), zotero_key=st.just(None)).example()
+        url = self.reverse(PUBLICATION_DETAIL_URL, query_parameters={'format': 'json'},
                            kwargs={'pk': p.pk, 'slug': 'garbage-text'})
         response = self.put(url, {})
         self.assertTrue(200, response.status_code)
@@ -150,8 +175,16 @@ class SearchViewTest(BaseTest):
             'publication_start_date': '1/1/2014',
             'publication_end_date': '1/1/2015',
             'contact_email': 'on',
-            'status': 'INCOMPLETE'
+            'status': Publication.Status.UNREVIEWED,
+            'journal': 'Innovation',
+            'tags': 'discovery innovation',
+            'authors': ' Guillerm',
+            'assigned_curator': 'alee',
+            'flagged': True,
+            'is_archived': True
         }
+
+        print("Query Parameter",query_parameters)
         url = self.reverse(
             HAYSTACK_SEARCH_URL, query_parameters=query_parameters)
         self.without_login_and_with_login_test(url)
@@ -162,7 +195,7 @@ class SearchViewTest(BaseTest):
             'publication_start_date': '1/1/2014',
             'publication_end_date': '1/1/2015',
             'contact_email': 'on',
-            'status': 'INCOMPLETE'
+            'status': Publication.Status.UNREVIEWED
         }
         url = self.reverse(
             HAYSTACK_SEARCH_URL, query_parameters=query_parameters)
@@ -244,17 +277,18 @@ class ContactViewTest(BaseTest):
 
 
 class EmailPreviewTest(BaseTest):
-    def test_email_preview_without_query_parameters(self):
+    @settings(max_examples=25)
+    @given(st.text(),st.text())
+    def test_email_priview_with_and_without_query_parameters(self,sub,text):
         self.login()
-        response = self.get(INVITE_EMAIL_PREVIEW_URL)
-        self.assertEqual(400, response.status_code)
-
-    def test_email_preview_with_query_parameters(self):
-        self.login()
-        url = self.reverse(INVITE_EMAIL_PREVIEW_URL,
-                           query_parameters={'invitation_subject': 'test', 'invitation_text': 'test'})
-        response = self.get(url)
-        self.assertEqual(200, response.status_code)
+        if sub.strip() is not '' and text.strip() is not '':
+            url = self.reverse(INVITE_EMAIL_PREVIEW_URL,
+                               query_parameters={'invitation_subject': sub, 'invitation_text': text})
+            response = self.get(url)
+            self.assertEqual(200, response.status_code)
+        else:
+            response = self.get(INVITE_EMAIL_PREVIEW_URL)
+            self.assertEqual(400, response.status_code)
 
 
 class CuratorWorkflowTest(BaseTest):

@@ -19,11 +19,18 @@ class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     flagged = indexes.BooleanField(model_attr='flagged')
     is_primary = indexes.BooleanField(model_attr='is_primary')
     is_archived = indexes.BooleanField(model_attr='is_archived')
+    contributor_data = indexes.MultiValueField(model_attr='contributor_data', null=True)
 
     def prepare_last_modified(self, obj):
         last_modified = self.prepared_data.get('last_modified')
         if last_modified:
             return last_modified.strftime('%Y-%m-%dT%H:%M:%SZ')
+        return ''
+
+    def prepare_contributor_data(self, obj):
+        contributor_data = self.prepared_data.get('contributor_data')
+        if contributor_data:
+            return contributor_data[0]['creator'] + ' (' + str(contributor_data[0]['contribution']) + ')%'
         return ''
 
     def get_model(self):
