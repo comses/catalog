@@ -21,4 +21,4 @@ django-debug-toolbar
 ipython
 invoke
 python-coveralls
-
+hypothesis

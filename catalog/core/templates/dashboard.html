@@ -71,7 +71,9 @@
                                 {% endif %}
                                 </td>
                                 <td>{% with pub.contributor_data|first as record %}
+                                        {% if  record.creator %}
                                         {{ record.creator}} ({{ record.contribution }}%)
+                                        {% endif %}
                                     {% endwith %}</td>
                                 <td> <a href="{% url 'citation:publication_detail' pub.pk %}">{{ pub.title }} </a></td>
                                 <td>{{ pub.date_modified }}</td>
