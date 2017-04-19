@@ -30,7 +30,7 @@ class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     def prepare_contributor_data(self, obj):
         contributor_data = self.prepared_data.get('contributor_data')
         if contributor_data:
-            return contributor_data[0]['creator'] + ' (' + str(contributor_data[0]['contribution']) + ')%'
+            return '{}{}{}{}'.format(contributor_data[0]['creator'], ' (', contributor_data[0]['contribution'], ')%')
         return ''
 
     def get_model(self):

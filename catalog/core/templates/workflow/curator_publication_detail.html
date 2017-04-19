@@ -347,6 +347,7 @@
                     });
                 };
                 self.savePublication = function (data, event) {
+
                     {% comment "FIXME: Add client-side validation " %}
                         var form = $('#curatorPublicationDetailForm');
                         if (!form.valid()) {
@@ -380,6 +381,7 @@
                         data_clone.container = null
                     }
                     self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname).done(function (result) {
+
                         result = DataPreparation.prepare_viewModelJson(result);
                         ko.mapping.fromJS(result, self);
                         humane.log("Data saved successfully.", {timeout: 5000});
