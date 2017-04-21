@@ -22,12 +22,18 @@ GET_PLATFORM = list(Platform.objects.all().values_list('name'))
 GET_SPONSORS = list(Sponsor.objects.all().values_list('name'))
 GET_MODEL_DOCUMENTATION = list(ModelDocumentation.objects.all().values_list('name'))
 GET_STATUS = [s[0] for s in Publication.Status]
-GENRATE_PUBLICATION = models(Publication, container=models(Container),
-                  added_by=models(User),
-                  code_archive_url=st.text(),
-                  url=st.text(), zotero_key=st.just(None))
-GENERATE_NOTES = models(Note, added_by=models(User),zotero_key=st.just(None))
 
+
+def letters(min_size=1, max_size=20):
+    return st.text(alphabet=st.characters(whitelist_categories=('Ll', 'Lu')), min_size=min_size, max_size=max_size)
+
+
+GENRATE_PUBLICATION = models(Publication, container=models(Container),
+                             title=letters(),
+                             added_by=models(User),
+                             code_archive_url=st.text(),
+                             url=st.text(), zotero_key=st.just(None))
+GENERATE_NOTES = models(Note, added_by=models(User),zotero_key=st.just(None))
 
 class UrlTest(BaseTest):
     TEST_URLS = (CONTACT_US_URL, DASHBOARD_URL, HAYSTACK_SEARCH_URL, PUBLICATIONS_URL, USER_PROFILE_URL, WORKFLOW_URL)
@@ -154,14 +160,13 @@ class PublicationsViewTest(BaseTest):
 
 class PublicationDetailView(BaseTest):
     @settings(max_examples=15, perform_health_check=False)
-    @given(GENRATE_PUBLICATION, st.text(min_size=10))
+    @given(GENRATE_PUBLICATION, letters())
     def test_canonical_publication_detail_view(self, p, slug):
-
         self.logout()
         url = self.reverse(PUBLICATION_DETAIL_URL, kwargs={'pk': 999999})
         self.without_login_and_with_login_test(url, after_status=404)
 
-        url = self.reverse(PUBLICATION_DETAIL_URL, kwargs={'pk': p.pk, 'slug': slug.replace('\\','-')})
+        url = self.reverse(PUBLICATION_DETAIL_URL, kwargs={'pk': p.pk, 'slug': slug})
         response = self.get(url)
         self.assertEqual(response.url, p.get_absolute_url())
 
@@ -178,15 +183,16 @@ class PublicationDetailView(BaseTest):
 
     # Test that publication detail is saved successfully or not
     @settings(max_examples=15, perform_health_check=False)
-    @given(GENRATE_PUBLICATION, st.text(min_size=10), st.sampled_from(GET_PLATFORM), st.sampled_from(GET_SPONSORS),
+    @given(GENRATE_PUBLICATION, letters(), st.sampled_from(GET_PLATFORM), st.sampled_from(GET_SPONSORS),
            st.sampled_from(GET_MODEL_DOCUMENTATION), st.sampled_from(GET_STATUS), GENERATE_NOTES, st.booleans())
-    def test_publication_detail_save_with_all_valid_fields(self, p, slug, platforms, sponsors, model_documentations, status, notes,
+    def test_publication_detail_save_with_all_valid_fields(self, p, slug, platforms, sponsors, model_documentations,
+                                                           status, notes,
                                                            flagged):
         user = models(User).example()
         self.login()
 
         url = self.reverse(PUBLICATION_DETAIL_URL, query_parameters={'format': 'json'},
-                           kwargs={'pk': p.pk, 'slug': slug.replace("\\","-")})
+                           kwargs={'pk': p.pk, 'slug': slug})
         response = self.put(url, json.dumps({'title': p.title,
                                              'assigned_curator': user.first_name, 'platforms': [{'name': platforms[0]}],
                                              'sponsors': [{'name': sponsors[0]}],
@@ -205,7 +211,7 @@ class PublicationDetailView(BaseTest):
         self.assertEquals(platform[0], platforms)
         self.assertEquals(publication.flagged, flagged)
         self.assertEquals(publication.status, status)
-        self.assertEquals(publication.contact_author_name, user.first_name )
+        self.assertEquals(publication.contact_author_name, user.first_name)
         self.assertEquals(publication.contact_email, user.email)
 
 
@@ -282,14 +288,13 @@ class ContactViewTest(BaseTest):
         except ValidationError as e:
             flag = False
         # Test for all Valid Fields
-        if flag and (contact.strip() is '' or len(contact.strip()) == 10 ) and \
-                        name.strip() is not '' and message.strip() is not '':
+        if flag and name.strip() is not '' and message.strip() is not '':
             response = self.post(url, {'name': name,
                                        'email': user.email,
                                        'message': message,
                                        'timestamp': timestamp,
                                        'security_hash': security_hash,
-                                       'contact_number': contact})
+                                       'contact_number': ''})
             self.assertEqual(200, response.status_code)
         else:
             # Test for any Invalid Fields
@@ -305,7 +310,6 @@ class ContactViewTest(BaseTest):
     @settings(max_examples=50)
     @given(st.text(),st.text(),st.text())
     def test_contact_info_with_invalid_data(self,name,message,contact):
-        print("Second Definition")
         url = self.reverse(
             CONTACT_US_URL, query_parameters={'format': 'json'})
         response = self.get(url)
