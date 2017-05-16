@@ -13,7 +13,7 @@ from django.utils.http import is_safe_url
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
-
+from django.http import HttpResponse
 from django.views.generic import TemplateView, FormView
 
 from hashlib import sha1
@@ -26,7 +26,9 @@ from citation.models import Publication, InvitationEmail, Platform, Sponsor, Mod
 from .forms import CatalogAuthenticationForm, CatalogSearchForm
 from citation.serializers import (InvitationSerializer,
                                   UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer)
+from citation.management.commands.export_data import Command
 
+import csv
 import logging
 import markdown
 import time
@@ -35,6 +37,16 @@ from haystack.generic_views import SearchView
 from haystack.query import SearchQuerySet
 
 logger = logging.getLogger(__name__)
+
+
+def download_file(self):
+    # Create the HttpResponse object with the appropriate CSV header.
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="all_valid_data.csv"'
+    writer = csv.writer(response)
+    cmd = Command()
+    cmd.handle(outfile=writer)
+    return response
 
 
 class LoginView(FormView):
