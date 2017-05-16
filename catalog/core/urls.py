@@ -31,5 +31,6 @@ urlpatterns += [
     url(r'^search/journal/$', views.JournalSearchView.as_view(), name="journal_search"),
     url(r'^search/model-documentation/$', views.ModelDocumentationSearchView.as_view(),
         name="model_documentation_search"),
+    url(r'^downloading/$', views.download_file, name="download")
 
 ]
