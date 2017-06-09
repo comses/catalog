@@ -240,6 +240,10 @@ LOGGING = {
             'handlers': ['catalog.file', 'console'],
             'propagate': False,
         },
+        'pysolr': {
+            'level': 'WARNING',
+            'handlers': ['catalog.file', 'console']
+        },
         'raven': {
             'level': 'DEBUG',
             'handlers': ['catalog.file', 'console'],
@@ -255,6 +259,11 @@ LOGGING = {
             'handlers': ['catalog.file', 'console', 'sentry'],
             'propagate': False,
         },
+        'citation': {
+            'level': 'DEBUG',
+            'handlers': ['catalog.file', 'console', 'sentry'],
+            'propagate': False,
+        }
     }
 }
 
