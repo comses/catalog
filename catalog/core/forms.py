@@ -4,6 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from citation.models import Publication
 from haystack.forms import SearchForm
+from haystack.inputs import Raw
 
 import logging
 
@@ -91,7 +92,7 @@ class CatalogSearchForm(SearchForm):
         sqs = sqs.filter(**criteria)
 
         if self.cleaned_data['contact_email']:
-            sqs = sqs.exclude(contact_email='')
+            sqs = sqs.filter(contact_email=Raw('[* TO *]'))
 
         is_archived_string = self.cleaned_data.get('is_archived')
         if is_archived_string:
