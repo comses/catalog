@@ -1,10 +1,18 @@
+import csv
+import logging
+import time
 from collections import Counter
+from datetime import timedelta
+from hashlib import sha1
+from json import dumps
+
+import markdown
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
-# from django.contrib.auth.views import LoginView as DjangoLoginView
 from django.core import signing
 from django.db.models import Count
+from django.http import HttpResponse
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, resolve_url
 from django.utils import timezone
@@ -13,38 +21,28 @@ from django.utils.http import is_safe_url
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
-from django.http import HttpResponse
 from django.views.generic import TemplateView, FormView
-
-from hashlib import sha1
-from rest_framework.response import Response
-from rest_framework import status, renderers, generics
-from json import dumps
-from datetime import timedelta
-
-from citation.models import Publication, InvitationEmail, Platform, Sponsor, ModelDocumentation, Tag, Container
-from .forms import CatalogAuthenticationForm, CatalogSearchForm
-from citation.serializers import (InvitationSerializer,
-                                  UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer)
-from citation.management.commands.export_data import Command
-
-import csv
-import logging
-import markdown
-import time
-
 from haystack.generic_views import SearchView
 from haystack.query import SearchQuerySet
+from rest_framework import status, renderers, generics
+from rest_framework.response import Response
+
+from citation.management.commands import export_data
+from citation.models import Publication, InvitationEmail, Platform, Sponsor, ModelDocumentation, Tag, Container
+from citation.serializers import (InvitationSerializer,
+                                  UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer)
+from .forms import CatalogAuthenticationForm, CatalogSearchForm
 
 logger = logging.getLogger(__name__)
 
 
-def download_file(self):
+def export_data(self):
     # Create the HttpResponse object with the appropriate CSV header.
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="all_valid_data.csv"'
     writer = csv.writer(response)
-    cmd = Command()
+# FIXME: instead of invoking the management command, both the management command and this should call a common module
+    cmd = export_data.Command()
     cmd.handle(outfile=writer)
     return response
 
