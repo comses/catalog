@@ -1,5 +1,5 @@
 from haystack import indexes
-from citation.models import Publication, Platform, Sponsor, Tag, Container, ModelDocumentation
+from citation.models import Publication, Platform, Sponsor, Tag, ModelDocumentation
 
 ##########################################
 #  Publication query seach/filter index  #
@@ -12,7 +12,7 @@ class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     last_modified = indexes.DateTimeField(model_attr='date_modified')
     contact_email = indexes.BooleanField(model_attr='contact_email')
     status = indexes.CharField(model_attr='status', faceted=True)
-    container = indexes.EdgeNgramField(model_attr='container__name',null=True)
+    container = indexes.EdgeNgramField(model_attr='container__name', null=True)
     tags = indexes.EdgeNgramField(model_attr='tags__name', null=True)
     authors = indexes.EdgeNgramField(model_attr='creators__name', null=True)
     assigned_curator = indexes.CharField(model_attr='assigned_curator', null=True)
@@ -30,7 +30,7 @@ class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
     def prepare_contributor_data(self, obj):
         contributor_data = self.prepared_data.get('contributor_data')
         if contributor_data:
-            return '{}{}{}{}'.format(contributor_data[0]['creator'], ' (', contributor_data[0]['contribution'], ')%')
+            return '{0} ({1})%'.format(contributor_data[0]['creator'], contributor_data[0]['contribution'])
         return ''
 
     def get_model(self):
