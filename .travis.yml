@@ -18,7 +18,7 @@ before_install:
   - docker-compose version
 install: 
   - pip install python-coveralls coverage
-  - docker-compose build 2> /dev/null
+  - docker-compose build --pull
 script:
   - docker-compose run --rm django /code/deploy/docker/test.sh
 after_success:

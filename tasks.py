@@ -21,7 +21,6 @@ env = {
     'db_host': settings.DATABASES['default']['HOST'],
     'db_user': settings.DATABASES['default']['USER'],
     'coverage_omit_patterns': ('test', 'settings', 'migrations', 'wsgi', 'management', 'tasks', 'apps.py'),
-    'solr_version': '4.10.4',
 }
 
 logger = logging.getLogger(__name__)
@@ -96,24 +95,6 @@ def clean_data(ctx, creator=None):
     datafiles = ['sponsor.delete', 'platform.delete']
     for d in datafiles:
         ctx.run('{python} manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator, **env))
-
-@task
-def setup_solr(ctx, travis=False):
-    if travis:
-        path = 'solr-{solr_version}/example/multicore'.format(**env)
-    else:
-        path = 'solr-{solr_version}/example/solr'.format(**env)
-    catalog_path = '{}/catalog'.format(path)
-    collection1_path = 'solr-{solr_version}/example/solr/collection1'.format(**env)
-    if not os.path.exists('{}/conf'.format(catalog_path)):
-        os.makedirs('{}/conf'.format(catalog_path), exist_ok=True)
-        run_chain(
-            'cp deploy/vagrant/core.properties {}/.'.format(catalog_path),
-            'cp -r {collection1_path}/conf {catalog_path}'.format(collection1_path=collection1_path,
-                                                                  catalog_path=catalog_path))
-    run_chain('{python} manage.py build_solr_schema > schema.xml'.format(**env),
-              'cp schema.xml {catalog_path}/conf/.'.format(catalog_path=catalog_path))
-
 
 @task(aliases=['rdb', 'resetdb'])
 def reset_database(ctx):
@@ -202,7 +183,7 @@ def setup_postgres(ctx):
     print("Postgres user {db_user} and db {db_name} created.".format(**env))
 
 
-@task(setup_postgres, initialize_database_schema, zotero_import, setup_solr, rebuild_index)
+@task(setup_postgres, initialize_database_schema, zotero_import, rebuild_index)
 def setup(ctx):
     print("Omnibus setup invoked.")
 

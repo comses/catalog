@@ -1,4 +1,5 @@
 #!/bin/sh
 /bin/sh /code/deploy/docker/common.sh
-/code/deploy/docker/wait-for-it.sh db:5432 -- invoke initialize_database_schema
+cd /code
+/code/deploy/docker/wait-for-it.sh db:5432 -- invoke idb
 /code/deploy/docker/wait-for-it.sh solr:8983 -- invoke coverage
