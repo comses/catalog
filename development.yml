@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 services:
   solr:
     image: comses/solr:6.6
