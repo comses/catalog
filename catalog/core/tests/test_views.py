@@ -35,11 +35,11 @@ def text(min_size=1, max_size=20):
     return st.text(alphabet=DEFAULT_ALPHABET, min_size=min_size, max_size=max_size)
 
 
-GENRATE_PUBLICATION = models(Publication, container=models(Container),
+GENERATE_PUBLICATION = models(Publication, container=models(Container),
                              title=text(),
                              added_by=models(User),
-                             code_archive_url=st.text(),
-                             url=st.text(), zotero_key=st.just(None))
+                             code_archive_url=text(),
+                             url=text(), zotero_key=st.just(None))
 GENERATE_NOTES = models(Note, added_by=models(User), zotero_key=st.just(None))
 
 
@@ -167,7 +167,7 @@ class PublicationsViewTest(BaseTest):
 
 class PublicationDetailView(BaseTest):
     @settings(max_examples=MAX_EXAMPLES, perform_health_check=False)
-    @given(GENRATE_PUBLICATION, text())
+    @given(GENERATE_PUBLICATION, text())
     def test_canonical_publication_detail_view(self, p, slug):
         self.logout()
         url = self.reverse(PUBLICATION_DETAIL_URL, kwargs={'pk': 999999})
@@ -190,7 +190,7 @@ class PublicationDetailView(BaseTest):
 
     # Test that publication detail is saved successfully or not
     @settings(max_examples=MAX_EXAMPLES, perform_health_check=False)
-    @given(GENRATE_PUBLICATION, text(), st.sampled_from(GET_PLATFORM), st.sampled_from(GET_SPONSORS),
+    @given(GENERATE_PUBLICATION, text(), st.sampled_from(GET_PLATFORM), st.sampled_from(GET_SPONSORS),
            st.sampled_from(GET_MODEL_DOCUMENTATION), st.sampled_from(GET_STATUS), GENERATE_NOTES, st.booleans(), text())
     def test_publication_detail_save_with_all_valid_fields(self, p, slug, platforms, sponsors, model_documentations,
                                                            status, notes,
@@ -347,7 +347,7 @@ class ContactViewTest(BaseTest):
 
 class EmailPreviewTest(BaseTest):
     @settings(max_examples=MAX_EXAMPLES)
-    @given(st.text(), st.text())
+    @given(text(), text())
     def test_email_priview_with_and_without_query_parameters(self, sub, text):
         self.login()
         # If all the fields are valid
