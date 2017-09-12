@@ -15,6 +15,11 @@ services:
       - solr-precreate
       - catalog_core
       - /catalog-solr-conf
+  redis:
+    image: redis:latest
+    restart: always
+    expose:
+      - "6379"
   db:
     image: postgres:9.6
     volumes:
@@ -46,6 +51,7 @@ services:
     links:
       - db
       - solr
+      - redis:redis
 volumes:
   solr:
     driver: local

@@ -11,6 +11,7 @@ from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core import signing
+from django.core.cache import cache
 from django.db.models import Count
 from django.http import HttpResponse
 from django.http import JsonResponse, HttpResponseRedirect
@@ -27,7 +28,7 @@ from haystack.query import SearchQuerySet
 from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 
-from citation.management.commands import export_data
+from citation.export_data import create_csv
 from citation.models import Publication, InvitationEmail, Platform, Sponsor, ModelDocumentation, Tag, Container
 from citation.serializers import (InvitationSerializer,
                                   UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer)
@@ -41,9 +42,7 @@ def export_data(self):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="all_valid_data.csv"'
     writer = csv.writer(response)
-# FIXME: instead of invoking the management command, both the management command and this should call a common module
-    cmd = export_data.Command()
-    cmd.handle(outfile=writer)
+    create_csv(writer)
     return response
 
 
@@ -131,8 +130,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             status=Publication.Status.AUTHOR_UPDATED)
         recently_updated_publications = Publication.objects.exclude(
             status=Publication.Status.AUTHOR_UPDATED)
-        context['recently_updated'] = recently_updated_publications.filter(
+        recently_updated = recently_updated_publications.filter(
             date_modified__gte=last_week_datetime, is_primary=True).order_by('-date_modified')[:number_of_publications]
+        context['recently_updated'] = recently_updated
+        list = [pub.id for pub in recently_updated]
+        cache_dct = cache.get_many(list)
+        context['contribution'] = cache_dct
         return context
 
 
