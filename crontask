@@ -1,0 +1,4 @@
+0 3 * * * root /usr/bin/python3 /code/manage.py cache_data >> /var/log/cron.log 2>&1
+5 4 * * sun root /usr/bin/python3 /code/manage.py remove_orphans >> /var/log/cron.log 2>&1
+
+# Don't remove the empty line at the end of this file. It is required to run the cron job

@@ -71,11 +71,13 @@
                                 <i class="text-danger fa fa-thumbs-down"></i>
                                 {% endif %}
                                 </td>
-                                <td>{% with pub.contributor_data|first as record %}
-                                        {% if  record.creator %}
+                                <td>{%  for key, value in contribution.items %}
+                                    {%  if key == pub.id %}
+                                    {% with value|first as record %}
                                         {{ record.creator}} ({{ record.contribution }}%)
-                                        {% endif %}
-                                    {% endwith %}</td>
+                                    {% endwith %}
+                                    {% endif %}
+                                    {% endfor %}</td>
                                 <td> <a href="{% url 'citation:publication_detail' pub.pk %}">{{ pub.title }} </a></td>
                                 <td>{{ pub.date_modified }}</td>
                             </tr>

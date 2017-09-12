@@ -12,5 +12,11 @@ RUN pip3 install -q -r /tmp/requirements.txt
 
 COPY deploy/mail/ssmtp.conf /etc/ssmtp/ssmtp.conf
 
+# Add crontask file in the cron directory
+ADD crontask /etc/cron.d/cron_caching
+
+# Give execution rights on the cron job
+RUN chmod +x /etc/cron.d/cron_caching
+
 WORKDIR /code
 CMD ["/code/deploy/docker/dev.sh"]
