@@ -48,6 +48,7 @@
         </div>
     </div>
     <h4 class="col-md-2"><a href="{{ export_data_url }}"> Download Data</a></h4>
+    <h4 class="col-md-2"><a href="{{ visualization }}"> Visualization</a></h4>
     <div class="row">
         <div class="col-md-12">
             <div class="panel panel-default">
@@ -61,7 +62,7 @@
                         <tbody>
                         {% for pub in recently_updated %}
                             <tr>
-                                {% if publication.flagged %}
+                                {% if pub.flagged %}
                                 <i class='text-danger fa fa-flag'></i>
                                 {% endif %}
                                 <td><span class='label label-as-badge label-primary'>{{ pub.status }}</span>
