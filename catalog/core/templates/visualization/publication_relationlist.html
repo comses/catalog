@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load bootstrap3 %}
+
+{% block content %}
+    <div data-bind="template: { name: template_id() }"></div>
+{% endblock content %}
+<body>
+{% block javascript %}
+
+    <script type="text/html" id="all-publications">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 id="name">
+                </h3>
+            </div>
+            <div class="panel-body">
+                <table class="table table-striped">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>No. Of Published Publication</th>
+                        <th>Code Availiable Publication</th>
+                    </tr>
+                    </thead>
+                    <tbody data-bind="foreach: results">
+                    <tr>
+                        <td>
+                            <a data-bind="attr: { href: url }, text:name"></a>
+
+                        </td>
+                        <td data-bind="text: total_count"></td>
+                        <td data-bind='text: availability_count'></td>
+                    </tr>
+                    </tbody>
+                </table>
+                <nav>
+                    <ul class="pager">
+                        <li class="previous" data-bind="css: {disabled: !previous()}"><a
+                                data-bind="attr:{href: previous}"><span aria-hidden="true">&larr;</span> Previous
+                            Page</a></li>
+                        <li data-bind="text: numberOfResults"></li>
+                        <li class="next" data-bind="css: {disabled: !next()}"><a data-bind="attr:{href: next}">Next Page<span
+                                aria-hidden="true">&rarr;</span></a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </script>
+
+    <script type="text/javascript">
+        var viewModelJson = $.parseJSON("{{ json | escapejs }}");
+        var id = viewModelJson.id;
+        window.onload = function () {
+            document.getElementById("name").innerHTML = id;
+        };
+        $(function () {
+            var Publication = function (data) {
+                var self = this;
+                if (id == 'Author') {
+                    data['url'] = "/pub-year-distribution/" + id + "/" + data.first + "/" + data.last;
+                } else {
+                    data['url'] = "/pub-year-distribution/" + id + "/" + data.name;
+                }
+                ko.mapping.fromJS(data, {}, self);
+            };
+
+            var PagedPublicationGridModel = function (data) {
+                var pubs_mapping = {
+                    'results': {
+                        create: function (options) {
+                            return new Publication(options.data);
+                        }
+                    }
+                };
+                var model = ko.mapping.fromJS(data, pubs_mapping, self);
+
+                model.numberOfResults = ko.computed(function () {
+                    return "Showing " + model.start_index() + " to " + model.end_index() + " of " + model.count() + " entries";
+                });
+                model.template_id = ko.observable("all-publications");
+                {#                model.url = "/publicationjournalrelation/Authors/" + data.result.name;#}
+                {#                console.log(data.result.name)#}
+            };
+
+
+            ko.applyBindings(new PagedPublicationGridModel(viewModelJson));
+        });
+    </script>
+{% endblock javascript %}
+</body>

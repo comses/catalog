@@ -124,3 +124,29 @@ input#id_contact_number {
 .contribution-group-item p:first-child{
     color: #008ed6;
 }
+
+.c3-axis-x-label{
+   fill: red;
+   font-size:12px;
+    padding: 5px;
+}
+.c3-axis-y-label
+{
+  font-size: 12px;
+}
+
+.legend span {
+    width: 33.333333%;
+    display: inline-block;
+    text-align: center;
+    cursor: pointer;
+    color: white;
+}
+
+.chart-background{
+     background-color: lightgrey;
+    border: 5px solid darkgray;
+    padding-right: 5px;
+    font-size: 15px;
+    text-align: center;
+}
