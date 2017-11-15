@@ -28,7 +28,7 @@ GET_MODEL_DOCUMENTATION = list(ModelDocumentation.objects.all().values_list('nam
 GET_STATUS = [s[0] for s in Publication.Status]
 GET_AUTHOR = list(Author.objects.all().values_list('family_name'))
 GET_JOURNAL = list(Container.objects.all().values_list('name'))
-DEFAULT_ALPHABET = st.characters(whitelist_categories={'Lu', 'Ll', 'Lt', 'Lm', 'Lo'}, blacklist_characters='\x00')
+DEFAULT_ALPHABET = st.characters(whitelist_categories={'Lu', 'Ll', 'Lt', 'Lm', 'Lo'}, blacklist_characters=(chr(0),))
 
 
 def text(min_size=1, max_size=20):
@@ -36,11 +36,16 @@ def text(min_size=1, max_size=20):
 
 
 GENERATE_PUBLICATION = models(Publication, container=models(Container),
-                             title=text(),
-                             added_by=models(User),
-                             code_archive_url=text(),
-                             url=text(), zotero_key=st.just(None))
-GENERATE_NOTES = models(Note, added_by=models(User), zotero_key=st.just(None))
+                              title=text(),
+                              abstract=text(),
+                              short_title=st.just(''),
+                              archive=text(),
+                              archive_location=text(),
+                              added_by=models(User),
+                              code_archive_url=text(),
+                              url=st.just(''),
+                              zotero_key=st.none())
+GENERATE_NOTES = models(Note, added_by=models(User), zotero_key=st.none())
 
 
 class UrlTest(BaseTest):
@@ -165,7 +170,7 @@ class PublicationsViewTest(BaseTest):
         self.assertEqual(404, response.status_code)
 
 
-class PublicationDetailView(BaseTest):
+class PublicationDetailViewTest(BaseTest):
     @settings(max_examples=MAX_EXAMPLES, perform_health_check=False)
     @given(GENERATE_PUBLICATION, text())
     def test_canonical_publication_detail_view(self, p, slug):
@@ -348,7 +353,7 @@ class ContactViewTest(BaseTest):
 class EmailPreviewTest(BaseTest):
     @settings(max_examples=MAX_EXAMPLES)
     @given(text(), text())
-    def test_email_priview_with_and_without_query_parameters(self, sub, text):
+    def test_email_preview_with_and_without_query_parameters(self, sub, text):
         self.login()
         # If all the fields are valid
         if sub.strip() is not '' and text.strip() is not '':
