@@ -324,21 +324,21 @@ class VisualizationWorkflowView(LoginRequiredMixin, generics.GenericAPIView):
         return render_to_response("visualization/viz_index.html")
 
 
-class JournalPublication(LoginRequiredMixin, generics.GenericAPIView):
+# Generates journal relation - the number of paper published having same journal info to the code made available
+class JournalPublicationRelation(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
     pagination_class = CatalogPagination
 
     def get(self, request):
-        if cache.get('JournalPublicationRelation') is not None:
-            response = cache.get('JournalPublicationRelation')
-        else:
+        response = cache.get('JournalPublicationRelation')
+        if response is None:
             pubs = Publication.api.primary(status='REVIEWED', prefetch=False).annotate(
                 name=F('container__name')).values('name').order_by(
-                'name').annotate(total_count=Count('name'),
-                                 availability_count=models.Sum(
+                'name').annotate(published=Count('name'),
+                                 code_available=models.Sum(
                                      models.Case(models.When(~Q(code_archive_url=''), then=1),
                                                  default=0, output_field=models.IntegerField()))) \
-                .values('name', 'total_count', 'availability_count').order_by('-total_count')
+                .values('name', 'published', 'code_available').order_by('-published')
 
             paginator = CatalogPagination()
             result_page = paginator.paginate_queryset(pubs, request)
@@ -349,22 +349,21 @@ class JournalPublication(LoginRequiredMixin, generics.GenericAPIView):
         return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
 
 
-class SponsorPublication(LoginRequiredMixin, generics.GenericAPIView):
+# Generates sponsor relation - the number of paper published having same sponsor info to the code made available
+class SponsorPublicationRelation(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
     pagination_class = CatalogPagination
 
     def get(self, request):
-        print(cache.get('SponsorPublicationRelation'))
-        if cache.get('SponsorPublicationRelation') is not None:
-            response = cache.get('SponsorPublicationRelation')
-        else:
-            pubs = all_publication = Publication.api.primary(status='REVIEWED', prefetch=False).annotate(
+        response = cache.get('SponsorPublicationRelation')
+        if response is None:
+            pubs = Publication.api.primary(status='REVIEWED', prefetch=False).annotate(
                 name=F('sponsors__name')).values('name').order_by(
-                'name').annotate(total_count=Count('name'),
-                                 availability_count=models.Sum(
+                'name').annotate(published=Count('name'),
+                                 code_available=models.Sum(
                                      models.Case(models.When(~Q(code_archive_url=''), then=1),
                                                  default=0, output_field=models.IntegerField()))) \
-                .values('name', 'total_count', 'availability_count').order_by('-total_count')
+                .values('name', 'published', 'code_available').order_by('-published')
 
             paginator = CatalogPagination()
             result_page = paginator.paginate_queryset(pubs, request)
@@ -375,80 +374,86 @@ class SponsorPublication(LoginRequiredMixin, generics.GenericAPIView):
         return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
 
 
-class PlatformPublication(LoginRequiredMixin,generics.GenericAPIView):
+# Generates platform relation - the number of paper published having same platform info to the code made available
+class PlatformPublicationRelation(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
     pagination_class = CatalogPagination
 
     def get(self, request):
-        if cache.get('PlatformPublicationRelation') is not None:
-            response = cache.get('PlatformPublicationRelation')
-        else:
-            pubs = Publication.api.primary(status='REVIEWED',prefetch=False).annotate(name=F('platforms__name')).values('name').order_by(
-                'name').annotate(total_count=Count('name'),
-                                 availability_count=models.Sum(
-                                                 models.Case(models.When(~Q(code_archive_url=''), then=1),
-                                                             default=0, output_field=models.IntegerField()))) \
-                .values('name', 'total_count', 'availability_count').order_by('-total_count')
-
+        response = cache.get('PlatformPublicationRelation')
+        if response is None:
+            pubs = Publication.api.primary(status='REVIEWED', prefetch=False).annotate(
+                name=F('platforms__name')).values('name').order_by(
+                'name').annotate(published=Count('name'),
+                                 code_available=models.Sum(
+                                     models.Case(models.When(~Q(code_archive_url=''), then=1),
+                                                 default=0, output_field=models.IntegerField()))) \
+                .values('name', 'published', 'code_available').order_by('-published')
 
             paginator = CatalogPagination()
             result_page = paginator.paginate_queryset(pubs, request)
             serializer = RelationSerializer(result_page, many=True)
             response = paginator.get_paginated_response(serializer.data)
             response['id'] = "Platform"
-            cache.set('PlatformPublicationRelation', response, 60)
+            cache.set('PlatformPublicationRelation', response, 86600)
         return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
 
 
-class AuthorPublication(LoginRequiredMixin, generics.GenericAPIView):
+# Generates author relation - the number of paper published to the code made available
+class AuthorPublicationRelation(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
     pagination_class = CatalogPagination
 
     def get(self, request):
-        pubs = Publication.objects.filter(status='REVIEWED', is_primary=True).\
-                    annotate(first=F('creators__given_name'), last=F('creators__family_name')).values(
-            'first',
-            'last').order_by(
-            'first', 'last').annotate(total_count=Count('first'),
-                                      availability_count=models.Sum(models.Case(
-                                          models.When(~Q(code_archive_url=''), then=1),
-                                          default=0,
-                                          output_field=models.IntegerField())),
-                                      name=Concat('first', V(' '),
-                                                  'last'),
-                                      ).values(
-            'name', 'total_count', 'availability_count', 'first', 'last').order_by('-total_count')
+        response = cache.get('AuthorPublicationRelation')
+        if response is None:
+            pubs = Publication.objects.filter(status='REVIEWED', is_primary=True). \
+                annotate(given_name=F('creators__given_name'), family_name=F('creators__family_name')).values(
+                'given_name',
+                'family_name').order_by(
+                'given_name', 'family_name').annotate(published=Count('given_name'),
+                                                      code_available=models.Sum(models.Case(
+                                                          models.When(~Q(code_archive_url=''), then=1),
+                                                          default=0,
+                                                          output_field=models.IntegerField())),
+                                                      name=Concat('given_name', V(' '),
+                                                                  'family_name'),
+                                                      ).values(
+                'name', 'published', 'code_available', 'given_name', 'family_name').order_by('-published')
 
-        paginator = CatalogPagination()
-        result_page = paginator.paginate_queryset(pubs, request)
-        serializer = AuthorRelationSerializer(result_page, many=True)
-        response = paginator.get_paginated_response(serializer.data)
-        response['id'] = "Author"
+            paginator = CatalogPagination()
+            result_page = paginator.paginate_queryset(pubs, request)
+            serializer = AuthorRelationSerializer(result_page, many=True)
+            response = paginator.get_paginated_response(serializer.data)
+            response['id'] = "Author"
+            cache.set('AuthorPublicationRelation', response, 86600)
         return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
 
 
+# Generates the model documentation variable relation among themselves throughout dataset distribution
 class ModelDocumentationPublicationRelation(LoginRequiredMixin, TemplateView):
     template_name = 'visualization/model_documentation_publication_relation.html'
-    def get_context_data(self,**kwargs):
-        context = super(ModelDocumentationPublicationRelation, self).get_context_data(**kwargs)
-        if cache.get('ModelDocumentationPublicationRelation') is not None:
 
-            context['value'] = cache.get('ModelDocumentationPublicationRelation')
+    def get_context_data(self, **kwargs):
+        context = super(ModelDocumentationPublicationRelation, self).get_context_data(**kwargs)
+        response = cache.get('ModelDocumentationPublicationRelation')
+        if response is not None:
+            context['value'] = response
         else:
             md = ModelDocumentation.objects.all().values_list('name')
             total = Publication.objects.filter(is_primary=True, status='REVIEWED').count()
             value = []
             for name in list(md):
                 if name[0] is not None:
-                    value.append({'name': name[0], 'count': "{0:.2f}".format(Publication.objects.filter(is_primary=True, status='REVIEWED',
-                                                                      model_documentation__name=name[
-                                                                          0]).count() * 100 / total)})
+                    value.append({'name': name[0], 'count': "{0:.2f}".format(
+                        Publication.objects.filter(is_primary=True, status='REVIEWED',
+                                                   model_documentation__name=name[
+                                                       0]).count() * 100 / total)})
             context['value'] = value
-            cache.set('ModelDocumentationPublicationRelation', value)
-
+            cache.set('ModelDocumentationPublicationRelation', value, 86600)
         return context
 
-
+# Generates the staged distribution of the requested id : Journal, Sponsor, Platform, Model Doc, Author
 class RelationDetail(LoginRequiredMixin, generics.GenericAPIView):
     def get(self, request, id=None, name=None):
         pubs = None
@@ -469,6 +474,7 @@ class RelationDetail(LoginRequiredMixin, generics.GenericAPIView):
             name = 'All Publication'
             id = 'general'
             pubs = Publication.objects.filter(status='REVIEWED', is_primary=True)
+
         availability = []
         non_availability = []
         all = []
@@ -484,6 +490,7 @@ class RelationDetail(LoginRequiredMixin, generics.GenericAPIView):
         googlecode_counter = 0
         researchgate_counter = 0
         platform_dct = {}
+
         for pub in pubs:
             if pub.year_published is not None and pub.code_archive_url:
                 if "https://www.openabm.org/" in pub.code_archive_url:
@@ -524,25 +531,23 @@ class RelationDetail(LoginRequiredMixin, generics.GenericAPIView):
             else:
                 non_availability.append(pub.year_published)
             all.append(pub.year_published)
-        check = []
-        relation = []
-        platform = []
-        platform.append(platform_dct)
+
+        response = []
         for year in set(all):
             if year is not None:
                 present = availability.count(year) * 100 / len(all)
                 absent = non_availability.count(year) * 100 / len(all)
                 total = present + absent
-                check.append(absent * 100 / total)
-                relation.append({'id': id, 'name': name, 'date': year, 'Code Available': availability.count(year),
-                            'Code Not Available': non_availability.count(year),
-                            'Code Available Per': present * 100 / total,
-                            'Code Not Available Per': absent * 100 / total})
+                response.append({'id': id, 'name': name, 'date': year, 'Code Available': availability.count(year),
+                                 'Code Not Available': non_availability.count(year),
+                                 'Code Available Per': present * 100 / total,
+                                 'Code Not Available Per': absent * 100 / total})
 
         return render_to_response("visualization/pubvsyear.html",
-                                  {"obj_as_json": json.dumps(relation), "code_platform": json.dumps(platform)})
+                                  {"obj_as_json": json.dumps(response), "code_platform": json.dumps(platform_dct)})
 
 
+# Generate linked or associated list of publication for the requested Id
 class PublicationListDetail(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
     pagination_class = CatalogPagination
@@ -569,7 +574,6 @@ class PublicationListDetail(LoginRequiredMixin, generics.GenericAPIView):
         elif id == 'general':
             pubs = Publication.objects.filter(status='REVIEWED', is_primary=True,
                                               date_published_text__contains=year)
-
 
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)

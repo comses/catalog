@@ -28,8 +28,8 @@
                             <a data-bind="attr: { href: url }, text:name"></a>
 
                         </td>
-                        <td data-bind="text: total_count"></td>
-                        <td data-bind='text: availability_count'></td>
+                        <td data-bind="text: published"></td>
+                        <td data-bind='text: code_available'></td>
                     </tr>
                     </tbody>
                 </table>
@@ -57,7 +57,7 @@
             var Publication = function (data) {
                 var self = this;
                 if (id == 'Author') {
-                    data['url'] = "/pub-year-distribution/" + id + "/" + data.first + "/" + data.last;
+                    data['url'] = "/pub-year-distribution/" + id + "/" + data.given_name + "/" + data.family_name;
                 } else {
                     data['url'] = "/pub-year-distribution/" + id + "/" + data.name;
                 }
@@ -78,8 +78,6 @@
                     return "Showing " + model.start_index() + " to " + model.end_index() + " of " + model.count() + " entries";
                 });
                 model.template_id = ko.observable("all-publications");
-                {#                model.url = "/publicationjournalrelation/Authors/" + data.result.name;#}
-                {#                console.log(data.result.name)#}
             };
 
 

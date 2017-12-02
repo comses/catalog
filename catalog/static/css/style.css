@@ -144,9 +144,42 @@ input#id_contact_number {
 }
 
 .chart-background{
-     background-color: lightgrey;
     border: 5px solid darkgray;
     padding-right: 5px;
     font-size: 15px;
     text-align: center;
+}
+
+.wrapper {
+    border: 2px solid #000;
+    overflow: hidden;
+    background: #c3dfef;
+}
+
+.wrapper div {
+    min-height: 200px;
+    padding: 10px;
+}
+
+#donutChart {
+    background-color: white;
+    margin: 10px;
+
+}
+
+#stagedDistribution {
+    background-color: white;
+    overflow: hidden;
+    margin: 10px;
+    min-height: 170px;
+}
+
+@media screen and (max-width: 400px) {
+    #donutChart {
+        float: none;
+        margin-right: 0;
+        width: auto;
+        border: 0;
+        border-bottom: 2px solid #000;
+    }
 }
