@@ -2,8 +2,8 @@ version: '3'
 services:
   solr:
     image: comses/solr:6.6
-    ports:
-      - "127.0.0.1:8983:8983"
+    expose:
+      - "8983"
     volumes:
       - solr:/opt/solr/server/solr/mycores
       - ./deploy/solr/conf:/catalog-solr-conf
@@ -13,6 +13,11 @@ services:
       - solr-precreate
       - catalog_core
       - /catalog-solr-conf
+  redis:
+    image: redis:latest
+    restart: always
+    expose:
+      - "6379"
   db:
     image: postgres:9.6
     volumes:
