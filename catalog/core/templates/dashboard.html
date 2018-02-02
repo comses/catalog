@@ -106,7 +106,7 @@
                             <tr>
                                 <td>{{ pub.pk}}</td>
                                 <td>{{ pub.date_modified }}</td>
-                                <td><a href="{% url publication_detail_url pub.pk %}">{{ pub.title }}</a></td>
+                                <td> <a href="{% url 'citation:publication_detail' pub.pk %}">{{ pub.title }} </a></td>
                             </tr>
                         {% endfor %}
                         </tbody>
