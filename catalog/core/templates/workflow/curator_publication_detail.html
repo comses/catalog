@@ -286,12 +286,14 @@
                         '&as_sauthors=' + encodeURIComponent(self.authorLastNames());
                 });
                 self.asuLibraryTitleLink = ko.pureComputed(function () {
-                    return 'http://asu.summon.serialssolutions.com/search/results?q=' + encodeURIComponent(self.title());
+                    return 'https://arizona-asu-primo.hosted.exlibrisgroup.com/primo-explore/search?query=title,contains,' + encodeURIComponent(self.title()) + 
+                        '&tab=default_tab&search_scope=Everything&sortby=rank&vid=01ASU&lang=en_US&mode=advanced&offset=0';
 
                 });
                 self.asuLibraryAuthorLink = ko.pureComputed(function () {
-                    return 'http://asu.summon.serialssolutions.com/search/results?q=' + encodeURIComponent(self.title())
-                        + encodeURIComponent(' AND (AuthorCombined: (' + self.authorLastNames() + '))');
+                    return 'https://arizona-asu-primo.hosted.exlibrisgroup.com/primo-explore/search?query=title,contains,' + encodeURIComponent(self.title())
+                        + ',AND&query=creator,contains,' + encodeURIComponent(self.authorLastNames()) + 
+                        '&tab=default_tab&search_scope=Everything&sortby=rank&vid=01ASU&lang=en_US&mode=advanced&offset=0';
 
                 });
                 self.validCodeArchiveUrl = ko.pureComputed(function () {
