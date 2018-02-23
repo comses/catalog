@@ -11,7 +11,8 @@ app_name = 'core'
 urlpatterns = format_suffix_patterns([
     url(r'^publication/workflow/email-preview/$', views.EmailPreview.as_view(), name='invite_email_preview'),
     url(r'^publication/workflow/invite/$', views.ContactAuthor.as_view(), name='send_invites'),
-    url(r'^publication/update-model-url/(?P<token>[\w:-]+)/$', views.UpdateModelUrlView.as_view(), name='update_model_url'),
+    url(r'^publication/update-model-url/(?P<token>[\w:-]+)/$', views.UpdateModelUrlView.as_view(),
+        name='update_model_url'),
 ])
 
 # non django rest framework endpoints for authentication, user dashboard, workflow, and search URLs
@@ -31,6 +32,22 @@ urlpatterns += [
     url(r'^search/journal/$', views.JournalSearchView.as_view(), name="journal_search"),
     url(r'^search/model-documentation/$', views.ModelDocumentationSearchView.as_view(),
         name="model_documentation_search"),
-    url(r'^export/$', views.export_data, name="export_data")
+    url(r'^export/$', views.export_data, name="export_data"),
+
+    # Visualization endpoints
+    url(r'^visualization/$', views.VisualizationWorkflowView.as_view(), name="visualization"),
+    url(r'^pub-year-distribution/$', views.RelationDetail.as_view(), name="pub-year-distribution"),
+    url(r'^pub-year-distribution/(?P<id>\w+)/(?P<name>[\w|\W]+)/$', views.RelationDetail.as_view(),
+        name='pub-year-distribution'),
+    url(r'^publication-journal-relation/$', views.JournalPublicationRelation.as_view(), name="publication-journal-relation"),
+    url(r'^publication-sponsor-relation/$', views.SponsorPublicationRelation.as_view(), name="publication-sponsor-relation"),
+    url(r'^publication-platform-relation/$', views.PlatformPublicationRelation.as_view(), name="publication-platform-relation"),
+    url(r'^publication-author-relation/$', views.AuthorPublicationRelation.as_view(), name="publication-author-relation"),
+    url(r'^publication-model-documentation-relation/$', views.ModelDocumentationPublicationRelation.as_view(),
+        name="publication-model-documentation-relation"),
+    url(r'^publicationlist/(?P<id>\w+)/(?P<name>[\w|\W]+)/(?P<year>[\w|\W]+)/$', views.PublicationListDetail.as_view(),
+        name='publicationlist'),
+    url(r'^publicationlist/(?P<id>\w*)/(?P<name>[\w|\W]*)/(?P<year>[\w|\W]*)/$', views.PublicationListDetail.as_view(),
+        name='publicationlist'),
 
 ]
