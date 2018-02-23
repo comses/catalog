@@ -47,9 +47,10 @@ services:
   django:
     build:
       context: ./
+      args:
+        RUN_SCRIPT: "./deploy/prod.sh"
     image: comses/catalog
     volumes:
-      - .:/code
       - ./deploy/backup/cron-script:/etc/cron.daily/autopgsqlbackup
       - solr:/etc/solr/mycores/
       - static:/catalog/static
