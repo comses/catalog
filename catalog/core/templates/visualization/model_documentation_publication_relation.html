@@ -14,7 +14,7 @@
             {% for pub in value %}
                 <tr>
 
-                    <td><a href="{% url 'core:pub-year-distribution' id='Modeldoc' name=pub.name %}">{{ pub.name }}</a>
+                    <td><a href="{% url 'core:pub-year-distribution' relation='Modeldoc' name=pub.name %}">{{ pub.name }}</a>
                     </td>
                     <td> {{ pub.count }} </td>
                 </tr>

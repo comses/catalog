@@ -1,259 +1,269 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<meta charset="utf-8">
 
-<script src="https://d3js.org/d3.v4.min.js"></script>
-<head>
-    <title>Staged Distribution Visualization</title>
-    <meta charset="utf-8"/>
-    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.css" rel="stylesheet"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.js"></script>
-    <style type="text/css">
-        #name {
-            background-color: #0076a3;
-            color: white;
-            padding: 20px;
-        }</style>
-</head>
-<body onload="LoadCountVizualization()">
-<p id="name"></p>
-<div class="wrapper">
-    <div class="chart-background" id="donutChart" style="height: 340px; width: 340px;  float: left;"></div>
-    <div class="chart-background" id="stagedDistribution" style="width:73%;padding: 20px; ">
-        <form action="" style="text-align: center; font-size: 12px; height: 30px; margin-top: 10px">
-            <input type="radio" name="type" checked=True value="Count" onclick="LoadCountVizualization()"> Count
-            <input type="radio" name="type" value="Percentage" onclick="LoadPercentageVizualization()"> Percentage
-        </form>
-        <div id="stackedArea" class="c3-text" style="height: 340px"></div>
-        <p>Staged Distribution of Publication against year</p>
+{% block content %}
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <head>
+        <title>Staged Distribution Visualization</title>
+        <meta charset="utf-8"/>
+        <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}"/>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.css" rel="stylesheet"/>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.js"></script>
+
+    </head>
+    <body onload="LoadCountVizualization()">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 id="name"></h3>
+        </div>
+
+        <div class="panel-body">
+            <div class="chart-background" id="donutChart" style="height: 340px;"></div>
+            <div class="chart-background" id="stagedDistribution">
+            <form action="" style="text-align: center; font-size: 12px; height: 30px; margin: 10px">
+                <input type="radio" name="type" checked=True value="Count" onclick="LoadCountVizualization()"> Count
+                <input type="radio" name="type" value="Percentage" onclick="LoadPercentageVizualization()"> Percentage
+            </form>
+            <div id="stackedArea" class="c3-text" style="height: 380px; margin: 10px"></div>
+            <p>Staged Distribution of Publication against year</p>
+        </div>
+
+    </div>
     </div>
 
-</div>
+    </body>
+{% endblock content %}
+{% block javascript %}
+    <script type="text/javascript">
+        var data = {{ aggregated_data|safe }};
+        var platform = {{ code_platform|safe }};
 
-</body>
+        var id = data[0]['relation'];
+        var name = data[0]['name'];
 
-<script type="text/javascript">
-    var distribution = {{ obj_as_json|safe }};
-    var platform = {{ code_platform|safe }};
-    var id = distribution[0]['id'];
-    var name = distribution[0]['name'];
-    var platform_list = [];
-    for (var key in platform) {
-        platform_list.push(key)
-    }
+        var platform_list = [];
+        for (var key in platform[0]) {
+            platform_list.push(key)
+        }
+        console.log(platform_list,platform);
+        function donutChart() {
+            var donutChart = c3.generate({
+                data: {
 
-    function donutChart() {
-        var chart = c3.generate({
-            data: {
-
-                json: [platform],
-                mimeType: 'json',
-                keys: {
-                    value: platform_list
-                },
-                type: 'donut',
-                onclick: function (d, i) {
-                    {#                    console.log("onclick", d, i);#}
-                },
-                onmouseover: function (d, i) {
-                    {#                    console.log("onmouseover", d, i);#}
-                },
-                onmouseout: function (d, i) {
-                    {#                    console.log("onmouseout", d['id']);#}
-                }
-            },
-            donut: {
-                label: {
-                    format: function (value) {
-                        return value;
-                    }
-                },
-                title: "Models Platform"
-            },
-            bindto: '#donutChart'
-        });
-    }
-
-    function LoadPercentageVizualization() {
-        var svg = d3.select("svg");
-        svg.selectAll("*").remove();
-        c3.chart.internal.fn.getInterpolate = () => 'monotone';
-        donutChart();
-        var chart1 = c3.generate({
-            data: {
-                json: distribution,
-                mimeType: 'json',
-                types: {
-                    'Code Available Per': 'area-spline',
-                    'Code Not Available Per': 'area-spline'
-                },
-                groups: [['Code Available Per', 'Code Not Available Per']],
-                keys: {
-                    x: 'date',
-                    value: ['Code Available Per', 'Code Not Available Per'],
-                },
-
-
-            },
-            legend: {
-                show: true,
-                position: 'inset',
-                inset: {
-                    anchor: 'top-right',
-                    x: 50,
-                    y: undefined,
-                    step: undefined
-                }
-            },
-
-            axis: {
-                x: {
-                    padding: {left: 0, top: 0},
-                    tick: {
-                        culling: {
-                            max: 40 // the number of tick texts will be adjusted to less than this value
-                        },
-                        fit: true,
-                        format: "%y"
+                    json: platform,
+                    mimeType: 'json',
+                    keys: {
+                        value: platform_list
                     },
-                    label: {
-                        text: 'Year',
-                        position: 'outer-center'
-                    },
+                    type: 'donut',
                     onclick: function (d, i) {
-                        console.log("onclick", d, i);
+                        {#                    console.log("onclick", d, i);#}
                     },
                     onmouseover: function (d, i) {
-                        console.log("onmouseover", d, i);
+                        {#                    console.log("onmouseover", d, i);#}
                     },
                     onmouseout: function (d, i) {
-                        console.log("onmouseout", d['id']);
+                        {#                    console.log("onmouseout", d['id']);#}
                     }
                 },
-                y: {
-                    max: 99,
+                donut: {
                     label: {
-                        text: 'Percentage',
-                        position: 'outer-middle'
-                    },
-                    tick: {
-                        format: function (d) {
-                            return d + "%";
+                        format: function (value) {
+                            return value;
                         }
-                    }
-                }
-            },
-            point: {
-                show: false,
-            },
-            tooltip: {
-                format: {
-                    title: function (d) {
-                        return 'Percentage data for ' + d;
                     },
-                    value: function (value, ratio, id) {
-                        return (value).toFixed(2) + '%';
+                    title: "Models Platform"
+                },
+                legend: {
+                    show: true,
+                    position: 'inset',
+                    inset: {
+                        anchor: 'top-right',
+                        x: 250,
+                        y: 50,
+                        step: undefined
                     }
-//            value: d3.format(',') // apply this format to both y and y2
-                }
-            },
-            bindto: '#stackedArea'
-        });
-        d3OnClickEvent()
-    }
+                },
+                bindto: '#donutChart'
+            });
+        }
 
-    function LoadCountVizualization() {
-        document.getElementById('name').innerHTML = name;
-        donutChart();
-        // can change type of the graph line formation by modifying interpolate value
-        c3.chart.internal.fn.getInterpolate = () => 'monotone';
-        var chart1 = c3.generate({
+        function LoadPercentageVizualization() {
+            var svg = d3.select("svg");
+            svg.selectAll("*").remove();
+            c3.chart.internal.fn.getInterpolate = function() {return 'monotone'};
+            donutChart();
+            var stagedChart = c3.generate({
+                data: {
+                    json: data,
+                    mimeType: 'json',
+                    selection: {
+                        enabled: true
+                    },
+                    onselected: function (d, element) {
+                        callUrl(id, name, d['x'])
+                    },
+                    types: {
+                        'Code Available Per': 'area-spline',
+                        'Code Not Available Per': 'area-spline'
+                    },
+                    groups: [['Code Available Per', 'Code Not Available Per']],
+                    keys: {
+                        x: 'date',
+                        value: ['Code Available Per', 'Code Not Available Per'],
+                    },
 
-            data: {
-                json: distribution,
-                mimeType: 'json',
-                selection: {
-                    enabled: true
+
                 },
-                onselected: function (d, element) {
-                    callUrl(id, name, d['x'])
+                legend: {
+                    show: true,
+                    position: 'inset',
+                    inset: {
+                        anchor: 'top-right',
+                        x: 50,
+                        y: undefined,
+                        step: undefined
+                    }
                 },
-                types: {
-                    'Code Available': 'area-spline',
-                    'Code Not Available': 'area-spline'
-                },
-                groups: [['Code Available', 'Code Not Available']],
-                keys: {
-                    x: 'date',
-                    value: ['Code Available', 'Code Not Available'],
-                },
-            },
-            legend: {
-                show: true,
-                position: 'inset',
-                inset: {
-                    anchor: 'top-right',
-                    x: 50,
-                    y: undefined,
-                    step: undefined
-                }
-            },
-            axis: {
-                x: {
-                    padding: {left: 0},
-                    tick: {
-                        culling: {
-                            // the number of tick texts will be adjusted to less than this value
-                            max: 40
+
+                axis: {
+                    x: {
+                        padding: {left: 0, top: 0},
+                        tick: {
+                            culling: {
+                                max: 40 // the number of tick texts will be adjusted to less than this value
+                            },
+                            fit: true,
+                            format: "%y"
                         },
-                        fit: true,
-                        format: "%y"
+                        label: {
+                            text: 'Year',
+                            position: 'outer-center'
+                        }
                     },
-
-                    label: {
-                        text: 'Year',
-                        position: 'outer-center'
-                    }
-
-                },
-                y: {
-                    label: {
-                        text: 'Number of publication',
-                        position: 'outer-middle'
-                    },
-
-                    tick: {
-                        format: function (d) {
-                            return d;
+                    y: {
+                        max: 99,
+                        label: {
+                            text: 'Percentage',
+                            position: 'outer-middle'
+                        },
+                        tick: {
+                            format: function (d) {
+                                return d + "%";
+                            }
                         }
                     }
-                }
-            },
-            bindto: '#stackedArea'
-        });
+                },
+                point: {
+                    show: true,
+                },
+                tooltip: {
+                    format: {
+                        title: function (d) {
+                            return 'Percentage data for ' + d;
+                        },
+                        value: function (value, ratio, id) {
+                            return (value).toFixed(2) + '%';
+                        }
+//            value: d3.format(',') // apply this format to both y and y2
+                    }
+                },
+                bindto: '#stackedArea'
+            });
+            d3OnClickEvent()
+        }
 
-        d3OnClickEvent()
-    }
+        function LoadCountVizualization() {
+            document.getElementById('name').innerHTML = name;
+            donutChart();
+            // can change type of the graph line formation by modifying interpolate value
+            c3.chart.internal.fn.getInterpolate = function (){return 'monotone'};
+            var stagedChart = c3.generate({
 
-    function d3OnClickEvent() {
-        d3.selectAll('.tick').on({
-            "mouseover": function () { /* do stuff */
-            },
-            "mouseout": function () { /* do stuff */
-            },
-            "click": function (value, index) {
-                callUrl(id, name, value)
-            },
-        });
-    }
+                data: {
+                    json: data,
+                    mimeType: 'json',
+                    selection: {
+                        enabled: true
+                    },
+                    onselected: function (d, element) {
+                        callUrl(id, name, d['x'])
+                    },
+                    types: {
+                        'Code Available': 'area-spline',
+                        'Code Not Available': 'area-spline'
+                    },
+                    groups: [['Code Available', 'Code Not Available']],
+                    keys: {
+                        x: 'date',
+                        value: ['Code Available', 'Code Not Available'],
+                    },
+                },
+                legend: {
+                    show: true,
+                    position: 'inset',
+                    inset: {
+                        anchor: 'top-right',
+                        x: 50,
+                        y: undefined,
+                        step: undefined
+                    }
+                },
+                axis: {
+                    x: {
+                        padding: {left: 0},
+                        tick: {
+                            culling: {
+                                // the number of tick texts will be adjusted to less than this value
+                                max: 40
+                            },
+                            fit: true,
+                            format: "%y"
+                        },
 
-    function callUrl(id, name, value) {
-        var url = "{% url 'core:publicationlist' id="1" name="name" year="value" %}".replace(/1/, id).replace(/name/, name).replace(/value/, value);
-        location.href = url
-    }
+                        label: {
+                            text: 'Year',
+                            position: 'outer-center'
+                        }
 
+                    },
+                    y: {
+                        label: {
+                            text: 'Number of publication',
+                            position: 'outer-middle'
+                        },
 
-</script>
+                        tick: {
+                            format: function (d) {
+                                return d;
+                            }
+                        }
+                    }
+                },
+                bindto: '#stackedArea'
+            });
 
+            d3OnClickEvent()
+        }
+
+        function d3OnClickEvent() {
+            d3.selectAll('.tick').on({
+                "mouseover": function () { /* do stuff */
+                },
+                "mouseout": function () { /* do stuff */
+                },
+                "click": function (value, index) {
+                    callUrl(id, name, value)
+                },
+            });
+        }
+
+        function callUrl(id, name, value) {
+            var url = "{% url 'core:publicationlist' relation="1" name="name" year="value" %}".replace(/1/, id).replace(/name/, name).replace(/value/, value);
+            location.href = url
+        }
+
+    </script>
+
+{% endblock javascript %}

@@ -126,13 +126,15 @@ input#id_contact_number {
 }
 
 .c3-axis-x-label{
-   fill: red;
+   fill: #008ed6;
    font-size:12px;
     padding: 5px;
 }
 .c3-axis-y-label
 {
+  fill: #008ed6;
   font-size: 12px;
+  padding: 5px;
 }
 
 .legend span {

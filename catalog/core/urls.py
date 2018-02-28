@@ -35,19 +35,19 @@ urlpatterns += [
     url(r'^export/$', views.export_data, name="export_data"),
 
     # Visualization endpoints
-    url(r'^visualization/$', views.VisualizationWorkflowView.as_view(), name="visualization"),
-    url(r'^pub-year-distribution/$', views.RelationDetail.as_view(), name="pub-year-distribution"),
-    url(r'^pub-year-distribution/(?P<id>\w+)/(?P<name>[\w|\W]+)/$', views.RelationDetail.as_view(),
+    url(r'^visualization/$', views.VisualizationSearchView.as_view(), name="visualization"),
+    url(r'^pub-year-distribution/$', views.AggregatedStagedVisualizationView.as_view(), name="pub-year-distribution"),
+    url(r'^pub-year-distribution/(?P<relation>\w+)/(?P<name>[\w|\W]+)/$', views.AggregatedStagedVisualizationView.as_view(),
         name='pub-year-distribution'),
-    url(r'^publication-journal-relation/$', views.JournalPublicationRelation.as_view(), name="publication-journal-relation"),
-    url(r'^publication-sponsor-relation/$', views.SponsorPublicationRelation.as_view(), name="publication-sponsor-relation"),
-    url(r'^publication-platform-relation/$', views.PlatformPublicationRelation.as_view(), name="publication-platform-relation"),
-    url(r'^publication-author-relation/$', views.AuthorPublicationRelation.as_view(), name="publication-author-relation"),
+    url(r'^publication-journal-relation/$', views.AggregatedJournalRelationList.as_view(), name="publication-journal-relation"),
+    url(r'^publication-sponsor-relation/$', views.AggregatedSponsorRelationList.as_view(), name="publication-sponsor-relation"),
+    url(r'^publication-platform-relation/$', views.AggregatedPlatformRelationList.as_view(), name="publication-platform-relation"),
+    url(r'^publication-author-relation/$', views.AggregatedAuthorRelationList.as_view(), name="publication-author-relation"),
     url(r'^publication-model-documentation-relation/$', views.ModelDocumentationPublicationRelation.as_view(),
         name="publication-model-documentation-relation"),
-    url(r'^publicationlist/(?P<id>\w+)/(?P<name>[\w|\W]+)/(?P<year>[\w|\W]+)/$', views.PublicationListDetail.as_view(),
+    url(r'^publicationlist/(?P<relation>\w+)/(?P<name>[\w|\W]+)/(?P<year>[\w|\W]+)/$', views.PublicationListDetail.as_view(),
         name='publicationlist'),
-    url(r'^publicationlist/(?P<id>\w*)/(?P<name>[\w|\W]*)/(?P<year>[\w|\W]*)/$', views.PublicationListDetail.as_view(),
+    url(r'^publicationlist/(?P<relation>\w*)/(?P<name>[\w|\W]*)/(?P<year>[\w|\W]*)/$', views.PublicationListDetail.as_view(),
         name='publicationlist'),
 
 ]

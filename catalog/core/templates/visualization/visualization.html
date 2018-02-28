@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load bootstrap3 %}
+{% load static %}
+
+{% block content %}
+
+    <div class='panel panel-default assigned-panel-group' data-mh='assigned-panel-group'>
+        <div class='panel-heading'>
+            <h4 class='panel-title'>Data Visualization
+            </h4>
+        </div>
+        <form id="form_id" method="get" action="#">
+
+            <div class='panel-body'>
+
+
+                <div class='col-md-12 form-group'>
+                    <label class="control-label" for="id_relation">Relation
+                        <span class="label label-as-badge label-primary"></span>
+                    </label>
+                    <select class="form-control" id="id_relation"
+                            data-bind="options: relationList, selectedOptions: selectedRelation, value: status">
+                    </select>
+                </div>
+
+                <div class="col-md-6 form-group">
+                    <label class="control-label" for="id_start_date">Publication Start Date</label>
+                    <input class="form-control" id="id_start_date" maxlength="75" name="start_date"
+                           placeholder="Start date (mm/dd/yyyy)" type="text" data-bind="value: start_date">
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="control-label" for="id_end_date">Publication End Date</label>
+                    <input class="form-control" id="id_end_date" maxlength="75" name="end_date"
+                           placeholder="End date (mm/dd/yyyy)" type="text" data-bind="value: end_date">
+                </div>
+                <div class="col-md-12 form-group">
+                    <label class="control-label" for="id_tags">Tags</label>
+                    <select multiple class="form-control" id="id_tags" name="tags"
+                            placeholder="Keywords"
+                            data-bind="selectize: tags, selectedOptions: selectedTags, optionsValue: 'name', options: { create: true, load: getTagList }">
+                    </select>
+                </div>
+                <div class="col-md-12 form-group">
+                    <label class="control-label" for="id_sponsors">Sponsors</label>
+                    <select multiple class="form-control" id="id_sponsors" name="sponsors" placeholder="Sponsors"
+                            data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList }">
+                    </select>
+                </div>
+                <div class="col-md-12 form-group">
+                    <button type="button" value="submit" data-bind="click: savePublication" class="btn btn-primary">
+                        Search
+                    </button>
+
+                </div>
+            </div>
+        </form>
+    </div>
+
+
+{% endblock content %}
+{% block javascript %}
+    <script type="text/javascript">
+        var relation = {{ data|safe }};
+
+        $(function () {
+            var TagListViewModel = function (data) {
+                var self = this;
+                self.tags = ko.observableArray();
+                self.selectedTags = ko.observableArray(ko.utils.arrayMap(self.tags(), function (tags) {
+                    return tags.name();
+                }));
+                self.getTagList = function (query, callback) {
+                    self.makeAsyncRequest(query, callback, "{% url 'core:tag_search' %}");
+                };
+
+                self.sponsors = ko.observableArray();
+                self.selectedSponsors = ko.observableArray(ko.utils.arrayMap(self.sponsors(), function (sponsors) {
+                    return sponsors.name();
+                }));
+                self.getSponsorList = function (query, callback) {
+                    self.makeAsyncRequest(query, callback, "{% url 'core:sponsor_search' %}");
+                };
+                self.start_date = '';
+                self.end_date = '';
+                self.platforms = ko.observableArray();
+                self.selectedPlatforms = ko.observableArray();
+                self.getPlatformList = function (query, callback) {
+                    self.makeAsyncRequest(query, callback, "{% url 'core:platform_search' %}");
+                };
+
+                self.relationList = ko.observableArray(Object.keys(relation[0]));
+
+                self.selectedRelation = ko.observableArray(ko.utils.arrayMap(self.relationList(), function (relation) {
+                    return relation;
+                }));
+                self.makeAsyncRequest = function (query, callback, url) {
+                    if (!query.length) return callback();
+                    $.getJSON(url + "?q=" + encodeURIComponent(query))
+                        .done(function (res) {
+                            callback(JSON.parse(res).slice(0, 15));
+                        }).fail(function () {
+                        callback();
+                    });
+                };
+
+                self.savePublication = function (data, event) {
+                    document.getElementById("form_id").action = relation[0][self.selectedRelation()[0]];
+                    document.getElementById("form_id").submit();
+
+                };
+            };
+
+            var model = new TagListViewModel(relation);
+            ko.applyBindings(model);
+        });
+
+
+    </script>
+{% endblock javascript %}
