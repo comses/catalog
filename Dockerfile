@@ -30,7 +30,7 @@ COPY deploy/cron/daily_catalog_tasks /etc/cron.daily/
 COPY requirements.txt citation /tmp/
 # Set execute bit on the cron script and install pip dependencies
 RUN chmod +x /etc/cron.daily/daily_catalog_tasks \
-    && pip3 install -q -r /tmp/requirements.txt
+    && pip3 install -r /tmp/requirements.txt
 
 COPY deploy/mail/ssmtp.conf /etc/ssmtp/ssmtp.conf
 WORKDIR /code
