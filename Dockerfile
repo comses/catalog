@@ -27,7 +27,8 @@ COPY ${RUN_SCRIPT} /etc/service/django/run
 
 # copy cron script to be run daily
 COPY deploy/cron/daily_catalog_tasks /etc/cron.daily/
-COPY requirements.txt citation /tmp/
+COPY citation /tmp/citation/
+COPY requirements.txt /tmp/
 # Set execute bit on the cron script and install pip dependencies
 RUN chmod +x /etc/cron.daily/daily_catalog_tasks \
     && pip3 install -r /tmp/requirements.txt
