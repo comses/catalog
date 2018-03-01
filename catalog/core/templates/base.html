@@ -12,7 +12,7 @@
 {% url 'core:report_issues' as issues_url %}
 {% url 'core:github' as github_url %}
 {% url 'core:export_data' as export_data_url %}
-{#{% url 'core:publication_detail' as publication_detail_url %}#}
+{% url 'core:visualization' as visualization %}
 
 <!doctype html>
 <html class="no-js" lang="">
@@ -57,19 +57,21 @@
                             {% if user.is_superuser %}
                             <li class='{{ request|active_re:publications_url }}'><a href='{{ publications_url }}'><i class='fa fa-newspaper-o'></i> All Publications</a></li>
                             <li class='{{ request|active_re:search_url }}'><a href='{{ search_url }}'><i class='fa fa-search'></i> Search</a></li>
+                            <li class='{{ request|active_re:visualization }}'><a href='{{ visualization }}'><i class='fa fa-bar-chart'></i> Visualization</a></li>
                             {% endif %}
                         {% endif %}
                         <li class='{{ request|active_re:contact_url }}'><a href='{{ contact_url }}'><i class='fa fa-bell-o'></i> Contact us</a></li>
                         <li><a target='_blank' href='{{ issues_url }}'><i class='fa fa-bullhorn'></i> Report a bug</a></li>
-                        <li><a target='_blank' href='{{ github_url }}'><i class='fa fa-github'></i> Develop</a></li>
+
                     </ul>
                     <ul class="nav navbar-nav pull-right">
                         {% if user.is_authenticated %}
                             <li class="dropdown pull-right">
-                                <a data-toggle="dropdown" class="dropdown-toggle" href="#">{{ user.username }}<b class="caret"></b></a> 
+                                <a data-toggle="dropdown" class="dropdown-toggle" href="#">{{ user.username }}<b class="caret"></b></a>
                                 <!-- Dropdown menu -->
                                 <ul class="dropdown-menu">
                                     <li><a href="{{ user_profile_url }}"><i class="fa fa-user"></i> Profile</a></li>
+                                    <li><a target='_blank' href='{{ github_url }}'><i class='fa fa-github'></i> Develop</a></li>
                                     <li><a href="{{ logout_url }}"><i class="fa fa-sign-out"></i> Logout</a></li>
                                 </ul>
                             </li>

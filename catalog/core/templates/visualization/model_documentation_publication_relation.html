@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% load bootstrap3 %}
+{% block content %}
+
+    <div class="panel-body">
+
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th class='col-lg-6'>Model Documentation</th>
+                <th class='col-lg-2'>Percentage</th>
+            </thead>
+            <tbody>
+            {% for pub in value %}
+                <tr>
+
+                    <td><a href="{% url 'core:pub-year-distribution' relation='Modeldoc' name=pub.name %}">{{ pub.name }}</a>
+                    </td>
+                    <td> {{ pub.count }} </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+{% endblock content %}

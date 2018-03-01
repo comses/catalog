@@ -1,4 +1,5 @@
 import csv
+import json
 import logging
 import time
 from collections import Counter
@@ -12,10 +13,13 @@ from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core import signing
 from django.core.cache import cache
-from django.db.models import Count
+from django.db import models
+from django.db.models import Count, Q, F, Value as V
+from django.db.models.functions import Concat
 from django.http import HttpResponse
 from django.http import JsonResponse, HttpResponseRedirect
-from django.shortcuts import get_object_or_404, resolve_url
+from django.shortcuts import get_object_or_404, resolve_url, render_to_response
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import is_safe_url
@@ -30,8 +34,11 @@ from rest_framework.response import Response
 
 from citation.export_data import create_csv
 from citation.models import Publication, InvitationEmail, Platform, Sponsor, ModelDocumentation, Tag, Container
-from citation.serializers import (InvitationSerializer,
-                                  UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer)
+from citation.serializers import (InvitationSerializer,CatalogPagination, PublicationListSerializer,
+                                  UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer,
+                                  PublicationAggregationSerializer, AuthorAggregrationSerializer)
+
+from catalog.core.util import RelationIdentifier
 from .forms import CatalogAuthenticationForm, CatalogSearchForm
 
 logger = logging.getLogger(__name__)
@@ -44,6 +51,28 @@ def export_data(self):
     writer = csv.writer(response)
     create_csv(writer)
     return response
+
+
+def visualization_query_filter(request):
+    """
+    It helps in generating query filter passed by the user in the request
+    and stores the query filter in the session request to maintain user filters for later stage of visualization
+    @:param: request: http request received
+    @:return: criteria dict generated from the query parameter pass in the request by the user
+    """
+
+    criteria = {}
+    query_param = request.query_params
+    if query_param.get("sponsors"):
+        criteria.update(sponsors__name__in=query_param.getlist("sponsors"))
+    if query_param.get("tags"):
+        criteria.update(tags__name__in=query_param.getlist("tags"))
+    if query_param.get("start_date"):
+        criteria.update(query_param.get(publication_start_date="start_date"))
+    if query_param.get("end_date"):
+        criteria.update(query_param.get(publication_end_date="end_date"))
+    request.session['criteria'] = criteria
+    return criteria
 
 
 class LoginView(FormView):
@@ -309,3 +338,279 @@ class CuratorWorkflowView(LoginRequiredMixin, SearchView):
     def get_queryset(self):
         sqs = super(CuratorWorkflowView, self).get_queryset()
         return sqs.filter(assigned_curator=self.request.user, is_primary=True).order_by('-last_modified', '-status')
+
+
+############################################  VISUALIZATION   ##########################################################
+
+
+class VisualizationSearchView(LoginRequiredMixin, generics.GenericAPIView):
+    """
+        Search View for Visualization
+    """
+    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
+
+    def get(self, request):
+        RELATION = [{'Publication VS Year Chart': reverse('core:pub-year-distribution'),
+                     'Journal - Publication Relation': reverse('core:publication-journal-relation'),
+                     'Author - Publication Relation': reverse('core:publication-author-relation'),
+                     'Sponsor - Publication Relation': reverse('core:publication-sponsor-relation'),
+                     'Platform - Publication Relation': reverse('core:publication-platform-relation'),
+                     'Model documentation - Publication Relation': reverse(
+                         'core:publication-model-documentation-relation')
+                     }]
+        return Response({'data': dumps(RELATION)}, template_name="visualization/visualization.html")
+
+
+class AggregatedJournalRelationList(LoginRequiredMixin, generics.GenericAPIView):
+    """
+        Aggregates the publication data having same journal name
+        attaching count values for the code availability for the total published paper
+    """
+    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
+
+    def get(self, request):
+        queryset = Publication.api.aggregated_list(identifier='container', **visualization_query_filter(request))
+        paginator = CatalogPagination()
+        result_page = paginator.paginate_queryset(queryset, request)
+        serializer = PublicationAggregationSerializer(result_page, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+        response['relation'] = RelationIdentifier.JOURNAL
+        return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
+
+
+class AggregatedSponsorRelationList(LoginRequiredMixin, generics.GenericAPIView):
+    """
+        Aggregates the publication data having same Sponsors name
+        attaching count values for the code availability for the total published paper
+    """
+    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
+
+    def get(self, request):
+        pubs = Publication.api.aggregated_list(identifier='sponsors', **visualization_query_filter(request))
+        paginator = CatalogPagination()
+        result_page = paginator.paginate_queryset(pubs, request)
+        serializer = PublicationAggregationSerializer(result_page, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+        response['relation'] = RelationIdentifier.SPONSOR
+        return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
+
+
+class AggregatedPlatformRelationList(LoginRequiredMixin, generics.GenericAPIView):
+    """
+        Aggregates the publication data having same platform name
+        attaching count values for the code availability for the total published paper
+    """
+    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
+
+    def get(self, request):
+        pubs = Publication.api.aggregated_list(identifier='platforms', **visualization_query_filter(request))
+        paginator = CatalogPagination()
+        result_page = paginator.paginate_queryset(pubs, request)
+        serializer = PublicationAggregationSerializer(result_page, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+        response['relation'] = RelationIdentifier.PLATFORM
+        return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
+
+
+class AggregatedAuthorRelationList(LoginRequiredMixin, generics.GenericAPIView):
+    """
+        Aggregates the publication data having same author name
+        attaching count values for the code availability for the total published paper
+    """
+    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
+
+    def get(self, request):
+        pubs = Publication.api.primary(status='REVIEWED', **visualization_query_filter(request)). \
+            annotate(given_name=F('creators__given_name'), family_name=F('creators__family_name')).values(
+            'given_name',
+            'family_name').order_by(
+            'given_name', 'family_name').annotate(published_count=Count('given_name'),
+                                                  code_availability_count=models.Sum(models.Case(
+                                                      models.When(~Q(code_archive_url=''), then=1),
+                                                      default=0,
+                                                      output_field=models.IntegerField())),
+                                                  name=Concat('given_name', V(' '),
+                                                              'family_name'),
+                                                  ).values(
+            'name', 'published_count', 'code_availability_count', 'given_name', 'family_name').order_by('-published_count')
+
+        paginator = CatalogPagination()
+        result_page = paginator.paginate_queryset(pubs, request)
+        serializer = AuthorAggregrationSerializer(result_page, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+        response['relation'] = RelationIdentifier.AUTHOR
+        return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
+
+
+class ModelDocumentationPublicationRelation(LoginRequiredMixin, TemplateView):
+    template_name = 'visualization/model_documentation_publication_relation.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(ModelDocumentationPublicationRelation, self).get_context_data(**kwargs)
+        self.request.session['criteria'] = {}
+        md = ModelDocumentation.objects.all().values_list('name')
+        total = Publication.api.primary(status='REVIEWED').count()
+        value = []
+        for name in list(md):
+            if name[0] is not None:
+                value.append({'name': name[0], 'count': "{0:.2f}".format(
+                    Publication.api.primary(status='REVIEWED',
+                                            model_documentation__name=name[
+                                                0]).count() * 100 / total)})
+        context['value'] = value
+        context['relation'] = RelationIdentifier.MODELDOCUMENDTATION
+        return context
+
+
+class AggregatedStagedVisualizationView(LoginRequiredMixin, generics.GenericAPIView):
+    """
+        Generates the aggregated staged distribution of code availability and non-availability against year
+        for the requested relation : Journal, Sponsor, Platform, Model Doc, Author
+
+        @default: every reviewed primary publication will be selected
+    """
+    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
+
+    def get(self, request, relation=None, name=None):
+
+        pubs = []
+        if relation == RelationIdentifier.JOURNAL:
+            pubs = Publication.api.primary(status='REVIEWED', container__name=name , **request.session.get("criteria", {}) )
+        elif relation == RelationIdentifier.SPONSOR:
+            pubs = Publication.api.primary(status='REVIEWED', sponsors__name=name, **request.session.get("criteria", {}))
+        elif relation == RelationIdentifier.PLATFORM:
+            pubs = Publication.api.primary(status='REVIEWED', platforms__name=name, **request.session.get("criteria", {}))
+        elif relation == RelationIdentifier.MODELDOCUMENDTATION:
+            pubs = Publication.api.primary(status='REVIEWED', model_documentation__name=name, **request.session.get("criteria", {}))
+        elif relation == RelationIdentifier.AUTHOR and name:
+            try:
+                (given_name, family_name) = name.split('/')
+                pubs = Publication.api.primary(status='REVIEWED',
+                                                  creators__given_name=given_name,
+                                                  creators__family_name=family_name , **request.session.get("criteria", {}))
+            except ValueError:
+                pubs = Publication.api.primary(Q(creators__given_name=name) | Q(creators__family_name=name),
+                                                  status='REVIEWED', **request.session.get("criteria", {}))
+
+        else:
+            name = 'All Publication'
+            relation = RelationIdentifier.GENERAL
+            pubs = Publication.api.primary(status='REVIEWED', **visualization_query_filter(request))
+        availability = []
+        non_availability = []
+        all = []
+
+        # FIXME
+        # Need to categorize repository based on some classification - https://github.com/comses/citation/issues/16
+
+        openABM_counter = 0
+        sourceForge_counter = 0
+        github_counter = 0
+        netlogo_counter = 0
+        cormas_counter = 0
+        ccpforge_counter = 0
+        bitbucket_counter = 0
+        dataverse_counter = 0
+        dropbox_counter = 0
+        googlecode_counter = 0
+        researchgate_counter = 0
+        platform_dct = {}
+        if pubs:
+            for pub in pubs:
+                if pub.year_published is not None and pub.code_archive_url:
+                    if "https://www.openabm.org/" in pub.code_archive_url:
+                        openABM_counter += 1
+                        platform_dct.update({'openABM': openABM_counter})
+                    elif "https://sourceforge.net/" in pub.code_archive_url:
+                        sourceForge_counter += 1
+                        platform_dct.update({'sourceForge': sourceForge_counter})
+                    elif "https://github.com/" in pub.code_archive_url:
+                        github_counter += 1
+                        platform_dct.update({'github': github_counter})
+                    elif "http://modelingcommons.org/" in pub.code_archive_url \
+                            or "https://ccl.northwestern.edu/netlogo/models/community" in pub.code_archive_url:
+                        netlogo_counter += 1
+                        platform_dct.update({'netlogo': netlogo_counter})
+                    elif "http://cormas.cirad.fr/" in pub.code_archive_url:
+                        cormas_counter += 1
+                        platform_dct.update({'cormas': cormas_counter})
+                    elif "https://ccpforge.cse.rl.ac.uk/" in pub.code_archive_url:
+                        ccpforge_counter += 1
+                        platform_dct.update({'ccpforge': ccpforge_counter})
+                    elif "https://bitbucket.org/" in pub.code_archive_url:
+                        bitbucket_counter += 1
+                        platform_dct.update({'bitbucket': bitbucket_counter})
+                    elif "https://dataverse.harvard.edu/" in pub.code_archive_url:
+                        dataverse_counter += 1
+                        platform_dct.update({'dataverse': dataverse_counter})
+                    elif "dropbox.com" in pub.code_archive_url:
+                        dropbox_counter += 1
+                        platform_dct.update({'dropbox': dropbox_counter})
+                    elif "https://code.google.com/" in pub.code_archive_url:
+                        googlecode_counter += 1
+                        platform_dct.update({'googlecode': googlecode_counter})
+                    elif "https://www.researchgate.net" in pub.code_archive_url:
+                        researchgate_counter += 1
+                        platform_dct.update({'researchgate': researchgate_counter})
+                    availability.append(pub.year_published)
+                else:
+                    non_availability.append(pub.year_published)
+                all.append(pub.year_published)
+
+            distribution_data = []
+            platform = [platform_dct]
+            for year in set(all):
+                if year is not None:
+                    present = availability.count(year) * 100 / len(all)
+                    absent = non_availability.count(year) * 100 / len(all)
+                    total = present + absent
+                    distribution_data.append({'relation': relation, 'name': name, 'date': year, 'Code Available': availability.count(year),
+                                     'Code Not Available': non_availability.count(year),
+                                     'Code Available Per': present * 100 / total,
+                                     'Code Not Available Per': absent * 100 / total})
+
+            return Response({"aggregated_data": json.dumps(distribution_data), "code_platform": json.dumps(platform)},
+                            template_name="visualization/pubvsyear.html")
+
+
+class PublicationListDetail(LoginRequiredMixin, generics.GenericAPIView):
+    """
+        generates the list of publication that are either linked or associated with the requested publication
+    """
+
+    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
+
+    def get(self, request, relation=None, name=None, year=None):
+        pubs = []
+
+        # FIXME
+        # there are different formats in the date_published text like AUG 26 2000, Fall 2000.
+        # so below query will parse both result as its checking for contains string
+        # so there will be mismatch is number of results present
+
+        if relation == RelationIdentifier.JOURNAL:
+            pubs = Publication.api.primary(status='REVIEWED', container__name=name,
+                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+        elif relation == RelationIdentifier.SPONSOR:
+            pubs = Publication.api.primary(status='REVIEWED', sponsors__name=name,
+                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+        elif relation == RelationIdentifier.PLATFORM:
+            pubs = Publication.api.primary(status='REVIEWED', platforms__name=name,
+                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+        elif relation == RelationIdentifier.MODELDOCUMENDTATION:
+            pubs = Publication.api.primary(status='REVIEWED', model_documentation__name=name,
+                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+        elif relation == RelationIdentifier.AUTHOR:
+            pubs = Publication.api.primary(status='REVIEWED',
+                                           creators__given_name=name.split('/')[0],
+                                           creators__family_name=name.split('/')[1],
+                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+        elif relation == RelationIdentifier.GENERAL:
+            pubs = Publication.api.primary(status='REVIEWED',
+                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+
+        paginator = CatalogPagination()
+        result_page = paginator.paginate_queryset(pubs, request)
+        serializer = PublicationListSerializer(result_page, many=True)
+        response = paginator.get_paginated_response(serializer.data)
+        return Response({'json': dumps(response)}, template_name="publication/list.html")
