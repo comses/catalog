@@ -2,8 +2,9 @@ version: '3'
 services:
   solr:
     image: comses/solr:6.6
-    expose:
-      - "8983"
+    restart: always
+    ports:
+      - "127.0.0.1:8983:8983"
     volumes:
       - solr:/opt/solr/server/solr/mycores
       - ./deploy/solr/conf:/catalog-solr-conf
@@ -16,46 +17,42 @@ services:
   redis:
     image: redis:latest
     restart: always
-    expose:
-      - "6379"
   db:
     image: postgres:9.6
+    restart: always
     volumes:
       - data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: catalog
-      # FIXME: replace with env_file (https://docs.docker.com/v1.8/compose/yml/#env-file)
-      POSTGRES_PASSWORD: CHANGEME_CATALOG_DB_PASSWORD
+      # FIXME: secure secrets properly
+      POSTGRES_PASSWORD: g9vDlM3im2Nd7faCYamnmVljaOXK9de3v2qF629Zm7pdFZfReGXDHENufaYkh2Z
       POSTGRES_DB: comses_catalog
   nginx:
     image: nginx:latest
+    restart: always
     volumes:
-      - ./deploy/ssl/dhparam.pem:/etc/nginx/ssl/dhparam.pem
-      - ./deploy/ssl/server.crt:/etc/nginx/ssl/server.crt
-      - ./deploy/ssl/server.key:/etc/nginx/ssl/server.key
-      - ./deploy/nginx/catalog.conf:/etc/nginx/nginx.conf
+      - ./deploy/nginx/catalog-haproxy.conf:/etc/nginx/nginx.conf
       - ./deploy/nginx/uwsgi_params:/catalog/uwsgi_params
       - uwsgisocket:/catalog/socket
       - static:/catalog/static
       - logs:/var/log/nginx
     command: ["nginx", "-g", "daemon off;"]
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:8180:80"
     links:
       - django
   django:
     build:
       context: ./
-      args:
-        RUN_SCRIPT: "./deploy/prod.sh"
-    image: comses/catalog
+    image: comses/catalog:latest
+    restart: always
     volumes:
+      - .:/code
       - ./deploy/backup/cron-script:/etc/cron.daily/autopgsqlbackup
+      - ./docker/shared:/shared
       - solr:/etc/solr/mycores/
       - static:/catalog/static
       - logs:/catalog/logs
-      - backups:/backups/postgres
       - uwsgisocket:/catalog/socket
     command: /code/deploy/docker/prod.sh
     environment:
@@ -77,8 +74,6 @@ volumes:
   static:
     driver: local
   logs:
-    driver: local
-  backups:
     driver: local
   uwsgisocket:
     driver: local
