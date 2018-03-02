@@ -104,6 +104,7 @@ TEMPLATES = [
                 "django.template.context_processors.tz",
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
+                'catalog.context_processors.debug',
                 'dealer.contrib.django.context_processor',
             ],
         },
@@ -148,7 +149,7 @@ THIRD_PARTY_APPS = (
     'cas',
 )
 
-CATALOG_APPS = ('catalog.core','citation',)
+CATALOG_APPS = ('catalog.core', 'citation', )
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + CATALOG_APPS
 

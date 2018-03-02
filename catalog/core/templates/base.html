@@ -86,6 +86,11 @@
         {% endblock header %}
 
         <div id="content" class="container">
+            {% if DEBUG %}
+                <div class='alert alert-block alert-danger'>
+                    <span class='fa fa-exclamation-triangle'></span> This is a test site. Data entered here will not be preserved and is not guaranteed to be correct.
+                </div>
+            {% endif %}
             {% block content %}
             {% endblock content %}
         </div>
