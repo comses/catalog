@@ -42,6 +42,7 @@ urlpatterns += [
     url(r'^publication-journal-relation/$', views.AggregatedJournalRelationList.as_view(), name="publication-journal-relation"),
     url(r'^publication-sponsor-relation/$', views.AggregatedSponsorRelationList.as_view(), name="publication-sponsor-relation"),
     url(r'^publication-platform-relation/$', views.AggregatedPlatformRelationList.as_view(), name="publication-platform-relation"),
+    url(r'^code-archived-platform-relation/$', views.AggregatedCodeArchiverURLView.as_view(), name="code-archived-platform-relation"),
     url(r'^publication-author-relation/$', views.AggregatedAuthorRelationList.as_view(), name="publication-author-relation"),
     url(r'^publication-model-documentation-relation/$', views.ModelDocumentationPublicationRelation.as_view(),
         name="publication-model-documentation-relation"),
@@ -49,5 +50,8 @@ urlpatterns += [
         name='publicationlist'),
     url(r'^publicationlist/(?P<relation>\w*)/(?P<name>[\w|\W]*)/(?P<year>[\w|\W]*)/$', views.PublicationListDetail.as_view(),
         name='publicationlist'),
+    url(r'^network-relation/$', views.NetworkRelation.as_view(), name="network-relation"),
+    url(r'^networkrelation/(?P<pk>\d+)/$', views.NetworkRelationDetail.as_view(),
+        name='networkrelation'),
 
 ]
