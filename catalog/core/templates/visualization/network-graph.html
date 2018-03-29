@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% load static from staticfiles %}
+{% load bootstrap3 %}
+
+{% block content %}
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <script src="http://d3js.org/d3.v3.min.js"></script>
+        <script src="http://d3js.org/colorbrewer.v1.min.js"></script>
+        <script type="text/javascript" src="{% static 'js/vivagraph.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/jszip.js' %}"></script>
+
+
+        <script src={% static 'js/legend.js' %}></script>
+        <style type="text/css">
+            #tfheader {
+                background-color: #c3dfef;
+            }
+
+            #tfnewsearch {
+                float: right;
+                padding: 20px;
+            }
+
+            #tftextinput {
+                margin: 0;
+                padding: 5px 15px;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 14px;
+                border: 1px solid #0076a3;
+                border-top-left-radius: 5px 5px;
+                border-bottom-left-radius: 5px 5px;
+            }
+
+            .tfbutton {
+                margin: 0;
+                padding: 5px 15px;
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 14px;
+                outline: none;
+                cursor: pointer;
+                text-align: center;
+                text-decoration: none;
+                color: #ffffff;
+                border: solid 1px #0076a3;
+                background: #0095cd;
+                background: -webkit-gradient(linear, left top, left bottom, from(#00adee), to(#0078a5));
+                background: -moz-linear-gradient(top, #00adee, #0078a5);
+                border-top-right-radius: 5px 5px;
+                border-bottom-right-radius: 5px 5px;
+            }
+
+            .tfbutton:hover {
+                text-decoration: none;
+                background: #007ead;
+                background: -webkit-gradient(linear, left top, left bottom, from(#0095cc), to(#00678e));
+                background: -moz-linear-gradient(top, #0095cc, #00678e);
+            }
+
+            /* Fixes submit button height problem in Firefox */
+            .tfbutton::-moz-focus-inner {
+                border: 0;
+            }
+
+            .tfclear {
+                clear: both;
+            }
+
+            html, body {
+                width: 99.5%;
+                height: 99.5%;
+            }
+
+            svg {
+                width: 100%;
+                height: 93%;
+            }
+
+            #download {
+                position: relative;
+                margin-top: 95%;
+                left: 90%;
+            }
+
+        </style>
+        <title>Network Visualization</title>
+
+
+        <style type="text/css" media="screen">
+
+        </style>
+    </head>
+    <body onload='main()'>
+    <div id="tfheader">
+        <div id="tfnewsearch">
+            <input type="text" id="tftextinput" name="q" size="50" placeholder="Search by Id, Title, Author name"
+                   maxlength="120">
+            <input type="button" value="search" class="tfbutton" , onclick="search()">
+            <input type="button" value="Download" class="tfbutton" , onclick="create_zip()">
+        </div>
+        <div class="tfclear"></div>
+    </div>
+    </body>
+{% endblock content %}
+
+{% block javascript %}
+    <script type="text/javascript">
+        var data =
+        {{ data | safe }}
+        var group =
+        {{ group | safe }}
+        var links = data.links;
+        var nodes = data.nodes;
+        var graph = Viva.Graph.graph();
+        var graphics = Viva.Graph.View.svgGraphics();
+        var searchNodeUI;
+
+        function main() {
+
+            // Step 1. Create a graph:
+            for (var i = 0; i < data.nodes.length; ++i) {
+                graph.addNode(i, data.nodes[i]);
+            }
+
+            // Step 2. Add graph content.
+            links.forEach(function (d) {
+                graph.addLink(d.source, d.target);
+            });
+
+            var colors = [
+                "#1f77b4", "#aec7e8",
+                "#ff7f0e", "#ffbb78",
+                "#2ca02c", "#98df8a",
+                "#d62728", "#ff9896",
+                "#9467bd", "#c5b0d5",
+                "#8c564b", "#c49c94",
+                "#e377c2", "#f7b6d2",
+                "#7f7f7f", "#c7c7c7",
+                "#bcbd22", "#dbdb8d",
+                "#17becf", "#000000"
+            ];
+
+            // Step 3. Customize node appearance.
+            var layout = Viva.Graph.Layout.forceDirected(graph, {
+                springLength: 20,
+                springCoeff: 0.00055,
+                dragCoeff: 0.09,
+                gravity: -1
+            });
+
+            var circle;
+            graphics.node(function (node) {
+                var groupId = node.data.group;
+                var index = group.indexOf(groupId);
+                var url = "{% url 'core:networkrelation' pk="1" %}".replace(/1/, node.data.name);
+                circle = Viva.Graph.svg("circle")
+                    .attr("r", 8)
+                    .attr("fill", colors[index])
+                    .link(url);
+
+                circle.append('title').text("Id: " + node.data.name + "\n" + "Title: " + node.data.title + "\n" + "Authors: "
+                    + node.data.Authors + "\n" + "Tags: " + node.data.tags + "\n" + "Sponsors: " + node.data.sponsors);
+
+                $(circle).hover(function () { // mouse over
+                    highlightRelatedNodes(node.id, true);
+                }, function () { // mouse out
+                    highlightRelatedNodes(node.id, false);
+                });
+                $(circle).click(function () {
+                    click(node.data.name);
+                });
+
+                return circle;
+
+            })
+                .placeNode(function (nodeUI, pos) {
+                    nodeUI.attr('cx', pos.x).attr('cy', pos.y);
+                });
+
+
+            highlightRelatedNodes = function (nodeId, isOn) {
+                // just enumerate all related nodes and update link color:
+                graph.forEachLinkedNode(nodeId, function (node, link) {
+                    var linkUI = graphics.getLinkUI(link.id);
+                    var nodeUI = graphics.getNodeUI(node.id);
+
+                    if (nodeUI) {
+                        nodeUI.attr("r", isOn ? 15 : 8);
+                    }
+
+                    if (linkUI) {
+                        // linkUI is a UI object created by graphics below
+                        linkUI.attr('stroke', isOn ? 'gray' : 'red').attr('line', '50,50');
+                    }
+                });
+            };
+
+
+            function click(node) {
+                {#                callUrl(node.data.name)#}
+                var url = "{% url 'core:networkrelation' pk="1" %}".replace(/1/, node);
+                location.href = url;
+            }
+
+
+            //   Step 4. Customize link appearance:
+            graphics.link(function (link) {
+                return Viva.Graph.svg('path')
+                    .attr('stroke', 'red')
+                    .attr('line', '5, 5');
+            }).placeLink(function (linkUI, fromPos, toPos) {
+                // linkUI - is the object returend from link() callback above.
+                var data = 'M' + fromPos.x + ',' + fromPos.y +
+                    'L' + toPos.x + ',' + toPos.y;
+                linkUI.attr("d", data);
+            });
+
+            // Step 5. Render the graph with our customized graphics object:
+            var renderer = Viva.Graph.View.renderer(graph, {
+                layout: layout,
+                graphics: graphics
+            });
+            renderer.run();
+
+            // Step 6. Append Legend information
+            var color = d3.scale.ordinal()
+                .domain(group)
+                .range(colors);
+
+            var verticalLegend = d3.svg.legend().labelFormat("none").cellPadding(5).orientation("vertical").units("Group Type : Tags").cellWidth(25).cellHeight(18).inputScale(color).cellStepping(10);
+
+            d3.select("svg").append("g").attr("transform", "translate(50,140)").attr("class", "legend").call(verticalLegend);
+
+
+        }
+
+        {#    $(document).on('input','#tftextinput',function () {#}
+        {#        if($('#tftextinput').val() == ""){#}
+        {#            searchNodeUI.attr("r", 8);#}
+        {#        }#}
+        {##}
+        {#    });#}
+
+        function search() {
+            if (searchNodeUI) {
+                searchNodeUI.attr("r", 8);
+            }
+            searchValue = document.getElementById("tftextinput").value;
+
+            graph.forEachNode(function (node) {
+                if (node.data.name === searchValue || (node.data.title.indexOf(searchValue) !== -1 && searchValue.trim() !== '')
+                    || (node.data.tags.indexOf(searchValue) !== -1 && searchValue.trim() !== '')
+                    || (node.data.Authors.indexOf(searchValue) !== -1 && searchValue.trim() !== '')) {
+                    searchNodeUI = graphics.getNodeUI(node.id);
+                    if (searchNodeUI) {
+                        searchNodeUI.attr("r", 25);
+                    }
+                } else {
+                    graphics.getNodeUI(node.id).attr('r', 8);
+                }
+            });
+
+        }
+
+        var downloadFile = function (content, filename) {
+
+            var textToSaveAsURL = window.URL.createObjectURL(content);
+            var fileNameToSaveAs = filename;
+            var downloadLink = document.createElement("a");
+            downloadLink.download = fileNameToSaveAs;
+            downloadLink.innerHTML = "Download File";
+            downloadLink.href = textToSaveAsURL;
+            downloadLink.onclick = destroyClickedElement;
+            downloadLink.style.display = "none";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+
+        };
+
+        function destroyClickedElement(event) {
+            document.body.removeChild(event.target);
+        }
+
+        function create_zip() {
+            alert("Working on it.. will add in next update");
+            var zip = new JSZip();
+
+            var nodeWriter = "Id, Group, Title \n";
+            graph.forEachNode(function (node) {
+                nodeWriter += node.data.name + ", " + node.data.group + ", " + node.data.title + '\n';
+            });
+
+            var edgeWriter = "Source, Target \n";
+            graph.forEachLink(function (node, link) {
+                edgeWriter += node.fromId + ", " + node.toId + "\n";
+            });
+
+            zip.file("nodes.csv", nodeWriter + "\n");
+            zip.file("edges.csv", edgeWriter + "\n");
+            zip.generateAsync({type: "blob"})
+                .then(function (content) {
+                    // Force down of the Zip file
+
+                    downloadFile(content, "graph.zip");
+                });
+        }
+
+
+    </script>
+{% endblock javascript %}
+
+</html>

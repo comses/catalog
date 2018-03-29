@@ -9,13 +9,20 @@
             <h4 class='panel-title'>Data Visualization
             </h4>
         </div>
+        <div class="text-left" style="padding: 20px">
+            “In this section you will be able to explore the bibliometric database on agent-based and individual-based
+            models. This growing database contains articles about models and for each article we add meta-data (See
+            <a href="http://jasss.soc.surrey.ac.uk/20/1/2.html">this article</a> for more detail on the process). You
+            can explore the database by
+            selecting categories of data.”
+        </div>
         <form id="form_id" method="get" action="#">
 
             <div class='panel-body'>
 
 
                 <div class='col-md-12 form-group'>
-                    <label class="control-label" for="id_relation">Relation
+                    <label class="control-label" for="id_relation">Category
                         <span class="label label-as-badge label-primary"></span>
                     </label>
                     <select class="form-control" id="id_relation"
@@ -46,9 +53,20 @@
                             data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList }">
                     </select>
                 </div>
+                <div class="col-md-12 form-group" , id="id_group_by">
+                    <label class="control-label" for="id_group">Group by</label>
+                    <div id="radio">
+                        <label class="radio-inline">
+                            <input type="radio" name="group_by" value="tags" checked="True">Tags
+                        </label>
+                        <label class="radio-inline">
+                            <input type="radio" name="group_by" value="sponsors">Sponsors
+                        </label>
+                    </div>
+                </div>
                 <div class="col-md-12 form-group">
                     <button type="button" value="submit" data-bind="click: savePublication" class="btn btn-primary">
-                        Search
+                        Visualize
                     </button>
 
                 </div>
@@ -60,7 +78,7 @@
 {% endblock content %}
 {% block javascript %}
     <script type="text/javascript">
-        var relation = {{ data|safe }};
+        var relation = {{ relation_category|safe }};
 
         $(function () {
             var TagListViewModel = function (data) {
@@ -90,9 +108,14 @@
 
                 self.relationList = ko.observableArray(Object.keys(relation[0]));
 
-                self.selectedRelation = ko.observableArray(ko.utils.arrayMap(self.relationList(), function (relation) {
-                    return relation;
-                }));
+                self.selectedRelation = ko.observable();
+                this.selectedRelation.subscribe(function (latest) {
+                    if (latest[0] !== 'Network Relation') {
+                        $('#id_group_by').hide()
+                    } else {
+                        $('#id_group_by').show()
+                    }
+                }, this);
                 self.makeAsyncRequest = function (query, callback, url) {
                     if (!query.length) return callback();
                     $.getJSON(url + "?q=" + encodeURIComponent(query))

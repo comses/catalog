@@ -126,17 +126,23 @@ input#id_contact_number {
 }
 
 .c3-axis-x-label{
-   fill: #008ed6;
-   font-size:12px;
+   fill: #000080;
+   font-size:13px;
     padding: 5px;
 }
 .c3-axis-y-label
 {
   fill: #008ed6;
-  font-size: 12px;
+  font-size: 14px;
   padding: 5px;
 }
-
+#stackedArea g.tick text tspan {
+                font-size: 12px;
+            }
+.chart-label{
+    text-align:center;
+    color: #ff851b
+}
 .legend span {
     width: 33.333333%;
     display: inline-block;
