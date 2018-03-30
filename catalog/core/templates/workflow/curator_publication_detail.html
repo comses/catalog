@@ -357,6 +357,7 @@
                             return false;
                         }
                     {% endcomment %}
+
                     var data_clone = ko.mapping.fromJS(ko.mapping.toJS(data));
                     data_clone.platforms(ko.utils.arrayMap(data.selectedPlatforms(), function (platform) {
                         return {'name': platform};
@@ -364,15 +365,28 @@
                     data_clone.sponsors(ko.utils.arrayMap(data.selectedSponsors(), function (sponsor) {
                         return {'name': sponsor};
                     }));
+
+                    if(self.validCodeArchiveUrl()){
+                        if( data.selectedModelDocumentations.indexOf('Source code') < 0 ){
+                            data.selectedModelDocumentations.push('Source code');
+                        }
+                    }else{
+                        if(data.selectedModelDocumentations.indexOf('Source code') >= 0 ){
+                            data.selectedModelDocumentations.remove('Source code');
+                        }
+                    }
+
                     if (data.selectedModelDocumentations().length > 0) {
                         data_clone.model_documentation(ko.utils.arrayMap(data.selectedModelDocumentations(), function (md) {
                             return {'name': md};
                         }));
                         data.hasNoModelDocumentation(false);
                     }
-                    else if (data.hasNoModelDocumentation()) {
+                    else if (data.hasNoModelDocumentation() || data.selectedModelDocumentations().length == 0) {
+                        data.hasNoModelDocumentation(true);
                         data_clone.model_documentation([{'name': 'None'}]);
                     }
+
                     if (data_clone.container.name() === undefined) {
                         if (data.containers()[0].name) {
                             data_clone.container.name = ko.observable(data.containers()[0].name);
@@ -383,7 +397,6 @@
                         data_clone.container = null
                     }
                     self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname).done(function (result) {
-                        
                         result = DataPreparation.prepare_viewModelJson(result);
                         ko.mapping.fromJS(result, self);
                         humane.log("Data saved successfully.", {timeout: 5000});
