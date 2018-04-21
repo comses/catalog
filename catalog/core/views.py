@@ -3,7 +3,8 @@ import json
 import logging
 import time
 from collections import Counter
-from datetime import timedelta
+from datetime import timedelta, datetime
+from dateutil.parser import parse as datetime_parse
 from hashlib import sha1
 from json import dumps
 
@@ -14,9 +15,9 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core import signing
 from django.core.cache import cache
 from django.db import models
-from django.db.models import Count, Q, F, Value as V
+from django.db.models import Count, Q, F, Value as V, Max
 from django.db.models.functions import Concat
-from django.http import HttpResponse
+from django.http import StreamingHttpResponse
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, resolve_url
 from django.urls import reverse
@@ -32,30 +33,50 @@ from haystack.query import SearchQuerySet
 from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 
-from citation.export_data import create_csv
-from citation.models import Publication, InvitationEmail, Platform, Sponsor, ModelDocumentation, Tag, Container, \
-    URLStatusLog
+from citation.export_data import create_csv, generate_csv_header, generate_csv_row
+from citation.models import (Publication, InvitationEmail, Platform, Sponsor, ModelDocumentation, Tag, Container,
+                             URLStatusLog)
 from citation.serializers import (InvitationSerializer, CatalogPagination, PublicationListSerializer,
                                   UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer,
                                   PublicationAggregationSerializer, AuthorAggregrationSerializer)
-
 from citation.graphviz.globals import RelationClassifier, CacheNames
-from citation.graphviz.data import (generate_publication_code_platform_data,
-                                                generate_network_graph_group_by_sponsors,
-                                                generate_network_graph_group_by_tags)
+from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
+                                    generate_aggregated_distribution_data, generate_network_graph)
+from citation.ping_urls import categorize_url
 
 from .forms import CatalogAuthenticationForm, CatalogSearchForm
 
 logger = logging.getLogger(__name__)
 
 
+class Echo:
+    """An object that implements just the write method of the file-like
+    interface.
+    """
+    def write(self, value):
+        """Write the value by returning it, instead of storing in a buffer."""
+        return value
+
+
 def export_data(self):
-    # Create the HttpResponse object with the appropriate CSV header.
-    response = HttpResponse(content_type='text/csv')
+    """A view that streams a large CSV file."""
+    pseudo_buffer = Echo()
+    writer = csv.writer(pseudo_buffer)
+    publications = Publication.api.primary(prefetch=True)
+
+    rows = ([generate_csv_header()])
+    for pub in publications:
+        rows.append(generate_csv_row(pub))
+
+    response = StreamingHttpResponse((writer.writerow(row) for row in rows),
+                                     content_type="text/csv")
     response['Content-Disposition'] = 'attachment; filename="all_valid_data.csv"'
-    writer = csv.writer(response)
-    create_csv(writer)
     return response
+
+
+def queryset_gen(search_qs):
+    for item in search_qs:
+        yield item.pk
 
 
 def visualization_query_filter(request):
@@ -63,21 +84,23 @@ def visualization_query_filter(request):
     It helps in generating query filter passed by the user in the request
     and stores the query filter in the session request to maintain user filters for later stage of visualization
     @:param: request: http request received
-    @:return: criteria dict generated from the query parameter pass in the request by the user
+    @:return: filter_criteria dict generated from the query parameter pass in the request by the user
     """
 
-    criteria = {}
+    filter_criteria = {'is_primary': True, 'status': "REVIEWED"}
     query_param = request.query_params
     if query_param.get("sponsors"):
-        criteria.update(sponsors__name__in=query_param.getlist("sponsors"))
+        filter_criteria.update(sponsors__name__in=query_param.getlist("sponsors"))
     if query_param.get("tags"):
-        criteria.update(tags__name__in=query_param.getlist("tags"))
+        filter_criteria.update(tags__name__in=query_param.getlist("tags"))
     if query_param.get("start_date"):
-        criteria.update(query_param.get(publication_start_date="start_date"))
+        dt_obj = datetime.strptime(query_param.get("start_date"), '%Y')
+        filter_criteria.update(date_published__gte=dt_obj.isoformat()+"Z")
     if query_param.get("end_date"):
-        criteria.update(query_param.get(publication_end_date="end_date"))
-    request.session['criteria'] = criteria
-    return criteria
+        dt_obj = datetime.strptime(query_param.get("end_date"), '%Y')
+        filter_criteria.update(date_published__lte=dt_obj.isoformat()+"Z")
+    request.session['filter_criteria'] = filter_criteria
+    return filter_criteria
 
 
 class LoginView(FormView):
@@ -356,17 +379,17 @@ class VisualizationSearchView(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        RELATION = [{'Publications': reverse('core:pub-year-distribution'),
-                     'Journals': reverse('core:publication-journal-relation'),
-                     'Authors': reverse('core:publication-author-relation'),
-                     'Sponsors': reverse('core:publication-sponsor-relation'),
-                     'Platforms': reverse('core:publication-platform-relation'),
-                     'Code Archived Platform': reverse('core:code-archived-platform-relation'),
-                     'Model platforms and Programming Languages': reverse(
-                         'core:publication-model-documentation-relation'),
-                     'Network Relation': reverse('core:network-relation')}]
-        request.session['criteria'] = {}
-        return Response({'relation_category': dumps(RELATION)}, template_name="visualization/visualization.html")
+        categories = [{'Publications': reverse('core:pub-year-distribution'),
+                       'Journals': reverse('core:publication-journal-relation'),
+                       'Authors': reverse('core:publication-author-relation'),
+                       'Sponsors': reverse('core:publication-sponsor-relation'),
+                       'Platforms': reverse('core:publication-platform-relation'),
+                       'Location Code Archived': reverse('core:code-archived-platform-relation'),
+                       'Model Documentation': reverse('core:publication-model-documentation-relation'),
+                       'Citation Relation': reverse('core:network-relation')
+                       }]
+        request.session['filter_criteria'] = {}
+        return Response({'relation_category': dumps(categories)}, template_name="visualization/visualization.html")
 
 
 class AggregatedJournalRelationList(LoginRequiredMixin, generics.GenericAPIView):
@@ -377,9 +400,12 @@ class AggregatedJournalRelationList(LoginRequiredMixin, generics.GenericAPIView)
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        queryset = Publication.api.aggregated_list(identifier='container', **visualization_query_filter(request))
+        sqs = SearchQuerySet()
+        sqs = sqs.filter(**visualization_query_filter(request))
+        pub_pk = queryset_gen(sqs)
+        pubs = Publication.api.aggregated_list(pk__in = pub_pk, identifier='container')
         paginator = CatalogPagination()
-        result_page = paginator.paginate_queryset(queryset, request)
+        result_page = paginator.paginate_queryset(pubs, request)
         serializer = PublicationAggregationSerializer(result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
         response['relation'] = RelationClassifier.JOURNAL.value
@@ -394,7 +420,10 @@ class AggregatedSponsorRelationList(LoginRequiredMixin, generics.GenericAPIView)
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        pubs = Publication.api.aggregated_list(identifier='sponsors', **visualization_query_filter(request))
+        sqs = SearchQuerySet()
+        sqs = sqs.filter(**visualization_query_filter(request))
+        pub_pk = queryset_gen(sqs)
+        pubs = Publication.api.aggregated_list(pk__in=pub_pk, identifier='sponsors')
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)
         serializer = PublicationAggregationSerializer(result_page, many=True)
@@ -411,7 +440,10 @@ class AggregatedPlatformRelationList(LoginRequiredMixin, generics.GenericAPIView
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        pubs = Publication.api.aggregated_list(identifier='platforms', **visualization_query_filter(request))
+        sqs = SearchQuerySet()
+        sqs = sqs.filter(**visualization_query_filter(request)).models(Publication)
+        pub_pk = queryset_gen(sqs)
+        pubs = Publication.api.aggregated_list(pk__in = pub_pk, identifier='platforms')
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)
         serializer = PublicationAggregationSerializer(result_page, many=True)
@@ -428,20 +460,21 @@ class AggregatedAuthorRelationList(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        pubs = Publication.api.primary(status='REVIEWED', **visualization_query_filter(request)). \
-            annotate(given_name=F('creators__given_name'), family_name=F('creators__family_name')).values(
-            'given_name',
-            'family_name').order_by(
-            'given_name', 'family_name').annotate(published_count=Count('given_name'),
-                                                  code_availability_count=models.Sum(models.Case(
+        sqs = SearchQuerySet()
+        sqs = sqs.filter(**visualization_query_filter(request)).models(Publication)
+        pub_pk = queryset_gen(sqs)
+        pubs = Publication.api.primary(pk__in=pub_pk). \
+            annotate(given_name=F('creators__given_name'), family_name=F('creators__family_name')).\
+            values('given_name','family_name').\
+            order_by('given_name', 'family_name').\
+            annotate(published_count=Count('given_name'),
+                     code_availability_count=models.Sum(models.Case(
                                                       models.When(~Q(code_archive_url=''), then=1),
                                                       default=0,
                                                       output_field=models.IntegerField())),
-                                                  name=Concat('given_name', V(' '),
-                                                              'family_name'),
-                                                  ).values(
-            'name', 'published_count', 'code_availability_count', 'given_name', 'family_name').order_by(
-            '-published_count')
+                     name=Concat('given_name', V(' '), 'family_name')).\
+            values('name', 'published_count', 'code_availability_count', 'given_name', 'family_name').\
+            order_by('-published_count')
 
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)
@@ -456,33 +489,58 @@ class ModelDocumentationPublicationRelation(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(ModelDocumentationPublicationRelation, self).get_context_data(**kwargs)
-        self.request.session['criteria'] = {}
-        md = ModelDocumentation.objects.all().values_list('name')
+        self.request.session['filter_criteria'] = {}
+        md = ModelDocumentation.objects.all().values_list('name', flat=True)
         total = Publication.api.primary(status='REVIEWED').count()
         value = []
-        for name in list(md):
-            if name[0] is not None:
-                value.append({'name': name[0], 'count': "{0:.2f}".format(
-                    Publication.api.primary(status='REVIEWED',
-                                            model_documentation__name=name[
-                                                0]).count() * 100 / total)})
+        for name in md:
+            if name is not None:
+                value.append({
+                    'name': name,
+                    'count': "{0:.2f}".format(
+                        Publication.api.primary(status='REVIEWED', model_documentation__name=name).count() * 100 / total
+                    )
+                })
         context['value'] = value
         context['relation'] = RelationClassifier.MODELDOCUMENDTATION.value
         return context
 
 
-class AggregatedCodeArchiverURLView(LoginRequiredMixin, generics.GenericAPIView):
+class AggregatedCodeArchivedURLView(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        pubs = Publication.api.primary(status='REVIEWED')
-        url_logs = URLStatusLog.objects.filter(publication__in=pubs)
-        all_records = []
+
+        url_logs = URLStatusLog.objects.all().values('publication').order_by('publication', '-last_modified'). \
+            annotate(last_modified=Max('last_modified')).\
+            values_list('publication', 'type', 'publication__date_published_text').order_by('publication')
+        all_records = Counter()
         years = []
-        for pub in url_logs:
-            if pub.publication.year_published is not None:
-                years.append(pub.publication.year_published)
-                all_records.append((pub.publication.year_published, pub.type))
+        if url_logs:
+            start_year = 1900
+            end_year = 2100
+            if request.query_params.get('start_date'):
+                start_year = int(request.query_params.get('start_date'))
+            if request.query_params.get('end_date'):
+                end_year = int(request.query_params.get('end_date'))
+
+            for pub, category, date in url_logs:
+                try:
+                    date_published = int(datetime_parse(str(date)).year)
+                except:
+                    date_published = None
+                if date_published is not None and start_year <= date_published <= end_year:
+                    years.append(date_published)
+                    all_records[(date_published, category)] += 1
+        else:
+            sqs = SearchQuerySet()
+            sqs = sqs.filter(**visualization_query_filter(request))
+            filtered_pubs = queryset_gen(sqs)
+            pubs = Publication.api.primary(pk__in=filtered_pubs)
+            for pub in pubs:
+                if pub.code_archive_url is not '' and pub.year_published is not None:
+                    years.append(pub.year_published)
+                    all_records[(pub.year_published, categorize_url(pub.code_archive_url))] += 1
 
         group = []
         data = [['x']]
@@ -492,14 +550,10 @@ class AggregatedCodeArchiverURLView(LoginRequiredMixin, generics.GenericAPIView)
 
         for year in sorted(set(years)):
             data[0].append(year)
-            counter = 1
+            index = 1
             for name in URLStatusLog.PLATFORM_TYPES:
-                aggregate_count = all_records.count((year, name[0]))
-                if aggregate_count:
-                    data[counter].append(aggregate_count)
-                else:
-                    data[counter].append(0)
-                counter += 1
+                data[index].append(all_records[(year, name[0])])
+                index += 1
 
         return Response({"aggregated_data": json.dumps(data), "group": json.dumps(group)},
                         template_name="visualization/code_archived_url_staged_bar.html")
@@ -516,35 +570,30 @@ class AggregatedStagedVisualizationView(LoginRequiredMixin, generics.GenericAPIV
 
     def get(self, request, relation=None, name=None):
 
-        criteria = request.session.get("criteria", {})
+        filter_criteria = request.session.get("filter_criteria", {})
         if relation == RelationClassifier.JOURNAL.value:
-            criteria.update(container__name=name)
+            filter_criteria.update(container__name=name)
         elif relation == RelationClassifier.SPONSOR.value:
-            criteria.update(sponsors__name=name)
+            filter_criteria.update(sponsors__name=name)
         elif relation == RelationClassifier.PLATFORM.value:
-            criteria.update(platforms__name=name)
+            filter_criteria.update(platforms__name=name)
         elif relation == RelationClassifier.MODELDOCUMENDTATION.value:
-            criteria.update(model_documentation__name=name)
+            filter_criteria.update(model_documentation__name=name)
         elif relation == RelationClassifier.AUTHOR.value and name:
-            try:
-                (given_name, family_name) = name.split('/')
-                criteria.update(creators__given_name=given_name, creators__family_name=family_name)
-            except ValueError:
-                criteria.update(creators__given_name=name)
+            filter_criteria.update(authors__name__exact=name.replace("/"," "))
         else:
             name = "Publication"
             relation = RelationClassifier.GENERAL.value
+            filter_criteria = visualization_query_filter(request)
             distribution_data = cache.get(CacheNames.DISTRIBUTION_DATA.value)
             platform = cache.get(CacheNames.CODE_ARCHIVED_PLATFORM.value)
-            if distribution_data and platform:
-                return Response(
-                    {"aggregated_data": json.dumps(distribution_data), "code_platform": json.dumps(platform)},
-                    template_name="visualization/pubvsyear.html")
-        aggregate_data = generate_publication_code_platform_data(criteria, relation, name)
-        distribution_data = aggregate_data.data
-        platform = aggregate_data.code_archived_platform
-
-        return Response({"aggregated_data": json.dumps(distribution_data), "code_platform": json.dumps(platform)},
+            if 'date_published__gte' not in filter_criteria and 'date_published__lte' not in filter_criteria and \
+                    distribution_data and platform:
+                return Response({"aggregated_data": json.dumps(distribution_data), "code_platform": json.dumps([platform])},
+                                template_name="visualization/pubvsyear.html")
+        distribution_data = generate_aggregated_distribution_data(filter_criteria, relation, name)
+        platform = generate_aggregated_code_archived_platform_data(filter_criteria)
+        return Response({"aggregated_data": json.dumps(distribution_data), "code_platform": json.dumps([platform])},
                         template_name="visualization/pubvsyear.html")
 
 
@@ -556,34 +605,24 @@ class PublicationListDetail(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request, relation=None, name=None, year=None):
-        pubs = []
 
-        # FIXME
-        # there are different formats in the date_published text like AUG 26 2000, Fall 2000.
-        # so below query will parse both result as its checking for contains string
-        # so there will be mismatch is number of results present
-
+        filter_criteria = request.session.get("filter_criteria", {})
+        filter_criteria.update(date_published__gte=year+"-01-01T00:00:00Z", date_published__lte=year+"-12-31T00:00:00Z" )
         if relation == RelationClassifier.JOURNAL.value:
-            pubs = Publication.api.primary(status='REVIEWED', container__name=name,
-                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+            filter_criteria.update(container__name=name)
         elif relation == RelationClassifier.SPONSOR.value:
-            pubs = Publication.api.primary(status='REVIEWED', sponsors__name=name,
-                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+            filter_criteria.update(sponsors__name=name)
         elif relation == RelationClassifier.PLATFORM.value:
-            pubs = Publication.api.primary(status='REVIEWED', platforms__name=name,
-                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+            filter_criteria.update(platforms__name=name)
         elif relation == RelationClassifier.MODELDOCUMENDTATION.value:
-            pubs = Publication.api.primary(status='REVIEWED', model_documentation__name=name,
-                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+            filter_criteria.update(model_documentation__name=name)
         elif relation == RelationClassifier.AUTHOR.value:
-            pubs = Publication.api.primary(status='REVIEWED',
-                                           creators__given_name=name.split('/')[0],
-                                           creators__family_name=name.split('/')[1],
-                                           date_published_text__contains=year, **request.session.get("criteria", {}))
-        elif relation == RelationClassifier.GENERAL.value:
-            pubs = Publication.api.primary(status='REVIEWED',
-                                           date_published_text__contains=year, **request.session.get("criteria", {}))
+            filter_criteria.update(authors__name__exact=name.replace("/"," "))
 
+        sqs = SearchQuerySet()
+        sqs = sqs.filter(**filter_criteria).models(Publication)
+        pubs_pk = queryset_gen(sqs)
+        pubs = Publication.api.primary(pk__in=pubs_pk)
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)
         serializer = PublicationListSerializer(result_page, many=True)
@@ -595,35 +634,36 @@ class NetworkRelationDetail(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request, pk=None):
-        filter = request.session.get("criteria", {})
+        filter_criteria = request.session.get("filter_criteria", {})
         # fetching only filtered publication
-        primary_publications = Publication.api.primary(status='REVIEWED', **filter)
+        primary_publications = Publication.api.primary(**filter_criteria)
 
         # fetches links that satisfies the given filter
-        links_candidates = Publication.api.primary(status='REVIEWED', **filter,
+        links_candidates = Publication.api.primary(**filter_criteria,
                                                    citations__in=primary_publications).values_list('pk', 'citations')
         data = {}
-        for pub in links_candidates:
-            id = data.get(str(pub[0]))
-            if id and str(pub[1]) not in id:
-                id.append(str(pub[1]))
-                data[str(pub[0])] = id
+        for source, target in links_candidates:
+            target_list = data.get(str(source))
+            if target_list and str(target) not in target_list:
+                target_list.append(str(target))
+                data[str(source)] = target_list
             else:
-                data[str(pub[0])] = [str(pub[1])]
+                data[str(source)] = [str(target)]
 
         res = self.generate_tree(pk, data)
         message = Publication.objects.get(pk=pk).get_message()
-        return Response({'result': dumps(res), 'description': dumps(message)}, template_name="visualization/collapsible-tree.html")
+        return Response({'result': dumps(res), 'description': dumps(message)},
+                        template_name="visualization/collapsible-tree.html")
 
     def generate_tree(self, root, data):
-        ids = data.get(str(root))
-        if ids is None:
+        nodes = data.get(str(root))
+        if nodes is None:
             return {'name': root, 'children': []}
-        children = []
 
-        for id in ids:
-            if id != root:
-                children.append(self.generate_tree(id, data))
+        children = []
+        for node in nodes:
+            if node != root:
+                children.append(self.generate_tree(node, data))
 
         return {'name': root, 'children': children}
 
@@ -632,30 +672,19 @@ class NetworkRelation(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        group_by = request.GET.get('group_by')
+
         filter_criteria = visualization_query_filter(request)
-        network = {},
-        filter_group = {}
-        if group_by == 'tags':
-            network = cache.get(CacheNames.NETWORK_GRAPH_GROUP_BY_TAGS.value)
-            filter_group = cache.get(CacheNames.NETWORK_GRAPH_TAGS_FILTER.value)
-        elif group_by == 'sponsors':
-            network = cache.get(CacheNames.NETWORK_GRAPH_GROUP_BY_SPONSORS.value)
-            filter_group = cache.get(CacheNames.NETWORK_GRAPH_SPONSOS_FILTER.value)
+        network = cache.get(CacheNames.NETWORK_GRAPH_GROUP_BY_TAGS.value)
+        filter_group = cache.get(CacheNames.NETWORK_GRAPH_TAGS_FILTER.value)
 
-        if network and filter_group:
-            return Response({"data": json.dumps(network),
-                             "group": json.dumps(filter_group)},
-                            template_name="visualization/network-graph.html")
-        else:
-            if group_by == 'sponsors':
-                network_data = generate_network_graph_group_by_sponsors(filter_criteria)
-                network = network_data.graph
-                filter_group = network_data.filter_value
-            elif group_by == 'tags':
-                network_data = generate_network_graph_group_by_tags(filter_criteria)
-                network = network_data.graph
-                filter_group = network_data.filter_value
+        if 'date_published__gte' in filter_criteria or 'date_published__lte' in filter_criteria or \
+                not network and not filter_group:
+            network_data = generate_network_graph(filter_criteria)
+            network = network_data.graph
+            filter_group = network_data.filter_value
 
-            return Response({"data": json.dumps(network), "group": json.dumps(list(filter_group))},
-                            template_name="visualization/network-graph.html")
+        return Response({"data": json.dumps(network), "group": json.dumps(filter_group)},
+                        template_name="visualization/network-graph.html")
+
+
+

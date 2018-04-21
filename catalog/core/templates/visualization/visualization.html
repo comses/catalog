@@ -16,7 +16,7 @@
             can explore the database by
             selecting categories of data.”
         </div>
-        <form id="form_id" method="get" action="#">
+        <form id="form_id" name="form_id" method="get" action="#">
 
             <div class='panel-body'>
 
@@ -30,42 +30,26 @@
                     </select>
                 </div>
 
-                <div class="col-md-6 form-group">
-                    <label class="control-label" for="id_start_date">Publication Start Date</label>
+                <div class="col-md-6 form-group" id="start_year">
+                    <label class="control-label" for="id_start_date">Publication Start Year</label>
                     <input class="form-control" id="id_start_date" maxlength="75" name="start_date"
-                           placeholder="Start date (mm/dd/yyyy)" type="text" data-bind="value: start_date">
+                           placeholder="Start Year(YYYY)" type="number" min="1960" data-bind="value: start_date">
                 </div>
-                <div class="col-md-6 form-group">
-                    <label class="control-label" for="id_end_date">Publication End Date</label>
+                <div class="col-md-6 form-group" id="end_year">
+                    <label class="control-label" for="id_end_date">Publication End Year</label>
                     <input class="form-control" id="id_end_date" maxlength="75" name="end_date"
-                           placeholder="End date (mm/dd/yyyy)" type="text" data-bind="value: end_date">
+                           placeholder="End Year(YYYY)" type="number" min="1960" data-bind="value: end_date">
                 </div>
-                <div class="col-md-12 form-group">
+                <div class="col-md-12 form-group" id="tags_div">
                     <label class="control-label" for="id_tags">Tags</label>
                     <select multiple class="form-control" id="id_tags" name="tags"
                             placeholder="Keywords"
                             data-bind="selectize: tags, selectedOptions: selectedTags, optionsValue: 'name', options: { create: true, load: getTagList }">
                     </select>
                 </div>
+
                 <div class="col-md-12 form-group">
-                    <label class="control-label" for="id_sponsors">Sponsors</label>
-                    <select multiple class="form-control" id="id_sponsors" name="sponsors" placeholder="Sponsors"
-                            data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList }">
-                    </select>
-                </div>
-                <div class="col-md-12 form-group" , id="id_group_by">
-                    <label class="control-label" for="id_group">Group by</label>
-                    <div id="radio">
-                        <label class="radio-inline">
-                            <input type="radio" name="group_by" value="tags" checked="True">Tags
-                        </label>
-                        <label class="radio-inline">
-                            <input type="radio" name="group_by" value="sponsors">Sponsors
-                        </label>
-                    </div>
-                </div>
-                <div class="col-md-12 form-group">
-                    <button type="button" value="submit" data-bind="click: savePublication" class="btn btn-primary">
+                    <button id = "submit_id" name = "submit_id" type="button" value="submit" data-bind="click: savePublication" class="btn btn-primary">
                         Visualize
                     </button>
 
@@ -109,13 +93,32 @@
                 self.relationList = ko.observableArray(Object.keys(relation[0]));
 
                 self.selectedRelation = ko.observable();
-                this.selectedRelation.subscribe(function (latest) {
-                    if (latest[0] !== 'Network Relation') {
-                        $('#id_group_by').hide()
-                    } else {
-                        $('#id_group_by').show()
+                self.selectedRelation.subscribe(function (latest) {
+
+                    if(latest[0] === 'Model Documentation'){
+                        document.form_id.submit_id.innerHTML = "Search";
+                        $('#tags_div').hide();
+                        $('#start_year').hide();
+                        $('#end_year').hide();
                     }
-                }, this);
+                    else if (latest[0] === 'Publications' || latest[0] === 'Location Code Archived') {
+                        document.form_id.submit_id.innerHTML = "Visualize";
+                        $('#tags_div').hide();
+                        $('#start_year').show();
+                        $('#end_year').show();
+                    }else if(latest[0] === 'Citation Relation'){
+                        document.form_id.submit_id.innerHTML = "Visualize";
+                        $('#tags_div').show();
+                        $('#start_year').show();
+                        $('#end_year').show();
+                    }else{
+                        document.form_id.submit_id.innerHTML = "Search";
+                        $('#tags_div').show();
+                        $('#start_year').show();
+                        $('#end_year').show();
+                    }
+                }, self);
+
                 self.makeAsyncRequest = function (query, callback, url) {
                     if (!query.length) return callback();
                     $.getJSON(url + "?q=" + encodeURIComponent(query))
