@@ -679,6 +679,8 @@ class NetworkRelation(LoginRequiredMixin, generics.GenericAPIView):
 
         if 'date_published__gte' in filter_criteria or 'date_published__lte' in filter_criteria or \
                 not network and not filter_group:
+            if 'tags__name__in' not in filter_criteria:
+                filter_criteria.update(tags__name__in=Publication.api.get_top_records('tags__name', 5))
             network_data = generate_network_graph(filter_criteria)
             network = network_data.graph
             filter_group = network_data.filter_value
