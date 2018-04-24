@@ -1,5 +1,3 @@
-root /usr/bin/python3 /code/manage.py flagged_faulty_data_publication >> /var/log/cron.log 2>&1
-root /usr/bin/python3 /code/manage.py cache_data >> /var/log/cron.log 2>&1
-root /usr/bin/python3 /code/manage.py remove_orphans >> /var/log/cron.log 2>&1
-
-# Don't remove the empty line at the end of this file. It is required to run the cron job
+/code/manage.py flagged_faulty_data_publication >> /var/log/cron.log 2>&1
+/code/manage.py cache_data >> /var/log/cron.log 2>&1
+/code/manage.py remove_orphans >> /var/log/cron.log 2>&1
