@@ -36,7 +36,6 @@ services:
       - .:/code
       - solr:/etc/solr/mycores/
       - logs:/catalog/logs
-    command: /code/deploy/docker/dev.sh
     environment:
       LANG: "C.UTF-8"
       DB_USER: catalog
