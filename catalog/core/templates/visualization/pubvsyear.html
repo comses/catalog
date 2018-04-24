@@ -22,8 +22,24 @@
                 height: 100%;
             }
 
+            div.tooltip {
+                position: absolute;
+                text-align: center;
+                width: 200px;
+                height: 28px;
+                padding: 7px;
+                color: #000;
+                font: 12px sans-serif;
+                background: lightsteelblue;
+                border: 0px;
+                border-radius: 8px;
+                pointer-events: none;
+            }
         </style>
-
+        <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}"/>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.css" rel="stylesheet"/>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.js"></script>
     </head>
     <body onload="LoadCountVizualization()">
     <div class="panel panel-default">
@@ -34,17 +50,15 @@
         <div class="panel-body">
 
             <div class=" left" id="donutChart"></div>
-            <div class=" right" style="text-align: justify;">It shows the use of different
+            <div class=" right" style="text-align: justify;">The graph on this page shows the use of different
                 locations where code is archived for the published publication for the selected Visualization category.
-                This demonstrates which different
-                platform like Comses, Open source, Personal, Journal and many more are
-                preferred by the authors for storing and making the code publicly available.describes the number of
-                publications on agent-based models over time. Each publication is a new or updated agent-based model for
-                which computer code is used to generate the published results. Nevertheless, for 90% of the publications
-                the model code is not publicly available, which will hinder replication of the results and the
-                accumulation of knowledge. This demonstrates the
-                importance of storing model code and documentation in public archives to preserve the scientific output
-                for future
+                This demonstrates which different platform like CoMSES, Open source, Personal, Journal and many more are
+                preferred by the authors for storing and making the code publicly available. Below timeseries chart
+                describes the number of publications on agent-based models over time. Each publication is a new or
+                updated agent-based model for which computer code is used to generate the published results.
+                Nevertheless, for 90% of the publications the model code is not publicly available, which will hinder
+                replication of the results and the accumulation of knowledge. This demonstrates the importance of
+                storing model code and documentation in public archives to preserve the scientific output for future
                 generations.
             </div>
 
@@ -75,6 +89,9 @@
         for (var key in platform[0]) {
             platform_list.push(key)
         }
+        var div = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
 
         function donutChart() {
             var donutChart = c3.generate({
@@ -139,6 +156,12 @@
                         x: 'date',
                         value: ['Code Available Per', 'Code Not Available Per'],
                     },
+                    onmouseover: function (d, i) {
+                        onMouseOverEvent();
+                    },
+                    onmouseout: function (d, i) {
+                        onMouseOutEvent();
+                    }
                 },
                 legend: {
                     show: true,
@@ -198,7 +221,7 @@
         }
 
         function LoadCountVizualization() {
-            document.getElementById('name').innerHTML = name.replace("\/"," ");
+            document.getElementById('name').innerHTML = name.replace("\/", " ");
             donutChart();
             // can change type of the graph line formation by modifying interpolate value
             c3.chart.internal.fn.getInterpolate = function () {
@@ -224,6 +247,15 @@
                         x: 'date',
                         value: ['Code Available', 'Code Not Available'],
                     },
+                    onclick: function (d, i) {
+                        {#                    console.log("onclick", d, i);#}
+                    },
+                    onmouseover: function (d, i) {
+                        onMouseOverEvent();
+                    },
+                    onmouseout: function (d, i) {
+                        onMouseOutEvent();
+                    }
                 },
                 legend: {
                     show: true,
@@ -275,13 +307,30 @@
         function d3OnClickEvent() {
             d3.selectAll('.tick').on({
                 "mouseover": function () { /* do stuff */
+                    onMouseOverEvent();
                 },
                 "mouseout": function () { /* do stuff */
+                    onMouseOutEvent();
                 },
                 "click": function (value, index) {
                     callUrl(id, name, value)
                 },
             });
+        }
+
+        function onMouseOverEvent() {
+            div.transition()
+                .duration(200)
+                .style("opacity", .9);
+            div.html("Click to view all publication")
+                .style("left", (d3.event.pageX) + "px")
+                .style("top", (d3.event.pageY - 28) + "px");
+        }
+
+        function onMouseOutEvent() {
+            div.transition()
+                .duration(500)
+                .style("opacity", 0);
         }
 
         function callUrl(id, name, value) {
@@ -290,8 +339,5 @@
         }
 
     </script>
-    <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.css" rel="stylesheet"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.js"></script>
+
 {% endblock javascript %}

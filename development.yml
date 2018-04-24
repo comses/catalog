@@ -30,13 +30,15 @@ services:
       POSTGRES_PASSWORD: CHANGEME_CATALOG_DB_PASSWORD
       POSTGRES_DB: comses_catalog
   django:
-    build: ./
+    build:
+      context: ./
+      args:
+        RUN_SCRIPT: "./deploy/docker/dev.sh"
     image: comses/catalog
     volumes:
       - .:/code
       - solr:/etc/solr/mycores/
       - logs:/catalog/logs
-    command: /code/deploy/docker/dev.sh
     environment:
       LANG: "C.UTF-8"
       DB_USER: catalog

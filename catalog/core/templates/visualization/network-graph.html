@@ -69,12 +69,12 @@
 
             html, body {
                 width: 99.5%;
-                height: 99.5%;
+
             }
 
             svg {
                 width: 100%;
-                height: 93%;
+                height: 700px;
             }
 
             #download {
@@ -100,7 +100,10 @@
             <input type="button" value="Download" class="tfbutton" , onclick="create_zip()">
         </div>
         <div class="tfclear"></div>
+
     </div>
+            <p style="padding:10px; text-align: justify;"> This graph answer whether model publication are build on each other or not. We focus here on the largest numbers of paper connected in the network. Based on the tags information provovided we clustered/grouped the publication. Click any node below to see the cited publication Information. </p>
+
     </body>
 {% endblock content %}
 
@@ -159,7 +162,7 @@
                     .attr("fill", colors[index])
                     .link(url);
 
-                circle.append('title').text("Id: " + node.data.name + "\n" + "Title: " + node.data.title + "\n" + "Authors: "
+                circle.append('title').text("Click to see cited publication \nId: " + node.data.name + "\n" + "Title: " + node.data.title + "\n" + "Authors: "
                     + node.data.Authors + "\n" + "Tags: " + node.data.tags + "\n" + "Sponsors: " + node.data.sponsors);
 
                 $(circle).hover(function () { // mouse over
@@ -198,7 +201,6 @@
 
 
             function click(node) {
-                {#                callUrl(node.data.name)#}
                 var url = "{% url 'core:networkrelation' pk="1" %}".replace(/1/, node);
                 location.href = url;
             }
@@ -230,17 +232,23 @@
 
             var verticalLegend = d3.svg.legend().labelFormat("none").cellPadding(5).orientation("vertical").units("Group Type : Tags").cellWidth(25).cellHeight(18).inputScale(color).cellStepping(10);
 
-            d3.select("svg").append("g").attr("transform", "translate(50,140)").attr("class", "legend").call(verticalLegend);
+            d3.select("svg").append("g").attr("transform", "translate(50,170)").attr("class", "legend").call(verticalLegend);
 
+
+            d3.select("svg").append("g").attr("transform", "translate(50,100)").append("text").text("Nodes: " + nodes.length + " and Links: " + links.length);
+            d3.select("svg").append("g").append("div").attr("text-anchor","middle").append("text").text(" Publications Citation Relation Information ");
 
         }
 
-        {#    $(document).on('input','#tftextinput',function () {#}
-        {#        if($('#tftextinput').val() == ""){#}
-        {#            searchNodeUI.attr("r", 8);#}
-        {#        }#}
-        {##}
-        {#    });#}
+            $(document).on('input','#tftextinput',function () {
+                if($('#tftextinput').val() == ""){
+                    searchNodeUI.attr("r", 8);
+                }
+
+            searchValue = document.getElementById("tftextinput").value;
+
+            searchForValue(searchValue)
+            });
 
         function search() {
             if (searchNodeUI) {
@@ -248,7 +256,11 @@
             }
             searchValue = document.getElementById("tftextinput").value;
 
-            graph.forEachNode(function (node) {
+            searchForValue(searchValue)
+
+        }
+        function searchForValue(){
+             graph.forEachNode(function (node) {
                 if (node.data.name === searchValue || (node.data.title.indexOf(searchValue) !== -1 && searchValue.trim() !== '')
                     || (node.data.tags.indexOf(searchValue) !== -1 && searchValue.trim() !== '')
                     || (node.data.Authors.indexOf(searchValue) !== -1 && searchValue.trim() !== '')) {
@@ -260,7 +272,6 @@
                     graphics.getNodeUI(node.id).attr('r', 8);
                 }
             });
-
         }
 
         var downloadFile = function (content, filename) {
@@ -283,7 +294,7 @@
         }
 
         function create_zip() {
-            alert("Working on it.. will add in next update");
+
             var zip = new JSZip();
 
             var nodeWriter = "Id, Group, Title \n";

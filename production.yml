@@ -42,11 +42,11 @@ services:
     links:
       - django
   django:
-    image: comses/catalog:0.9.2
+    image: comses/catalog:0.9.3
     build:
       context: ./
       args:
-        RUN_SCRIPT: "./deploy/prod.sh"
+        RUN_SCRIPT: "./deploy/docker/prod.sh"
     image: comses/catalog:latest
     restart: always
     volumes:

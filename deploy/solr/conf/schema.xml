@@ -153,7 +153,7 @@
 
     <field name="date_published" type="date" indexed="true" stored="true" multiValued="false" />
 
-    <field name="authors" type="edge_ngram" indexed="true" stored="true" multiValued="false" />
+    <field name="authors" type="text_en" indexed="true" stored="true" multiValued="false" />
 
     <field name="is_primary" type="boolean" indexed="true" stored="true" multiValued="false" />
 
@@ -167,13 +167,19 @@
 
     <field name="tags" type="edge_ngram" indexed="true" stored="true" multiValued="false" />
 
+    <field name="sponsors" type="text_en" indexed="true" stored="true" multiValued="false" />
+
+    <field name="platforms" type="text_en" indexed="true" stored="true" multiValued="false" />
+
+    <field name="model_documentation" type="text_en" indexed="true" stored="true" multiValued="false" />
+
     <field name="contact_email" type="boolean" indexed="true" stored="true" multiValued="false" />
 
     <field name="status_exact" type="string" indexed="true" stored="true" multiValued="false" />
 
     <field name="status" type="text_en" indexed="true" stored="true" multiValued="false" />
 
-    <field name="container" type="edge_ngram" indexed="true" stored="true" multiValued="false" />
+    <field name="container" type="text_en" indexed="true" stored="true" multiValued="false" />
 
     <field name="flagged" type="boolean" indexed="true" stored="true" multiValued="false" />
 

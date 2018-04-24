@@ -12,6 +12,7 @@
             <div class="panel-heading">
                 <h3 id="name">
                 </h3>
+                <p id="about"></p>
             </div>
             <div class="panel-body">
                 <table class="table table-striped">
@@ -25,7 +26,7 @@
                     <tbody data-bind="foreach: results">
                     <tr>
                         <td>
-                            <a data-bind="attr: { href: url }, text:name"></a>
+                            <a title="Click to Visualize" data-bind="attr: { href: url }, text:name"></a>
 
                         </td>
                         <td data-bind="text: published_count"></td>
@@ -52,11 +53,12 @@
         var id = viewModelJson.relation;
         window.onload = function () {
             document.getElementById("name").innerHTML = id;
+            document.getElementById("about").innerHTML = "Provide information about Total Published Publication against Model code availability for each " + id + ". (Select any one from below to visualize its distribution against year)";
         };
         $(function () {
             var Publication = function (data) {
                 var self = this;
-                if (id == 'Author') {
+                if (id === 'Author') {
                     data['url'] = "/pub-year-distribution/" + id + "/" + data.given_name + "/" + data.family_name;
                 } else {
                     data['url'] = "/pub-year-distribution/" + id + "/" + data.name;

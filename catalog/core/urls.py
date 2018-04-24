@@ -42,7 +42,7 @@ urlpatterns += [
     url(r'^publication-journal-relation/$', views.AggregatedJournalRelationList.as_view(), name="publication-journal-relation"),
     url(r'^publication-sponsor-relation/$', views.AggregatedSponsorRelationList.as_view(), name="publication-sponsor-relation"),
     url(r'^publication-platform-relation/$', views.AggregatedPlatformRelationList.as_view(), name="publication-platform-relation"),
-    url(r'^code-archived-platform-relation/$', views.AggregatedCodeArchiverURLView.as_view(), name="code-archived-platform-relation"),
+    url(r'^code-archived-platform-relation/$', views.AggregatedCodeArchivedURLView.as_view(), name="code-archived-platform-relation"),
     url(r'^publication-author-relation/$', views.AggregatedAuthorRelationList.as_view(), name="publication-author-relation"),
     url(r'^publication-model-documentation-relation/$', views.ModelDocumentationPublicationRelation.as_view(),
         name="publication-model-documentation-relation"),

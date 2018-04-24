@@ -1,0 +1,1 @@
+/code/manage.py validate_urls >> /var/log/cron.log 2>&1
