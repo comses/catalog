@@ -386,7 +386,7 @@ class VisualizationSearchView(LoginRequiredMixin, generics.GenericAPIView):
                        'Platforms': reverse('core:publication-platform-relation'),
                        'Location Code Archived': reverse('core:code-archived-platform-relation'),
                        'Model Documentation': reverse('core:publication-model-documentation-relation'),
-                       'Citation Relation': reverse('core:network-relation')
+                       'Citation Network': reverse('core:network-relation')
                        }]
         request.session['filter_criteria'] = {}
         return Response({'relation_category': dumps(categories)}, template_name="visualization/visualization.html")
@@ -484,26 +484,25 @@ class AggregatedAuthorRelationList(LoginRequiredMixin, generics.GenericAPIView):
         return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
 
 
-class ModelDocumentationPublicationRelation(LoginRequiredMixin, TemplateView):
-    template_name = 'visualization/model_documentation_publication_relation.html'
+class ModelDocumentationPublicationRelation(LoginRequiredMixin, generics.GenericAPIView):
 
-    def get_context_data(self, **kwargs):
-        context = super(ModelDocumentationPublicationRelation, self).get_context_data(**kwargs)
+    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
+    def get(self, request):
         self.request.session['filter_criteria'] = {}
-        md = ModelDocumentation.objects.all().values_list('name', flat=True)
         total = Publication.api.primary(status='REVIEWED').count()
-        value = []
-        for name in md:
-            if name is not None:
-                value.append({
-                    'name': name,
+        dct = {}
+        for categories in ModelDocumentation.CATEGORIES:
+            values = []
+            for names in categories['modelDocumentationList']:
+                values.append({
+                    'name': names['name'],
                     'count': "{0:.2f}".format(
-                        Publication.api.primary(status='REVIEWED', model_documentation__name=name).count() * 100 / total
-                    )
+                        Publication.api.primary(status='REVIEWED', model_documentation__name=names['name']).count() * 100 / total
+                    ),
+                    'url': reverse('core:pub-year-distribution',args=['Modeldoc', names['name']])
                 })
-        context['value'] = value
-        context['relation'] = RelationClassifier.MODELDOCUMENDTATION.value
-        return context
+            dct[categories['category']] = values
+        return Response({'json': dumps(dct)}, template_name="visualization/model_documentation_publication_relation.html")
 
 
 class AggregatedCodeArchivedURLView(LoginRequiredMixin, generics.GenericAPIView):

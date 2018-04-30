@@ -23,10 +23,9 @@
             }
 
             div.tooltip {
-                position: absolute;
+                display: inline-block;
                 text-align: center;
                 width: 200px;
-                height: 28px;
                 padding: 7px;
                 color: #000;
                 font: 12px sans-serif;
@@ -50,16 +49,12 @@
         <div class="panel-body">
 
             <div class=" left" id="donutChart"></div>
-            <div class=" right" style="text-align: justify;">The graph on this page shows the use of different
-                locations where code is archived for the published publication for the selected Visualization category.
-                This demonstrates which different platform like CoMSES, Open source, Personal, Journal and many more are
+            <div class=" right" style="text-align: justify;">The graph on this page shows the use of different locations
+                where code is archived for the published publication for the selected Visualization category. This
+                demonstrates which different platform like CoMSES, Open source, Personal, Journal and many more are
                 preferred by the authors for storing and making the code publicly available. Below timeseries chart
                 describes the number of publications on agent-based models over time. Each publication is a new or
                 updated agent-based model for which computer code is used to generate the published results.
-                Nevertheless, for 90% of the publications the model code is not publicly available, which will hinder
-                replication of the results and the accumulation of knowledge. This demonstrates the importance of
-                storing model code and documentation in public archives to preserve the scientific output for future
-                generations.
             </div>
 
             <div class="chart-background" style="width: 98%; height: 60%;" id="stagedDistribution">
@@ -111,9 +106,10 @@
                         {#                    console.log("onclick", d, i);#}
                     },
                     onmouseover: function (d, i) {
-                        {#                    console.log("onmouseover", d, i);#}
+                        DonutOnMouseOver(d)
                     },
                     onmouseout: function (d, i) {
+                        onMouseOutEvent();
                         {#                    console.log("onmouseout", d['id']);#}
                     }
                 },
@@ -251,7 +247,7 @@
                         {#                    console.log("onclick", d, i);#}
                     },
                     onmouseover: function (d, i) {
-                        onMouseOverEvent();
+                        onMouseOverEvent("Click to view all publication", d);
                     },
                     onmouseout: function (d, i) {
                         onMouseOutEvent();
@@ -304,10 +300,39 @@
             d3OnClickEvent()
         }
 
+        function DonutOnMouseOver(d){
+            var message;
+            switch (d.id){
+            case "PLATFORM" :
+                message = "Platform specific repositories like Netlogo and cormas";
+                break;
+            case "COMSES":
+                message = "CoMSES";
+                break;
+            case "OPEN SOURCE":
+                message = "Public archives such as Github, sourceforge, bitbucket, dataverse, googleCode and many more";
+                break;
+            case "JOURNAL":
+                message = "Journal Publisher's website";
+                break;
+            case "PERSONAL":
+                message = "Authors / Researchers Personal website or personal repositories like dropbox and researchGate";
+                break;
+            case "INVALID":
+                message = "Links not active anymore or not reachable";
+                break;
+            case "OTHERS":
+                message = "Other - Non Identifiable type";
+                break;
+            }
+
+            onMouseOverEvent(message,d)
+        }
+
         function d3OnClickEvent() {
             d3.selectAll('.tick').on({
                 "mouseover": function () { /* do stuff */
-                    onMouseOverEvent();
+                    onMouseOverEvent("Click to view all publication");
                 },
                 "mouseout": function () { /* do stuff */
                     onMouseOutEvent();
@@ -318,11 +343,12 @@
             });
         }
 
-        function onMouseOverEvent() {
+        function onMouseOverEvent(message, d) {
+            console.log(message)
             div.transition()
                 .duration(200)
                 .style("opacity", .9);
-            div.html("Click to view all publication")
+            div.html(message)
                 .style("left", (d3.event.pageX) + "px")
                 .style("top", (d3.event.pageY - 28) + "px");
         }

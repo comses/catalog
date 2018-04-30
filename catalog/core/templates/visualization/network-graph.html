@@ -6,10 +6,11 @@
     <!DOCTYPE html>
     <html>
     <head>
-        <script src="http://d3js.org/d3.v3.min.js"></script>
-        <script src="http://d3js.org/colorbrewer.v1.min.js"></script>
+        <script src="//d3js.org/d3.v3.min.js"></script>
+        <script src="//d3js.org/colorbrewer.v1.min.js"></script>
         <script type="text/javascript" src="{% static 'js/vivagraph.js' %}"></script>
         <script type="text/javascript" src="{% static 'js/jszip.js' %}"></script>
+        <script type="text/javascript" src="{% static 'js/legend.js' %}"></script>
 
 
         <script src={% static 'js/legend.js' %}></script>
@@ -102,7 +103,11 @@
         <div class="tfclear"></div>
 
     </div>
-            <p style="padding:10px; text-align: justify;"> This graph answer whether model publication are build on each other or not. We focus here on the largest numbers of paper connected in the network. Based on the tags information provovided we clustered/grouped the publication. Click any node below to see the cited publication Information. </p>
+    <p style="padding:10px; text-align: justify;"> This graph shows which model publications cite other model
+        publications. We focus here on the largest connected group of publications within the database. Based on the
+        tags information provided we cluster the publications. Click any node below to see the cited publication
+        information. Based on the tags information provovided we clustered/grouped the publication. Click any node below
+        to see the cited publication Information. </p>
 
     </body>
 {% endblock content %}
@@ -236,19 +241,19 @@
 
 
             d3.select("svg").append("g").attr("transform", "translate(50,100)").append("text").text("Nodes: " + nodes.length + " and Links: " + links.length);
-            d3.select("svg").append("g").append("div").attr("text-anchor","middle").append("text").text(" Publications Citation Relation Information ");
+            d3.select("svg").append("g").append("div").attr("text-anchor", "middle").append("text").text(" Publications Citation Relation Information ");
 
         }
 
-            $(document).on('input','#tftextinput',function () {
-                if($('#tftextinput').val() == ""){
-                    searchNodeUI.attr("r", 8);
-                }
+        $(document).on('input', '#tftextinput', function () {
+            if ($('#tftextinput').val() == "") {
+                searchNodeUI.attr("r", 8);
+            }
 
             searchValue = document.getElementById("tftextinput").value;
 
             searchForValue(searchValue)
-            });
+        });
 
         function search() {
             if (searchNodeUI) {
@@ -259,8 +264,9 @@
             searchForValue(searchValue)
 
         }
-        function searchForValue(){
-             graph.forEachNode(function (node) {
+
+        function searchForValue() {
+            graph.forEachNode(function (node) {
                 if (node.data.name === searchValue || (node.data.title.indexOf(searchValue) !== -1 && searchValue.trim() !== '')
                     || (node.data.tags.indexOf(searchValue) !== -1 && searchValue.trim() !== '')
                     || (node.data.Authors.indexOf(searchValue) !== -1 && searchValue.trim() !== '')) {
@@ -312,7 +318,6 @@
             zip.generateAsync({type: "blob"})
                 .then(function (content) {
                     // Force down of the Zip file
-
                     downloadFile(content, "graph.zip");
                 });
         }
