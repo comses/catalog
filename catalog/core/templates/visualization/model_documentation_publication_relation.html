@@ -1,26 +1,81 @@
 {% extends 'base.html' %}
 {% load bootstrap3 %}
 {% block content %}
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 id="name">Model Documentation
+            </h3>
+            <p id="about"></p>
+        </div>
+        <div class="panel-body">
 
-    <div class="panel-body">
-
-        <table class="table table-striped">
-            <thead>
-            <tr>
-                <th class='col-lg-6'>Model Documentation</th>
-                <th class='col-lg-2'>Percentage</th>
-            </thead>
-            <tbody>
-            {% for pub in value %}
+            <table class="table table-striped">
+                <thead>
                 <tr>
-
-                    <td><a href="{% url 'core:pub-year-distribution' relation='Modeldoc' name=pub.name %}">{{ pub.name }}</a>
+                    <th class='col-lg-6'>Name</th>
+                    <th class='col-lg-2'>Percentage</th>
+                </thead>
+                <tbody data-bind='foreach: narrative'>
+                <tr>
+                    <td>
+                        <a data-bind=' text: name , attr: { href: url }'></a>
                     </td>
-                    <td> {{ pub.count }} </td>
+                    <td data-bind='text: count'></td>
                 </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+            <h4>Visual relationships</h4>
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th class='col-lg-6'>Name</th>
+                    <th class='col-lg-2'>Percentage</th>
+                </thead>
+                <tbody data-bind='foreach: visual_relationships'>
+                <tr>
+                    <td>
+                        <a data-bind=' text: name , attr: { href: url }'></a>
+                    </td>
+                    <td data-bind='text: count'></td>
+                </tr>
+                </tbody>
+            </table>
+            <h4>Code and formal descriptions</h4>
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th class='col-lg-6'>Name</th>
+                    <th class='col-lg-2'>Percentage</th>
+                </thead>
+                <tbody data-bind='foreach: code_and_formal_descriptions'>
+                <tr>
+                    <td>
+                        <a data-bind=' text: name , attr: { href: url }'></a>
+                    </td>
+                    <td data-bind='text: count'></td>
+                </tr>
+                </tbody>
+            </table>
 
+        </div>
     </div>
 {% endblock content %}
+{% block javascript %}
+
+    <script type="text/javascript">
+
+        var data = {{ json|safe }}
+
+            $(function () {
+                var ModelDocumentationModelView = function (data) {
+                    this.narrative = data['Narrative'];
+                    this.visual_relationships = data['Visual Relationships'];
+                    this.code_and_formal_descriptions = data['Code and formal descriptions'];
+                };
+
+                var model = new ModelDocumentationModelView(data);
+                ko.applyBindings(model);
+            });
+    </script>
+
+{% endblock javascript %}

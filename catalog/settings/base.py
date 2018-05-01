@@ -149,7 +149,7 @@ THIRD_PARTY_APPS = (
     'cas',
 )
 
-CATALOG_APPS = ('catalog.core', 'citation', )
+CATALOG_APPS = ('catalog.core', 'citation.apps.CitationConfig')
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + CATALOG_APPS
 
