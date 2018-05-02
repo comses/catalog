@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load tags %}
 {% block content %}
     <div class="row">
         <div class="col-md-6">
@@ -73,7 +73,7 @@
                                 {% endif %}
                                 </td>
                                 <td>{%  for key, value in contribution.items %}
-                                    {%  if key == pub.id %}
+                                    {%  if key == contribution_cache_prefix|addstr:pub.id %}
                                     {% with value|first as record %}
                                         {{ record.creator}} ({{ record.contribution }}%)
                                     {% endwith %}
@@ -122,3 +122,4 @@
 </div>
 
 {% endblock content %}
+

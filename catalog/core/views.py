@@ -192,6 +192,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['recently_updated'] = recently_updated
         list = [CacheNames.CONTRIBUTION_DATA.value + str(pub.id) for pub in recently_updated]
         cache_dct = cache.get_many(list)
+        context['contribution_cache_prefix'] = CacheNames.CONTRIBUTION_DATA.value
         context['contribution'] = cache_dct
         return context
 
@@ -686,6 +687,7 @@ class NetworkRelation(LoginRequiredMixin, generics.GenericAPIView):
 
         return Response({"data": json.dumps(network), "group": json.dumps(filter_group)},
                         template_name="visualization/network-graph.html")
+
 
 
 
