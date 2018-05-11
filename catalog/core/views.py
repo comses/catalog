@@ -190,10 +190,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         recently_updated = recently_updated_publications.filter(
             date_modified__gte=last_week_datetime, is_primary=True).order_by('-date_modified')[:number_of_publications]
         context['recently_updated'] = recently_updated
-        list = [CacheNames.CONTRIBUTION_DATA.value + str(pub.id) for pub in recently_updated]
-        cache_dct = cache.get_many(list)
-        context['contribution_cache_prefix'] = CacheNames.CONTRIBUTION_DATA.value
-        context['contribution'] = cache_dct
+        contribution_cache_names_list = [CacheNames.CONTRIBUTION_DATA.value + str(pub.id) for pub in recently_updated]
+        cache_dct = cache.get_many(contribution_cache_names_list)
+        context['contribution_dct'] = cache_dct
         return context
 
 

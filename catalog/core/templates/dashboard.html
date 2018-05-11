@@ -72,13 +72,15 @@
                                 <i class="text-danger fa fa-thumbs-down"></i>
                                 {% endif %}
                                 </td>
-                                <td>{%  for key, value in contribution.items %}
-                                    {%  if key == contribution_cache_prefix|addstr:pub.id %}
-                                    {% with value|first as record %}
-                                        {{ record.creator}} ({{ record.contribution }}%)
+                                <td>
+                                    {% with contribution_dct|get_item:pub.id as data %}
+                                        {% if data %}
+                                            {% with data|first as record %}
+                                                {{ record.creator}} ({{ record.contribution }}%)
+                                            {% endwith %}
+                                        {% endif %}
                                     {% endwith %}
-                                    {% endif %}
-                                    {% endfor %}</td>
+                                </td>
                                 <td> <a href="{% url 'citation:publication_detail' pub.pk %}">{{ pub.title }} </a></td>
                                 <td>{{ pub.date_modified }}</td>
                             </tr>

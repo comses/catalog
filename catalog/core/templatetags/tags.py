@@ -1,4 +1,5 @@
 from django import template
+from citation.graphviz.globals import CacheNames
 import re
 
 register = template.Library()
@@ -15,7 +16,7 @@ def active_re(request, pattern):
 
 
 @register.filter
-def addstr(arg1, arg2):
-    """concatenate arg1 & arg2"""
-    return str(arg1) + str(arg2)
+def get_item(dictionary, key):
+    """Dictionary lookup"""
+    return dictionary.get(CacheNames.CONTRIBUTION_DATA.value + str(key))
 
