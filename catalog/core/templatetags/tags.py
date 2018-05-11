@@ -14,9 +14,3 @@ def active(request, pattern):
 def active_re(request, pattern):
     return 'active' if re.search(pattern, request.path) else ''
 
-
-@register.filter
-def get_item(dictionary, key):
-    """Dictionary lookup"""
-    return dictionary.get(CacheNames.CONTRIBUTION_DATA.value + str(key))
-

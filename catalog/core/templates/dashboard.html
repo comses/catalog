@@ -73,7 +73,7 @@
                                 {% endif %}
                                 </td>
                                 <td>
-                                    {% with contribution_dct|get_item:pub.id as data %}
+                                    {% with pub.contributor_data as data %}
                                         {% if data %}
                                             {% with data|first as record %}
                                                 {{ record.creator}} ({{ record.contribution }}%)
