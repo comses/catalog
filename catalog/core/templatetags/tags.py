@@ -1,4 +1,5 @@
 from django import template
+from citation.graphviz.globals import CacheNames
 import re
 
 register = template.Library()
@@ -12,3 +13,4 @@ def active(request, pattern):
 @register.filter(is_safe=True)
 def active_re(request, pattern):
     return 'active' if re.search(pattern, request.path) else ''
+

@@ -190,9 +190,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         recently_updated = recently_updated_publications.filter(
             date_modified__gte=last_week_datetime, is_primary=True).order_by('-date_modified')[:number_of_publications]
         context['recently_updated'] = recently_updated
-        list = [CacheNames.CONTRIBUTION_DATA.value + str(pub.id) for pub in recently_updated]
-        cache_dct = cache.get_many(list)
-        context['contribution'] = cache_dct
         return context
 
 
@@ -686,6 +683,7 @@ class NetworkRelation(LoginRequiredMixin, generics.GenericAPIView):
 
         return Response({"data": json.dumps(network), "group": json.dumps(filter_group)},
                         template_name="visualization/network-graph.html")
+
 
 
 

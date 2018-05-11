@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-
+{% load tags %}
 {% block content %}
     <div class="row">
         <div class="col-md-6">
@@ -72,13 +72,15 @@
                                 <i class="text-danger fa fa-thumbs-down"></i>
                                 {% endif %}
                                 </td>
-                                <td>{%  for key, value in contribution.items %}
-                                    {%  if key == pub.id %}
-                                    {% with value|first as record %}
-                                        {{ record.creator}} ({{ record.contribution }}%)
+                                <td>
+                                    {% with pub.contributor_data as data %}
+                                        {% if data %}
+                                            {% with data|first as record %}
+                                                {{ record.creator}} ({{ record.contribution }}%)
+                                            {% endwith %}
+                                        {% endif %}
                                     {% endwith %}
-                                    {% endif %}
-                                    {% endfor %}</td>
+                                </td>
                                 <td> <a href="{% url 'citation:publication_detail' pub.pk %}">{{ pub.title }} </a></td>
                                 <td>{{ pub.date_modified }}</td>
                             </tr>
@@ -122,3 +124,4 @@
 </div>
 
 {% endblock content %}
+
