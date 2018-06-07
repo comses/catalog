@@ -62,15 +62,16 @@
                         <tbody>
                         {% for pub in recently_updated %}
                             <tr>
-                                {% if pub.flagged %}
-                                <i class='text-danger fa fa-flag'></i>
-                                {% endif %}
-                                <td><span class='label label-as-badge label-primary'>{{ pub.status }}</span>
-                                {%  if pub.status == "REVIEWED" and pub.is_archived %}
-                                <i class="text-success fa fa-thumbs-o-up"></i>
-                                {% elif pub.status == "REVIEWED" %}
-                                <i class="text-danger fa fa-thumbs-down"></i>
-                                {% endif %}
+                                <td>
+                                    {% if pub.flagged %}
+                                        <i class='text-danger fa fa-flag'></i>
+                                    {% endif %}
+                                    <span class='label label-as-badge label-primary'>{{ pub.status }}</span>
+                                    {%  if pub.status == "REVIEWED" and pub.is_archived %}
+                                        <i class="text-success fa fa-thumbs-o-up"></i>
+                                    {% elif pub.status == "REVIEWED" %}
+                                        <i class="text-danger fa fa-thumbs-down"></i>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% with pub.contributor_data as data %}
