@@ -1,14 +1,14 @@
-import csv
 import json
 import logging
 import time
 from collections import Counter
 from datetime import timedelta, datetime
-from dateutil.parser import parse as datetime_parse
 from hashlib import sha1
 from json import dumps
 
 import markdown
+from citation.export_data import PublicationCSVExporter
+from dateutil.parser import parse as datetime_parse
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -17,8 +17,7 @@ from django.core.cache import cache
 from django.db import models
 from django.db.models import Count, Q, F, Value as V, Max
 from django.db.models.functions import Concat
-from django.http import StreamingHttpResponse
-from django.http import JsonResponse, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, resolve_url
 from django.urls import reverse
 from django.utils import timezone
@@ -33,43 +32,24 @@ from haystack.query import SearchQuerySet
 from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 
-from citation.export_data import create_csv, generate_csv_header, generate_csv_row
+from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
+                                    generate_aggregated_distribution_data, generate_network_graph)
+from citation.graphviz.globals import RelationClassifier, CacheNames
 from citation.models import (Publication, InvitationEmail, Platform, Sponsor, ModelDocumentation, Tag, Container,
                              URLStatusLog)
+from citation.ping_urls import categorize_url
 from citation.serializers import (InvitationSerializer, CatalogPagination, PublicationListSerializer,
                                   UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer,
                                   PublicationAggregationSerializer, AuthorAggregrationSerializer)
-from citation.graphviz.globals import RelationClassifier, CacheNames
-from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
-                                    generate_aggregated_distribution_data, generate_network_graph)
-from citation.ping_urls import categorize_url
-
 from .forms import CatalogAuthenticationForm, CatalogSearchForm
 
 logger = logging.getLogger(__name__)
 
 
-class Echo:
-    """An object that implements just the write method of the file-like
-    interface.
-    """
-    def write(self, value):
-        """Write the value by returning it, instead of storing in a buffer."""
-        return value
-
-
 def export_data(self):
     """A view that streams a large CSV file."""
-    pseudo_buffer = Echo()
-    writer = csv.writer(pseudo_buffer)
-    publications = Publication.api.primary(prefetch=True)
-
-    rows = ([generate_csv_header()])
-    for pub in publications:
-        rows.append(generate_csv_row(pub))
-
-    response = StreamingHttpResponse((writer.writerow(row) for row in rows),
-                                     content_type="text/csv")
+    publication_data = PublicationCSVExporter()
+    response = StreamingHttpResponse(publication_data.stream(), content_type="text/csv")
     response['Content-Disposition'] = 'attachment; filename="all_valid_data.csv"'
     return response
 
