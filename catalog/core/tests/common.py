@@ -5,6 +5,8 @@ from django.utils.http import urlencode
 
 import logging
 
+from citation.models import Publication, Container, ModelDocumentation
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,6 +29,12 @@ class BaseTest(TestCase):
         if password is None:
             password = self.default_password
         return User.objects.create_user(username=username, email=email, password=password, **kwargs)
+
+    def create_container(self, name, **kwargs):
+        return Container(name=name, **kwargs)
+
+    def create_publication(self, title, added_by, container, **kwargs):
+        return Publication(title=title, added_by=added_by, container=container, **kwargs)
 
     def login(self, username=None, password=None):
         if username is None:
