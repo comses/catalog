@@ -21,3 +21,8 @@ ipython
 invoke
 python-coveralls
 django_redis
+
+numpy
+bokeh
+django-pandas
+pandas
