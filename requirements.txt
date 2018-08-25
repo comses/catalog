@@ -23,6 +23,15 @@ python-coveralls
 django_redis
 
 numpy
-bokeh
 django-pandas
 pandas
+
+# bokeh dependencies
+bokeh
+
+# dash dependencies
+dash==0.24.1
+dash-renderer==0.13.0
+dash-html-components==0.11.0
+dash-core-components==0.27.1
+plotly

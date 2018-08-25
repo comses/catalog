@@ -5,6 +5,7 @@ from bokeh.plotting import figure
 from django.db.models import Count
 from django.db.models.functions import ExtractYear
 from django_pandas.io import read_frame
+from haystack.query import SearchQuerySet
 
 from citation.models import Publication
 
