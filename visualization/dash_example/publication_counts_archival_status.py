@@ -4,94 +4,116 @@ from typing import List
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
-from citation.models import Author, Sponsor
 from dash.dependencies import Output, Input
 
 import data_wrangling as dw
-from common import app, data_cache
+from data_wrangling import data_cache
+from citation.models import Author, Sponsor, Platform, Container
+from common import app
 
 logger = logging.getLogger(__name__)
 
-VALUES_SELECTED_ID = 'archival-status-values-selected'
-MODEL_SELECTED_ID = 'archival-status-model-selected'
+PARENT_INSTANCE_DROPDOWN_ID = 'archival-status-model-options-parent'
+INSTANCE_DROPDOWN_ID = 'archival-status-model-options'
+MODEL_DROPDOWN_ID = 'archival-status-model-selected'
 
 
 def author_dropdown():
-    qs = data_cache.authors.objs
-    authors = [{'label': a.name, 'value': a.id} for a in qs]
-    return dcc.Dropdown(id=VALUES_SELECTED_ID,
+    authors = data_cache.authors.options
+    return dcc.Dropdown(id=INSTANCE_DROPDOWN_ID,
                         options=authors,
                         multi=True,
                         placeholder='Select authors')
 
 
+def container_dropdown():
+    containers = data_cache.containers.options
+    return dcc.Dropdown(id=INSTANCE_DROPDOWN_ID,
+                        options=containers,
+                        multi=True,
+                        placeholder='Select journals, books and other media')
+
+
+def platform_dropdown():
+    platform_options = data_cache.platforms.options
+    return dcc.Dropdown(id=INSTANCE_DROPDOWN_ID,
+                        options=platform_options,
+                        multi=True,
+                        placeholder='Select platforms')
+
+
 def sponsor_dropdown():
     qs = data_cache.sponsors.objs
     sponsor_options = [{'label': s.name, 'value': s.id} for s in qs]
-    return dcc.Dropdown(id=VALUES_SELECTED_ID,
+    return dcc.Dropdown(id=INSTANCE_DROPDOWN_ID,
                         options=sponsor_options,
                         multi=True,
                         placeholder='Select sponsors')
 
 
 def no_dropdown():
-    return dcc.Dropdown(id=VALUES_SELECTED_ID,
+    return dcc.Dropdown(id=INSTANCE_DROPDOWN_ID,
                         disabled=True)
 
 
-DISPATCH_MODEL_OPTIONS = {
-    Author._meta.model_name: author_dropdown,
-    Sponsor._meta.model_name: sponsor_dropdown,
-    '': no_dropdown
-}
+class ModelDispatcher:
+    def __init__(self):
+        self.view_dispatcher = {}
+        self.options = []
+
+    def add_lookup(self, label, value, view):
+        self.view_dispatcher[value] = view
+        self.options.append(dict(label=label, value=value))
+
+    def dispatch(self, value):
+        return self.view_dispatcher[value]()
+
+
+model_dispatcher = ModelDispatcher()
+model_dispatcher.add_lookup(label='None', value='', view=no_dropdown)
+model_dispatcher.add_lookup(label='Authors', value=Author._meta.model_name, view=author_dropdown)
+model_dispatcher.add_lookup(label='Journal, Books and Other Media', value=Container._meta.model_name, view=container_dropdown)
+model_dispatcher.add_lookup(label='Platforms', value=Platform._meta.model_name, view=platform_dropdown)
+model_dispatcher.add_lookup(label='Sponsors', value=Sponsor._meta.model_name, view=sponsor_dropdown)
 
 
 def variable_dropdown():
-    return dcc.Dropdown(id=MODEL_SELECTED_ID,
-                        options=[{k: k for k in DISPATCH_MODEL_OPTIONS.keys()}],
+    return dcc.Dropdown(id=MODEL_DROPDOWN_ID,
+                        options=model_dispatcher.options,
                         placeholder='Select a model to filter by',
-                        value='None')
+                        value='')
 
 
 def model_options_dropdown(model_name):
-    return DISPATCH_MODEL_OPTIONS[model_name]()
+    return [
+        model_dispatcher.dispatch(model_name)
+    ]
 
 
-def figure(pks: List[int]):
-    logger.error('figure: %s', pks)
+def figure(model_name, pks: List[int]):
     df = data_cache.publication_df
     pq = dw.PublicationQueries(df)
-    # \
-    #     .filter_by_date_published(start_year=year_published_range[0], end_year=year_published_range[1])
     data = []
     if pks:
         for pk in pks:
-            df_author = pq.filter_by_author_pk(pk).to_is_archived()
-            print(df_author)
-            bar = go.Bar(
-                x=df_author.year_published.index,
-                y=df_author.year_published,
-                # marker=dict(size=(df.is_archived / df.year_published) * 100),
-                # mode='lines+markers',
-                name=data_cache.authors.publication_lookup[pk]['obj'].name,
+            df_counts = pq.filter_by_pk(model_name=model_name, pk=pk).to_is_archived()
+            print(df_counts)
+            scatter = go.Scatter(
+                x=df_counts.year_published.index,
+                y=df_counts.year_published,
+                mode='lines',
+                name=data_cache.publication_lookup(model_name, pk)['obj'].name,
                 hoverinfo='name',
-                # line=dict(
-                #     shape='linear'
-                # )
             )
-            data.append(bar)
+            data.append(scatter)
     else:
         df = pq.to_is_archived()
-        data.append(go.Bar(
+        data.append(go.Scatter(
             x=df.year_published.index,
             y=df.year_published,
-            # marker=dict(size=(df.is_archived / df.year_published) * 100),
-            # mode='lines+markers',
+            mode='lines',
             name='Count',
             hoverinfo='name',
-            # line=dict(
-            #     shape='linear'
-            # )
         ))
     return dict(
         data=data,
@@ -108,9 +130,18 @@ def figure(pks: List[int]):
 
 def publication_archived_status(values: list):
     return html.Div([
-        author_dropdown(),
-        dcc.Graph(id='publication-counts-by-year', figure=figure(values))])
+        dcc.Markdown('''Select a variable split publications by (or leave it None)
+        
+If a variable is selected then select variable instances to compare (authors with authors etc)'''),
+        variable_dropdown(),
+        html.Div(id=PARENT_INSTANCE_DROPDOWN_ID, children=model_options_dropdown('')),
+        dcc.Graph(id='publication-counts-by-year', figure=figure('', values))])
 
 
 app.callback(Output('publication-counts-by-year', 'figure'),
-             [Input(VALUES_SELECTED_ID, 'value')])(figure)
+             [Input(MODEL_DROPDOWN_ID, 'value'),
+              Input(INSTANCE_DROPDOWN_ID, 'value')])(figure)
+app.callback(Output(PARENT_INSTANCE_DROPDOWN_ID, 'children'),
+             [Input(MODEL_DROPDOWN_ID, 'value')])(model_options_dropdown)
+app.callback(Output(INSTANCE_DROPDOWN_ID, 'value'),
+             [Input(MODEL_DROPDOWN_ID, 'value')])(lambda v: [])

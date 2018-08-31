@@ -1,7 +1,13 @@
+import enum
+
 import numpy as np
 import pandas as pd
 
 from citation.models import Publication, Tag, Sponsor, Platform, Author, Container
+
+
+class ModelNameEnum(enum.Enum):
+    Author = 'author'
 
 
 def container_as_dict(c: Container):
@@ -14,15 +20,18 @@ def author_as_dict(a: Author):
 
 def publication_as_dict(p: Publication):
     return {'id': p.id,
-            'author_ids': [a.id for a in p.creators.all()],
-            'container': container_as_dict(p.container),
+            'author_pks': [a.id for a in p.creators.all()],
+            'citation_pks': [c.pk for c in p.citations.all()],
+            'container_pk': p.container.id,
             'date_published': p.date_published,
             'year_published': p.date_published.year if p.date_published is not None else None,
             'flagged': p.flagged,
             'is_archived': p.is_archived,
-            'model_documentation': [m.name for m in p.model_documentation.all()],
+            'model_documentation': [m.id for m in p.model_documentation.all()],
+            'platform_pks': [m.id for m in p.platforms.all()],
+            'sponsor_pks': [s.id for s in p.sponsors.all()],
             'status': p.status,
-            'tags': [t.name for t in p.tags.all()],
+            'tags': [t.id for t in p.tags.all()],
             'title': p.title}
 
 
@@ -51,7 +60,7 @@ class AbstractCacheModel:
             bulk = self.get_bulk_queryset()
             self._pk_lookup = {}
             for k in bulk.keys():
-                self._pk_lookup[k] = {'obj': bulk[k], 'ids': list(getattr(bulk[k], self.related_name).values_list('id', flat=True))}
+                self._pk_lookup[k] = {'obj': bulk[k], 'pks': list(getattr(bulk[k], self.related_name).values_list('id', flat=True))}
         return self._pk_lookup
 
     @property
@@ -70,9 +79,15 @@ class AuthorCache(AbstractCacheModel):
             .order_by('family_name', 'given_name')
 
 
+class ContainerCache(AbstractCacheModel):
+    prefetches = ['publications']
+
+    def get_queryset(self):
+        return Container.objects.filter(id__in=Publication.api.primary().values_list('container_id', flat=True)) \
+            .exclude(name='').order_by('name')
+
+
 class PlatformCache(AbstractCacheModel):
-    pk_field_name = 'name'
-    option_value_field_name = 'name'
     prefetches = ['publication_platforms', 'publication_platforms__platform']
 
     def get_queryset(self):
@@ -81,8 +96,6 @@ class PlatformCache(AbstractCacheModel):
 
 
 class SponsorCache(AbstractCacheModel):
-    pk_field_name = 'name'
-    option_value_field_name = 'name'
     prefetches = ['publication_sponsors', 'publication_sponsors__sponsor']
 
     def get_queryset(self):
@@ -91,8 +104,6 @@ class SponsorCache(AbstractCacheModel):
 
 
 class TagCache(AbstractCacheModel):
-    pk_field_name = 'name'
-    option_value_field_name = 'name'
     prefetches = ['publication_tags', 'publication_tags__tag']
     related_name = 'publication_set'
 
@@ -101,8 +112,11 @@ class TagCache(AbstractCacheModel):
 
 
 class DataCache:
+    model_name_cache_lookup = {m._meta.verbose_name: str(m._meta.verbose_name_plural) for m in [Author, Container, Platform, Sponsor, Tag]}
+
     def __init__(self):
         self.authors = AuthorCache()
+        self.containers = ContainerCache()
         self.platforms = PlatformCache()
         self.sponsors = SponsorCache()
         self.tags = TagCache()
@@ -111,9 +125,14 @@ class DataCache:
     def _get_publication_df():
         df = pd.DataFrame.from_records([publication_as_dict(p) for p in
                                         Publication.api.prefetch_related(
+                                            'citations',
                                             'publication_authors', 'publication_authors__author',
-                                            'model_documentation', 'publication_tags', 'publication_tags__tag')
+                                            'model_documentation',
+                                            'publication_platforms', 'publication_platforms__platform',
+                                            'publication_sponsors__sponsor',
+                                            'publication_tags', 'publication_tags__tag')
                                        .select_related('container').primary()], index='id')
+        df.year_published = df.year_published.astype('category')
         return df
 
     @property
@@ -121,6 +140,13 @@ class DataCache:
         if not hasattr(self, '_publication_df'):
             self._publication_df = self._get_publication_df()
         return self._publication_df
+
+    def publication_lookup(self, model_name, pk):
+        cache_key = self.model_name_cache_lookup[model_name]
+        return getattr(self, cache_key).publication_lookup[pk]
+
+
+data_cache = DataCache()
 
 
 class PublicationQueries:
@@ -134,10 +160,16 @@ class PublicationQueries:
         return PublicationQueries(self.df[(start_year < self.df.year_published) & (self.df.year_published <= end_year)])
 
     def filter_by_author_pk(self, pk):
-        return PublicationQueries(self.df[self.df.author_ids.apply(lambda pks: pk in pks)])
+        return PublicationQueries(self.df[self.df.author_pks.apply(lambda pks: pk in pks)])
+
+    def filter_by_container_pk(self, pk):
+        return PublicationQueries(self.df[self.df.container_pk == pk])
 
     def filter_by_platform_pk(self, pk):
         return PublicationQueries(self.df[self.df.platform_pks.apply(lambda pks: pk in pks)])
+
+    def filter_by_sponsor_pk(self, pk):
+        return PublicationQueries(self.df[self.df.sponsor_pks.apply(lambda pks: pk in pks)])
 
     def filter_by_tag(self, tag: str):
         return PublicationQueries(self.df.query('@tag in tags'))
@@ -145,8 +177,12 @@ class PublicationQueries:
     def filter_by_pk(self, model_name, pk):
         if model_name == Author._meta.verbose_name:
             return self.filter_by_author_pk(pk)
+        elif model_name == Container._meta.model_name:
+            return self.filter_by_container_pk(pk)
         elif model_name == Platform._meta.verbose_name:
-            return
+            return self.filter_by_platform_pk(pk)
+        elif model_name == Sponsor._meta.verbose_name:
+            return self.filter_by_sponsor_pk(pk)
 
     def to_is_archived(self):
         df = self.df.groupby('year_published')[['year_published', 'is_archived']].aggregate(
