@@ -1,11 +1,6 @@
-import logging
-
 from bokeh.models import ColumnDataSource
 from bokeh.plotting import figure
-from django.db.models import Count
-from django.db.models.functions import ExtractYear
-from django_pandas.io import read_frame
-from haystack.query import SearchQuerySet
+from data_wrangling import data_cache
 
 from citation.models import Publication
 
@@ -15,20 +10,13 @@ class PublicationCountsByYear:
     x_axis = 'Year'
     y_axis = 'Publication Added Count'
 
-    def get_filters(self):
-        return Publication.api.primary()
-
-    def get_queryset(self):
-        return self.get_filters().annotate(year_added=ExtractYear('date_added')) \
-            .values('year_added').annotate(n=Count('*')).order_by('year_added')
-
     def get_dataframe(self):
-        return read_frame(self.get_queryset())
+        return data_cache.publication_df
 
     def render(self):
         df = self.get_dataframe()
         ds = ColumnDataSource(df)
-        min_year, max_year = df['year_added'][0], df['year_added'][df.index[-1]]
+        min_year, max_year = df['year_published'].min(), df['year_published'].max()
         min_count, max_count = df['n'].min(), df['n'].max()
         p = figure(x_range=(min_year, max_year), y_range=(0, max_count),
                    toolbar_location=None, title=self.title)

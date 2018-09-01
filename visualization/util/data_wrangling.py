@@ -2,6 +2,9 @@ import enum
 
 import numpy as np
 import pandas as pd
+from django.db.models import Prefetch
+from haystack.inputs import AutoQuery
+from haystack.query import RelatedSearchQuerySet, SearchQuerySet
 
 from citation.models import Publication, Tag, Sponsor, Platform, Author, Container
 
@@ -124,14 +127,14 @@ class DataCache:
     @staticmethod
     def _get_publication_df():
         df = pd.DataFrame.from_records([publication_as_dict(p) for p in
-                                        Publication.api.prefetch_related(
-                                            'citations',
-                                            'publication_authors', 'publication_authors__author',
+                                        Publication.api.primary().prefetch_related(
+                                            Prefetch('citations', Publication.api.primary()),
+                                            'creators',
                                             'model_documentation',
-                                            'publication_platforms', 'publication_platforms__platform',
-                                            'publication_sponsors__sponsor',
-                                            'publication_tags', 'publication_tags__tag')
-                                       .select_related('container').primary()], index='id')
+                                            'platforms',
+                                            'sponsors',
+                                            'tags')
+                                       .select_related('container')], index='id')
         df.year_published = df.year_published.astype('category')
         return df
 
@@ -155,6 +158,10 @@ class PublicationQueries:
 
     # def build_indices(self):
     #     for author_ids in self.df.author_ids:
+
+    def filter_by_fulltext_search(self, text):
+        matching_publication_pks = [int(pk) for pk in SearchQuerySet().models(Publication).filter(content=AutoQuery(text)).values_list('pk', flat=True)]
+        return PublicationQueries(self.df.filter(items=matching_publication_pks, axis=0))
 
     def filter_by_date_published(self, start_year: int, end_year: int):
         return PublicationQueries(self.df[(start_year < self.df.year_published) & (self.df.year_published <= end_year)])

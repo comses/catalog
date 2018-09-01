@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import os
 import sys
@@ -10,6 +11,7 @@ from dash.dependencies import Output, Input
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "catalog.settings")
 sys.path.insert(2, '/code')
+sys.path.insert(3, '/code/visualization/util')
 django.setup()
 
 from common import app

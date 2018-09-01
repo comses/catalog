@@ -35,4 +35,5 @@ dash==0.24.1
 dash-renderer==0.13.0
 dash-html-components==0.11.0
 dash-core-components==0.22.0 # pinned until https://github.com/plotly/dash-core-components/issues/260 is fixed
+networkx
 plotly
