@@ -3,10 +3,12 @@ import enum
 import numpy as np
 import pandas as pd
 from django.db.models import Prefetch
+from django_pandas.io import read_frame
 from haystack.inputs import AutoQuery
-from haystack.query import RelatedSearchQuerySet, SearchQuerySet
+from haystack.query import SearchQuerySet
 
-from citation.models import Publication, Tag, Sponsor, Platform, Author, Container
+from citation.models import Publication, Tag, Sponsor, Platform, Author, Container, PublicationPlatforms, \
+    PublicationAuthors
 
 
 class ModelNameEnum(enum.Enum):
@@ -23,18 +25,12 @@ def author_as_dict(a: Author):
 
 def publication_as_dict(p: Publication):
     return {'id': p.id,
-            'author_pks': [a.id for a in p.creators.all()],
-            'citation_pks': [c.pk for c in p.citations.all()],
             'container_pk': p.container.id,
             'date_published': p.date_published,
             'year_published': p.date_published.year if p.date_published is not None else None,
             'flagged': p.flagged,
             'is_archived': p.is_archived,
-            'model_documentation': [m.id for m in p.model_documentation.all()],
-            'platform_pks': [m.id for m in p.platforms.all()],
-            'sponsor_pks': [s.id for s in p.sponsors.all()],
             'status': p.status,
-            'tags': [t.id for t in p.tags.all()],
             'title': p.title}
 
 
@@ -63,7 +59,8 @@ class AbstractCacheModel:
             bulk = self.get_bulk_queryset()
             self._pk_lookup = {}
             for k in bulk.keys():
-                self._pk_lookup[k] = {'obj': bulk[k], 'pks': list(getattr(bulk[k], self.related_name).values_list('id', flat=True))}
+                self._pk_lookup[k] = {'obj': bulk[k],
+                                      'pks': list(getattr(bulk[k], self.related_name).values_list('id', flat=True))}
         return self._pk_lookup
 
     @property
@@ -115,7 +112,8 @@ class TagCache(AbstractCacheModel):
 
 
 class DataCache:
-    model_name_cache_lookup = {m._meta.verbose_name: str(m._meta.verbose_name_plural) for m in [Author, Container, Platform, Sponsor, Tag]}
+    model_name_cache_lookup = {m._meta.verbose_name: str(m._meta.verbose_name_plural) for m in
+                               [Author, Container, Platform, Sponsor, Tag]}
 
     def __init__(self):
         self.authors = AuthorCache()
@@ -160,7 +158,9 @@ class PublicationQueries:
     #     for author_ids in self.df.author_ids:
 
     def filter_by_fulltext_search(self, text):
-        matching_publication_pks = [int(pk) for pk in SearchQuerySet().models(Publication).filter(content=AutoQuery(text)).values_list('pk', flat=True)]
+        matching_publication_pks = [int(pk) for pk in
+                                    SearchQuerySet().models(Publication).filter(content=AutoQuery(text)).values_list(
+                                        'pk', flat=True)]
         return PublicationQueries(self.df.filter(items=matching_publication_pks, axis=0))
 
     def filter_by_date_published(self, start_year: int, end_year: int):
@@ -196,3 +196,5 @@ class PublicationQueries:
             dict(is_archived=np.sum, year_published='count'))
         df.set_index('year_published')
         return df
+
+
