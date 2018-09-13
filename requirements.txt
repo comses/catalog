@@ -24,6 +24,7 @@ python-coveralls
 django_redis
 
 numpy
+scipy
 django-pandas
 pandas
 
