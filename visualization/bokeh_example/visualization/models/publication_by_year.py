@@ -4,11 +4,11 @@ import logging
 import pandas as pd
 from bokeh.colors import RGB
 from bokeh.layouts import column, widgetbox
-from bokeh.models import Select
+from bokeh.models import Select, TableColumn, ColumnDataSource, DataTable
 from bokeh.plotting import figure
 from django_pandas.io import read_frame
 
-from citation.models import Publication, PublicationPlatforms, PublicationAuthors, PublicationSponsors
+from citation.models import Publication, PublicationPlatforms, PublicationAuthors, PublicationSponsors, Sponsor
 from widgets.vue_multiselect import VueMultiselectWidget
 
 logger = logging.getLogger(__name__)
@@ -87,7 +87,8 @@ class PublicationCountsByYear:
         self.model_name_widget.on_change('value', lambda attr, old, new: self.clear_options())
         self.layout = column(widgetbox(self.model_name_widget,
                                        self.selected_options_widget, width=800),
-                             self.create_plot())
+                             self.create_plot(),
+                             self.create_code_availibility_table())
 
     def create_plot(self):
         df = self.create_dataset(modelName=self.model_name_widget.value,
@@ -105,7 +106,7 @@ class PublicationCountsByYear:
             logger.info('name: %s', name)
             logger.info(dfg)
             p.line(x=dfg.year_published, y=dfg['count'], legend=name, line_width=2, color=color)
-            p.line(x=dfg.year_published, y=dfg.is_archived, legend='{} (Archived)'.format(name), line_width=2, color=color, line_dash='dashed')
+            p.line(x=dfg.year_published, y=dfg.is_archived, legend='{} (Code Available)'.format(name), line_width=2, color=color, line_dash='dashed')
         return p
 
     def clear_options(self):
@@ -114,6 +115,20 @@ class PublicationCountsByYear:
         self.selected_options_widget.options = []
         self.selected_options_widget.modelName = modelName
         self.render_plot()
+
+    def create_code_availibility_table(self):
+        columns = [
+            TableColumn(field='name', title='Sponsor'),
+            TableColumn(field='count', title='# of times sponsored'),
+            TableColumn(field='code_availability_count', title='# of times code available')
+        ]
+        df = publication_df.join(publication_sponsor_df, how='inner')
+        df = df.groupby('sponsor', as_index=False).agg(dict(title='count', is_archived='sum'))
+        df.rename(index=str, columns={'is_archived': 'code_availability_count', 'title': 'count'}, inplace=True)
+        df = df.loc[df['count'].nlargest(10).index]
+        sponsor_map = Sponsor.objects.filter(id__in=df.sponsor).in_bulk()
+        df['name'] = df['sponsor'].apply(lambda pk: sponsor_map[pk].name)
+        return DataTable(source=ColumnDataSource(df), columns=columns, width=800)
 
     def render_plot(self):
         self.layout.children[1] = self.create_plot()
