@@ -5,7 +5,7 @@ django-autocomplete-light==3.2.10
 django-bootstrap3==9.1.0
 django-contact-form==1.4.2
 django-extensions==2.0.0
-django-haystack==2.7.0
+django-haystack==2.8.1
 django-model-utils==3.1.1
 djangorestframework==3.7.7
 django-cas-client==1.4.0
@@ -21,19 +21,3 @@ ipython
 invoke
 python-coveralls
 django_redis
-
-numpy
-scipy
-django-pandas
-pandas
-
-# bokeh dependencies
-bokeh
-
-# dash dependencies
-dash==0.24.1
-dash-renderer==0.13.0
-dash-html-components==0.11.0
-dash-core-components==0.22.0 # pinned until https://github.com/plotly/dash-core-components/issues/260 is fixed
-networkx
-plotly

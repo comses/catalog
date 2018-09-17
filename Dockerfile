@@ -14,6 +14,7 @@ RUN sed -i "s|archive.ubuntu.com|${UBUNTU_MIRROR}|" /etc/apt/sources.list \
     ssmtp \
     wget \
     && wget -q -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+    && curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get install -y nodejs \
     && apt-get update && apt-get install -q -y postgresql-9.6 postgresql-client-9.6 libpq-dev autopostgresqlbackup \
     && update-alternatives --install /usr/bin/python python /usr/bin/python3 1000 \
     && mkdir -p /etc/service/django \

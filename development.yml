@@ -50,6 +50,7 @@ services:
       SOLR_CORE_NAME: catalog_core
     ports:
       - "127.0.0.1:8000:8000"
+      - "127.0.0.1:5006:5006"
     links:
       - db
       - solr
