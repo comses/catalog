@@ -7,7 +7,6 @@ from hashlib import sha1
 from json import dumps
 
 import markdown
-from citation.export_data import PublicationCSVExporter
 from dateutil.parser import parse as datetime_parse
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
@@ -32,6 +31,7 @@ from haystack.query import SearchQuerySet
 from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 
+from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
                                     generate_aggregated_distribution_data, generate_network_graph)
 from citation.graphviz.globals import RelationClassifier, CacheNames
@@ -75,10 +75,10 @@ def visualization_query_filter(request):
         filter_criteria.update(tags__name__in=query_param.getlist("tags"))
     if query_param.get("start_date"):
         dt_obj = datetime.strptime(query_param.get("start_date"), '%Y')
-        filter_criteria.update(date_published__gte=dt_obj.isoformat()+"Z")
+        filter_criteria.update(date_published__gte=dt_obj.isoformat() + "Z")
     if query_param.get("end_date"):
         dt_obj = datetime.strptime(query_param.get("end_date"), '%Y')
-        filter_criteria.update(date_published__lte=dt_obj.isoformat()+"Z")
+        filter_criteria.update(date_published__lte=dt_obj.isoformat() + "Z")
     request.session['filter_criteria'] = filter_criteria
     return filter_criteria
 
@@ -116,7 +116,7 @@ class LoginView(FormView):
         )
         url_is_safe = is_safe_url(
             url=redirect_to,
-            host=self.request.get_host(),
+            allowed_hosts=set(self.request.get_host()),
         )
         if not url_is_safe:
             return resolve_url(settings.LOGIN_REDIRECT_URL)
@@ -220,7 +220,7 @@ class ContactFormView(generics.GenericAPIView):
                 'message': '',
                 'email': ''}
         user = request.user
-        if user.is_authenticated():
+        if user.is_authenticated:
             data.update(name=user.get_full_name(), email=user.email)
         serializer = ContactFormSerializer(data)
         return Response({'json': dumps(serializer.data)}, template_name='contact_us.html')
@@ -380,7 +380,7 @@ class AggregatedJournalRelationList(LoginRequiredMixin, generics.GenericAPIView)
         sqs = SearchQuerySet()
         sqs = sqs.filter(**visualization_query_filter(request))
         pub_pk = queryset_gen(sqs)
-        pubs = Publication.api.aggregated_list(pk__in = pub_pk, identifier='container')
+        pubs = Publication.api.aggregated_list(pk__in=pub_pk, identifier='container')
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)
         serializer = PublicationAggregationSerializer(result_page, many=True)
@@ -420,7 +420,7 @@ class AggregatedPlatformRelationList(LoginRequiredMixin, generics.GenericAPIView
         sqs = SearchQuerySet()
         sqs = sqs.filter(**visualization_query_filter(request)).models(Publication)
         pub_pk = queryset_gen(sqs)
-        pubs = Publication.api.aggregated_list(pk__in = pub_pk, identifier='platforms')
+        pubs = Publication.api.aggregated_list(pk__in=pub_pk, identifier='platforms')
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)
         serializer = PublicationAggregationSerializer(result_page, many=True)
@@ -441,16 +441,16 @@ class AggregatedAuthorRelationList(LoginRequiredMixin, generics.GenericAPIView):
         sqs = sqs.filter(**visualization_query_filter(request)).models(Publication)
         pub_pk = queryset_gen(sqs)
         pubs = Publication.api.primary(pk__in=pub_pk). \
-            annotate(given_name=F('creators__given_name'), family_name=F('creators__family_name')).\
-            values('given_name','family_name').\
-            order_by('given_name', 'family_name').\
+            annotate(given_name=F('creators__given_name'), family_name=F('creators__family_name')). \
+            values('given_name', 'family_name'). \
+            order_by('given_name', 'family_name'). \
             annotate(published_count=Count('given_name'),
                      code_availability_count=models.Sum(models.Case(
-                                                      models.When(~Q(code_archive_url=''), then=1),
-                                                      default=0,
-                                                      output_field=models.IntegerField())),
-                     name=Concat('given_name', V(' '), 'family_name')).\
-            values('name', 'published_count', 'code_availability_count', 'given_name', 'family_name').\
+                         models.When(~Q(code_archive_url=''), then=1),
+                         default=0,
+                         output_field=models.IntegerField())),
+                     name=Concat('given_name', V(' '), 'family_name')). \
+            values('name', 'published_count', 'code_availability_count', 'given_name', 'family_name'). \
             order_by('-published_count')
 
         paginator = CatalogPagination()
@@ -462,8 +462,8 @@ class AggregatedAuthorRelationList(LoginRequiredMixin, generics.GenericAPIView):
 
 
 class ModelDocumentationPublicationRelation(LoginRequiredMixin, generics.GenericAPIView):
-
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
+
     def get(self, request):
         self.request.session['filter_criteria'] = {}
         total = Publication.api.primary(status='REVIEWED').count()
@@ -474,12 +474,14 @@ class ModelDocumentationPublicationRelation(LoginRequiredMixin, generics.Generic
                 values.append({
                     'name': names['name'],
                     'count': "{0:.2f}".format(
-                        Publication.api.primary(status='REVIEWED', model_documentation__name=names['name']).count() * 100 / total
+                        Publication.api.primary(status='REVIEWED',
+                                                model_documentation__name=names['name']).count() * 100 / total
                     ),
-                    'url': reverse('core:pub-year-distribution',args=['Modeldoc', names['name']])
+                    'url': reverse('core:pub-year-distribution', args=['Modeldoc', names['name']])
                 })
             dct[categories['category']] = values
-        return Response({'json': dumps(dct)}, template_name="visualization/model_documentation_publication_relation.html")
+        return Response({'json': dumps(dct)},
+                        template_name="visualization/model_documentation_publication_relation.html")
 
 
 class AggregatedCodeArchivedURLView(LoginRequiredMixin, generics.GenericAPIView):
@@ -488,7 +490,7 @@ class AggregatedCodeArchivedURLView(LoginRequiredMixin, generics.GenericAPIView)
     def get(self, request):
 
         url_logs = URLStatusLog.objects.all().values('publication').order_by('publication', '-last_modified'). \
-            annotate(last_modified=Max('last_modified')).\
+            annotate(last_modified=Max('last_modified')). \
             values_list('publication', 'type', 'publication__date_published_text').order_by('publication')
         all_records = Counter()
         years = []
@@ -556,7 +558,7 @@ class AggregatedStagedVisualizationView(LoginRequiredMixin, generics.GenericAPIV
         elif relation == RelationClassifier.MODELDOCUMENDTATION.value:
             filter_criteria.update(model_documentation__name=name)
         elif relation == RelationClassifier.AUTHOR.value and name:
-            filter_criteria.update(authors__name__exact=name.replace("/"," "))
+            filter_criteria.update(authors__name__exact=name.replace("/", " "))
         else:
             name = "Publication"
             relation = RelationClassifier.GENERAL.value
@@ -565,8 +567,9 @@ class AggregatedStagedVisualizationView(LoginRequiredMixin, generics.GenericAPIV
             platform = cache.get(CacheNames.CODE_ARCHIVED_PLATFORM.value)
             if 'date_published__gte' not in filter_criteria and 'date_published__lte' not in filter_criteria and \
                     distribution_data and platform:
-                return Response({"aggregated_data": json.dumps(distribution_data), "code_platform": json.dumps([platform])},
-                                template_name="visualization/pubvsyear.html")
+                return Response(
+                    {"aggregated_data": json.dumps(distribution_data), "code_platform": json.dumps([platform])},
+                    template_name="visualization/pubvsyear.html")
         distribution_data = generate_aggregated_distribution_data(filter_criteria, relation, name)
         platform = generate_aggregated_code_archived_platform_data(filter_criteria)
         return Response({"aggregated_data": json.dumps(distribution_data), "code_platform": json.dumps([platform])},
@@ -583,7 +586,8 @@ class PublicationListDetail(LoginRequiredMixin, generics.GenericAPIView):
     def get(self, request, relation=None, name=None, year=None):
 
         filter_criteria = request.session.get("filter_criteria", {})
-        filter_criteria.update(date_published__gte=year+"-01-01T00:00:00Z", date_published__lte=year+"-12-31T00:00:00Z" )
+        filter_criteria.update(date_published__gte=year + "-01-01T00:00:00Z",
+                               date_published__lte=year + "-12-31T00:00:00Z")
         if relation == RelationClassifier.JOURNAL.value:
             filter_criteria.update(container__name=name)
         elif relation == RelationClassifier.SPONSOR.value:
@@ -593,7 +597,7 @@ class PublicationListDetail(LoginRequiredMixin, generics.GenericAPIView):
         elif relation == RelationClassifier.MODELDOCUMENDTATION.value:
             filter_criteria.update(model_documentation__name=name)
         elif relation == RelationClassifier.AUTHOR.value:
-            filter_criteria.update(authors__name__exact=name.replace("/"," "))
+            filter_criteria.update(authors__name__exact=name.replace("/", " "))
 
         sqs = SearchQuerySet()
         sqs = sqs.filter(**filter_criteria).models(Publication)
@@ -663,7 +667,3 @@ class NetworkRelation(LoginRequiredMixin, generics.GenericAPIView):
 
         return Response({"data": json.dumps(network), "group": json.dumps(filter_group)},
                         template_name="visualization/network-graph.html")
-
-
-
-

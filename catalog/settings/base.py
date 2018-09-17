@@ -105,24 +105,21 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'catalog.context_processors.debug',
-                'dealer.contrib.django.context_processor',
             ],
         },
     },
 ]
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     # 'raven.contrib.django.raven_compat.middleware.Sentry404CatchMiddleware',
     # 'raven.contrib.django.raven_compat.middleware.SentryResponseErrorIdMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'cas.middleware.CASMiddleware',
-    'dealer.contrib.django.Middleware',
 )
 
 ROOT_URLCONF = 'catalog.urls'
@@ -273,7 +270,7 @@ LOGGING = {
             'level': 'DEBUG',
             'handlers': ['catalog.file', 'console', 'sentry'],
             'propagate': False,
-        }
+        },
     }
 }
 
@@ -282,12 +279,6 @@ LOGGING = {
 DISABLED_TEST_LOGLEVEL = logging.WARNING
 
 # TEST_RUNNER = 'catalog.core.tests.runner.CatalogTestRunner'
-
-# revision reporting support using dealer
-DEALER_TYPE = 'git'
-DEALER_SILENT = True
-DEALER_BACKENDS = ('git',)
-DEALER_PATH = BASE_DIR
 
 # DJANGO REST Framework's Pagination settings
 REST_FRAMEWORK = {

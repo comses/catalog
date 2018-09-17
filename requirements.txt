@@ -1,7 +1,6 @@
 Markdown==2.6.11
 cssselect==1.0.1
-Django>=2.1.0,<3
-dealer==2.0.5
+Django>=2.0,<2.1 # django-cas needs https://github.com/kstateome/django-cas/pull/76/commits/5ced0c9c3c49e9810817457b000236ee794be99e to be merged before we can update
 django-autocomplete-light==3.2.10
 django-bootstrap3==9.1.0
 django-contact-form==1.4.2
