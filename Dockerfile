@@ -30,13 +30,13 @@ COPY deploy/mail/ssmtp.conf /etc/ssmtp/ssmtp.conf
 # copy cron script to be run daily
 COPY deploy/cron/daily_catalog_tasks /etc/cron.daily/
 COPY deploy/cron/monthly_catalog_tasks /etc/cron.monthly/
-WORKDIR /tmp
-COPY citation /tmp/citation/
-COPY requirements.txt /tmp/
-# Set execute bit on the cron script and install pip dependencies
-RUN chmod +x /etc/cron.daily/daily_catalog_tasks && chmod +x /etc/cron.monthly/monthly_catalog_tasks \
-    && pip3 install -r /tmp/requirements.txt
 
 WORKDIR /code
+COPY citation /code/citation
+COPY requirements.txt /code/
+# Set execute bit on the cron script and install pip dependencies
+RUN chmod +x /etc/cron.daily/daily_catalog_tasks && chmod +x /etc/cron.monthly/monthly_catalog_tasks \
+    && pip3 install -r /code/requirements.txt
+
 COPY . /code
 CMD ["/sbin/my_init"]
