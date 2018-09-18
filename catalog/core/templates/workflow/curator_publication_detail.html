@@ -21,7 +21,14 @@
                         <b>Volume:</b> <span data-bind='text: volume'></span><br>
                         <b>Pages:</b> <span data-bind='text: pages'></span><br>
                         <b>Year Published:</b> <span data-bind="text: year_published"></span><br>
-                        <b>Last modified:</b> <span data-bind='text: date_modified'></span>
+                        <b>Last modified:</b> <span data-bind='text: date_modified'></span><br>
+                        <b>DOI:</b>
+                        <!-- ko if: doi -->
+                            <a target='_blank' data-bind='attr: { href: $root.doiLookup(doi) }'><span data-bind='text: doi'></span></a>
+                        <!-- /ko -->
+                        <!-- ko ifnot: doi -->
+                            Not available
+                        <!-- /ko -->
                         <div><b>Author(s):</b>
                             <ul class='list-inline' data-bind="foreach: creators">
                                 <li><a target='_blank'
@@ -271,6 +278,11 @@
                         return $.urls.SEARCH_GOOGLE_SCHOLAR
                             + "&as_sauthors="
                             + encodeURIComponent(creator.given_name() + ' ' + creator.family_name());
+                    });
+                };
+                self.doiLookup = function(doi) {
+                    return ko.pureComputed(function() {
+                        return $.urls.DOI_ORG + doi();
                     });
                 };
                 self.authorLastNames = ko.pureComputed(function () {
