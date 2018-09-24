@@ -15,16 +15,14 @@ class VueMultiselectView extends InputWidgetView {
     initialize(options) {
         super.initialize(options);
         empty(this.el);
-        this.el.appendChild(this.template());
         this.$bus = new Vue();
-        this.connect(this.model.properties.selectedOptions.change, () => this.$bus.$emit('update-value', this.model.selectedOptions));
-        this.connect(this.model.properties.options.change, () => this.$bus.$emit('update-options', this.model.options));
-        this.connect(this.model.properties.modelName.change, () => this.$bus.$emit('update-model-name', this.model.modelName));
         this.render();
     }
 
-    template() {
-        return div();
+    connect_signals() {
+        this.connect(this.model.properties.selectedOptions.change, () => this.$bus.$emit('update-value', this.model.selectedOptions));
+        this.connect(this.model.properties.options.change, () => this.$bus.$emit('update-options', this.model.options));
+        this.connect(this.model.properties.modelName.change, () => this.$bus.$emit('update-model-name', this.model.modelName));
     }
 
     updateSelectedOptions(selectedOptions) {
@@ -44,6 +42,9 @@ class VueMultiselectView extends InputWidgetView {
 
     render() {
         super.render();
+        if (this.el.hasChildNodes()) {
+            return;
+        }
         const opts = {
             selectedOptions: this.model.selectedOptions,
             options: this.model.options,
@@ -72,7 +73,8 @@ class VueMultiselectView extends InputWidgetView {
                 :internal-search="false"
                 :clear-on-select="false"
                 :close-on-select="false"
-                @search-change="asyncFind">    
+                @search-change="asyncFind"
+                ref="select">    
             </multiselect>`,
             data() {
                 return opts
@@ -92,10 +94,12 @@ class VueMultiselectView extends InputWidgetView {
 
                 handleUpdateOptions: function(options) {
                     this.options = options;
+                    // this.$refs.select.$el.focus();
                 },
 
                 handleUpdateModelName: function(modelName) {
                     this.modelName = modelName;
+                    this.$refs.select.$el.focus();
                 },
 
                 asyncFind: debounce(async function(q) {
@@ -108,8 +112,8 @@ class VueMultiselectView extends InputWidgetView {
                 }, 500)
             }
         });
-        this.$component = component;
-        this.$component.$mount(this.el);
+        this.$component = component.$mount();
+        this.el.appendChild(this.$component.$el);
     }
 }
 

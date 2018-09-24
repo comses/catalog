@@ -55,7 +55,7 @@ def visualization_page():
 def bk_worker():
     # path = os.path.abspath('visualization')
     visualization = build_single_handler_application('visualization')
-    server = Server({'/visualization': visualization}, io_loop=IOLoop(), allow_websocket_origin=['localhost:8000'],
+    server = Server({'/visualization': visualization}, io_loop=IOLoop(), allow_websocket_origin=['localhost:8001'],
                     address='0.0.0.0')
     server.start()
     server.io_loop.start()
@@ -66,4 +66,4 @@ from threading import Thread
 Thread(target=bk_worker).start()
 
 if __name__ == '__main__':
-    app.run(port=8000, host='0.0.0.0')
+    app.run(port=8001, host='0.0.0.0')

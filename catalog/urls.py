@@ -1,7 +1,9 @@
+from django.conf import settings
 from django.conf.urls import include, url
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from cas import views as cas_views
+from django.urls import path
 
 from catalog.core.views import LoginView
 
@@ -17,3 +19,7 @@ urlpatterns = [
     url(r'^', include('citation.urls')),
     url(r'', include('catalog.core.urls')),
 ]
+
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns.insert(0, path('__debug__/', include(debug_toolbar.urls)))

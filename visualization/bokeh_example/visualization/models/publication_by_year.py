@@ -1,14 +1,19 @@
 import itertools
 import logging
+import pickle
+from pathlib import Path
 
+import networkx as nx
 import pandas as pd
 from bokeh.colors import RGB
 from bokeh.layouts import column, widgetbox
-from bokeh.models import Select, TableColumn, ColumnDataSource, DataTable
+from bokeh.models import Select, TableColumn, ColumnDataSource, DataTable, from_networkx, NodesAndLinkedEdges, \
+    HoverTool, WheelZoomTool, PanTool
 from bokeh.plotting import figure
 from django_pandas.io import read_frame
 
-from citation.models import Publication, PublicationPlatforms, PublicationAuthors, PublicationSponsors, Sponsor
+from citation.models import Publication, PublicationPlatforms, PublicationAuthors, PublicationSponsors, Sponsor, \
+    PublicationCitations
 from widgets.vue_multiselect import VueMultiselectWidget
 
 logger = logging.getLogger(__name__)
@@ -31,24 +36,30 @@ publication_df = pd.DataFrame.from_records([publication_as_dict(p) for p in
                                             reviewed_primary_publications
                                            .select_related('container')], index='id')
 publication_df.rename(index=str, columns={'id': 'publication__id'}, inplace=True)
+publication_df.index = publication_df.index.astype(int)
 publication_df.year_published = publication_df.year_published.astype('category')
 
 publication_authors_df = read_frame(PublicationAuthors.objects.filter(publication__in=reviewed_primary_publications),
                                     fieldnames=['publication__id', 'author__id'], index_col='publication__id')
 publication_authors_df.rename(index=str, columns={'author__id': 'author'}, inplace=True)
 
-publication_platforms_df = read_frame(PublicationPlatforms.objects.filter(publication__in=reviewed_primary_publications),
-                                      fieldnames=['publication__id', 'platform__id'], index_col='publication__id')
+publication_platforms_df = read_frame(
+    PublicationPlatforms.objects.filter(publication__in=reviewed_primary_publications),
+    fieldnames=['publication__id', 'platform__id'], index_col='publication__id')
 publication_platforms_df.rename(index=str, columns={'platform__id': 'platform'}, inplace=True)
 
 publication_sponsor_df = read_frame(PublicationSponsors.objects.filter(publication__in=reviewed_primary_publications),
                                     fieldnames=['publication__id', 'sponsor__id'], index_col='publication__id')
 publication_sponsor_df.rename(index=str, columns={'sponsor__id': 'sponsor'}, inplace=True)
 
+publication_citation_df = read_frame(PublicationCitations.objects.filter(publication__in=reviewed_primary_publications,
+                                                                         citation__in=reviewed_primary_publications),
+                                     fieldnames=['publication__id', 'citation__id'], index_col='publication__id')
+
 
 class ColorStreamIterator:
     def __init__(self, size):
-        levels = range(0, 256, 255//size)
+        levels = range(0, 256, 255 // size)
         self.iterator = iter(filter(lambda rgb: any(c > 31 for c in rgb), itertools.product(levels, levels, levels)))
 
     def __next__(self):
@@ -62,7 +73,6 @@ class ColorStream:
 
     def __iter__(self):
         return ColorStreamIterator(self.size)
-
 
 
 class PublicationCountsByYear:
@@ -87,7 +97,7 @@ class PublicationCountsByYear:
         self.model_name_widget.on_change('value', lambda attr, old, new: self.clear_options())
         self.layout = column(widgetbox(self.model_name_widget,
                                        self.selected_options_widget, width=800),
-                             self.create_plot(),
+                             column(self.create_plot()),
                              self.create_code_availibility_table())
 
     def create_plot(self):
@@ -106,7 +116,8 @@ class PublicationCountsByYear:
             logger.info('name: %s', name)
             logger.info(dfg)
             p.line(x=dfg.year_published, y=dfg['count'], legend=name, line_width=2, color=color)
-            p.line(x=dfg.year_published, y=dfg.is_archived, legend='{} (Code Available)'.format(name), line_width=2, color=color, line_dash='dashed')
+            p.line(x=dfg.year_published, y=dfg.is_archived, legend='{} (Code Available)'.format(name), line_width=2,
+                   color=color, line_dash='dashed')
         return p
 
     def clear_options(self):
@@ -131,7 +142,8 @@ class PublicationCountsByYear:
         return DataTable(source=ColumnDataSource(df), columns=columns, width=800)
 
     def render_plot(self):
-        self.layout.children[1] = self.create_plot()
+        # nesting the column layout prevents multiselect widget from rerendering so ESC key exits properly
+        self.layout.children[1].children[0] = self.create_plot()
 
     @staticmethod
     def build_dense_year_published_df(df, modelName='none'):
@@ -174,6 +186,92 @@ class PublicationCountsByYear:
         label_lookup = {o['value']: o['label'] for o in selectedOptions}
         df['group'] = [label_lookup[pk] for pk in df['group']]
         return df
+
+    def render(self):
+        return self.layout
+
+
+class PublicationCocitationGraph:
+    def __init__(self):
+        self.layout = self.create_network_figure()
+
+    @staticmethod
+    def _build_network():
+        g = nx.Graph()
+        logger.info('starting')
+        # a = np.array([1, 2])
+        # g.add_nodes_from(int(x) for x in a)
+        # g.add_edge(a[0], a[1])
+        g.add_nodes_from(int(n) for n in publication_df.index.values)
+
+        for id, p in publication_df.iterrows():
+            try:
+                citation_ids = publication_citation_df.loc[[id]]['citation__id']
+            except KeyError:
+                continue
+            for c_id in citation_ids:
+                g.add_edge(id, c_id)
+        logger.info('made it')
+        return g, nx.spring_layout(g)
+
+    @staticmethod
+    def _build_graph_renderer(graph, graph_layout):
+        # inline import to prevent circular imports
+        from bokeh.models.renderers import GraphRenderer
+        from bokeh.models.graphs import StaticLayoutProvider
+
+        # Handles nx 1.x vs 2.x data structure change
+        nodes = list(graph.nodes())
+        edges = list(graph.edges())
+
+        edges_start = [edge[0] for edge in edges]
+        edges_end = [edge[1] for edge in edges]
+
+        node_source = ColumnDataSource(data=dict(index=nodes, name=list(publication_df.loc[nodes]['title'])))
+        edge_source = ColumnDataSource(data=dict(
+            start=edges_start,
+            end=edges_end
+        ))
+
+        graph_renderer = GraphRenderer()
+        graph_renderer.node_renderer.data_source.data = node_source.data
+        graph_renderer.edge_renderer.data_source.data = edge_source.data
+
+        graph_renderer.layout_provider = StaticLayoutProvider(graph_layout=graph_layout)
+        graph_renderer.inspection_policy = NodesAndLinkedEdges()
+
+        return graph_renderer
+
+    @classmethod
+    def _load_graph_from_pickle(cls, p: Path):
+        with p.open('rb') as f:
+            graph, graph_layout = pickle.load(f)
+        logger.info('loaded from file')
+        graph_renderer = cls._build_graph_renderer(graph, graph_layout)
+        return graph_renderer
+
+    @classmethod
+    def create_network_figure(cls):
+        f = figure(title='Publication Cocitation Network', x_range=(-1.1, 1.1), y_range=(-1.1, 1.1), tools='')
+
+        path = Path('graph.pickle')
+        if path.exists():
+            logger.info('load from file')
+            graph_renderer = cls._load_graph_from_pickle(path)
+        else:
+            logger.info('building from scratch')
+            graph, graph_layout = cls._build_network()
+            graph_renderer = cls._build_graph_renderer(graph, graph_layout)
+            with path.open('wb') as fileobj:
+                pickle.dump((graph, graph_layout), fileobj)
+
+        hover = HoverTool(tooltips=[
+            ('Name', '@name')
+        ])
+        f.renderers.append(graph_renderer)
+        f.add_tools(hover, WheelZoomTool(), PanTool())
+        logger.info('returning figure')
+        return f
 
     def render(self):
         return self.layout

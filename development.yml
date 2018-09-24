@@ -40,6 +40,7 @@ services:
       - solr:/etc/solr/mycores/
       - logs:/catalog/logs
     environment:
+      DJANGO_SETTINGS_MODULE: 'catalog.settings.dev'
       LANG: "C.UTF-8"
       DB_USER: catalog
       DB_HOST: db
@@ -50,6 +51,7 @@ services:
       SOLR_CORE_NAME: catalog_core
     ports:
       - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8001:8001"
       - "127.0.0.1:5006:5006"
     links:
       - db
