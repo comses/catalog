@@ -1,0 +1,13 @@
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        {% for breadcrumb in breadcrumb_trail %}
+            <li class="breadcrumb-item{% if not breadcrumb.link %} active{% endif %}">
+                {% if breadcrumb.link %}
+                    <a href="{{ breadcrumb.link }}">{{ breadcrumb.text }}</a>
+                    {% else %}
+                    {{ breadcrumb.text|truncatechars:40 }}
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ol>
+</nav>

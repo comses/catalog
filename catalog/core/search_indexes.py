@@ -1,5 +1,14 @@
+import logging
+from urllib.parse import urlencode
+
+from django.db.models import QuerySet
+from django.urls import reverse
 from haystack import indexes
-from citation.models import Publication, Platform, Sponsor, Tag, ModelDocumentation
+
+from citation.models import Publication, Platform, Sponsor, Tag, ModelDocumentation, Container, Author
+
+logger = logging.getLogger(__name__)
+
 
 ##########################################
 #  Publication query seach/filter index  #
@@ -74,6 +83,7 @@ class ModelDocumentationIndex(NameAutocompleteIndex, indexes.Indexable):
     def get_model(self):
         return ModelDocumentation
 
+
 ##########################################
 #           Bulk Index Updates           #
 ##########################################
@@ -84,3 +94,202 @@ def bulk_index_update():
     SponsorIndex().update()
     TagIndex().update()
     ModelDocumentationIndex().update()
+
+
+##########################################
+#           Public Indices               #
+##########################################
+
+from elasticsearch.helpers import bulk
+from elasticsearch_dsl import DocType, connections, InnerDoc, aggs
+import elasticsearch_dsl as edsl
+
+ALL_DATA_FIELD = 'all_data'
+
+
+class AuthorInnerDoc(InnerDoc):
+    id = edsl.Integer(required=True)
+    orcid = edsl.Keyword()
+    researcherid = edsl.Keyword()
+    email = edsl.Keyword()
+    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+
+
+class ContainerInnerDoc(InnerDoc):
+    id = edsl.Integer(required=True)
+    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+    issn = edsl.Keyword()
+
+
+class RelatedInnerDoc(InnerDoc):
+    id = edsl.Integer(required=True)
+    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+
+
+class TopHits:
+    def __init__(self, iterable, hits):
+        self.iterable = iterable
+        self.hits = hits
+
+    def __iter__(self):
+        return iter(self.iterable)
+
+
+class AbstractAgg:
+    def __init__(self, queryset, name, field_name):
+        self.queryset = queryset
+        self.name = name
+        self.field_name = field_name
+
+    @classmethod
+    def from_model(cls, model_or_queryset, name=None, field_name=None):
+        if isinstance(model_or_queryset, QuerySet):
+            model = model_or_queryset.model
+            queryset = model_or_queryset
+        else:
+            model = model_or_queryset
+            queryset = model.objects.all()
+        name = name if name else str(model._meta.verbose_name_plural)
+        field_name = field_name if field_name is not None else name
+        return cls(queryset=queryset, name=name, field_name=field_name)
+
+    def extract(self, response):
+        data = self.extract_count(response)
+        return {self.name: {'count': data}}
+
+
+# Use top hits elasticsearch aggregator to avoid hitting DB
+class UnnestedAgg(AbstractAgg):
+    @property
+    def _terms_bucket_name(self):
+        return 'top_{}_count'.format(self.name)
+
+    _top_hit_bucket_name = 'top_hit'
+
+    def count(self, search):
+        search.aggs.bucket(self._terms_bucket_name,
+                           aggs.Terms(field='{}.id'.format(self.field_name))) \
+            .bucket(self._top_hit_bucket_name,
+                    aggs.TopHits(size=1, _source={'includes': [self.field_name]}))
+
+    def extract_count(self, response):
+        term_buckets = response.aggs[self._terms_bucket_name].buckets
+        results = []
+        for bucket in term_buckets:
+            result = {'publication_count': bucket.doc_count}
+            result.update(bucket[self._top_hit_bucket_name].hits.hits[0]['_source'][self.field_name])
+            results.append(result)
+        return results
+
+
+class NestedAgg(AbstractAgg):
+    @property
+    def _top_bucket_name(self):
+        return '{}'.format(self.name)
+
+    _terms_bucket_name = 'top_count'
+    _top_hit_bucket_name = 'top_hit'
+
+    def count(self, search):
+        search.aggs.bucket(self._top_bucket_name, aggs.Nested(path=self.field_name)) \
+            .bucket(self._terms_bucket_name,
+                    aggs.Terms(field='{}.id'.format(self.field_name))) \
+            .bucket(self._top_hit_bucket_name, aggs.TopHits(size=1, _source={'includes': [self.field_name]}))
+
+    def extract_count(self, response):
+        term_buckets = response.aggs[self._top_bucket_name][self._terms_bucket_name].buckets
+        results = []
+        for bucket in term_buckets:
+            result = {'publication_count': bucket.doc_count}
+            result.update(bucket[self._top_hit_bucket_name].hits.hits[0]['_source'])
+            results.append(result)
+        return results
+
+
+class PublicationDocSearch:
+    def __init__(self):
+        self.search = PublicationDoc.search()
+        self.aggs = [
+            NestedAgg.from_model(Author),
+            UnnestedAgg.from_model(Container, field_name='container'),
+            NestedAgg.from_model(Platform),
+            NestedAgg.from_model(Sponsor),
+            NestedAgg.from_model(Tag)
+        ]
+        self.cache = {}
+
+    def full_text(self, q, start, end):
+        if q:
+            self.search = self.search.query('match', **{ALL_DATA_FIELD: q})[start:end]
+        else:
+            self.search = self.search.sort('-date_published')[start:end]
+
+    def agg_by_count(self):
+        for agg in self.aggs:
+            agg.count(self.search)
+        response = self.search.execute()
+        for agg in self.aggs:
+            self.cache.update(agg.extract(response))
+        return response, self.cache
+
+
+class PublicationDoc(DocType):
+    all_data = edsl.Text()
+    title = edsl.Text(copy_to=ALL_DATA_FIELD)
+    date_published = edsl.Date()
+    last_modified = edsl.Date()
+    contact_email = edsl.Keyword(copy_to=ALL_DATA_FIELD)
+    container = edsl.Object()
+    tags = edsl.Nested(RelatedInnerDoc)
+    sponsors = edsl.Nested(RelatedInnerDoc)
+    platforms = edsl.Nested(RelatedInnerDoc)
+    model_documentation = edsl.Keyword()
+    authors = edsl.Nested(AuthorInnerDoc)
+
+    @classmethod
+    def from_instance(cls, publication):
+        container = publication.container
+        doc = cls(meta={'id': publication.id},
+                  title=publication.title,
+                  date_published=publication.date_published,
+                  last_modified=publication.date_modified,
+                  contact_email=publication.contact_email,
+                  container=ContainerInnerDoc(id=container.id, name=container.name, issn=container.issn),
+                  tags=[RelatedInnerDoc(id=t.id, name=t.name) for t in publication.tags.all()],
+                  sponsors=[RelatedInnerDoc(id=s.id, name=s.name) for s in publication.sponsors.all()],
+                  platforms=[RelatedInnerDoc(id=p.id, name=p.name) for p in publication.platforms.all()],
+                  model_documentation=[md.name for md in publication.model_documentation.all()],
+                  authors=[
+                      AuthorInnerDoc(id=a.id, name=a.name, orcid=a.orcid, researcherid=a.researcherid, email=a.email)
+                      for a in publication.creators.all()])
+        return doc.to_dict(include_meta=True)
+
+    def get_public_detail_url(self):
+        return reverse('core:public-publication-detail', kwargs={'pk': self.meta.id})
+
+    @classmethod
+    def get_breadcrumb_data(cls):
+        return {'breadcrumb_trail': [
+            {'link': reverse('core:public-home'), 'text': 'Home'},
+            {'text': 'Publications'}
+        ]}
+
+    @classmethod
+    def get_public_list_url(cls, q=None):
+        location = reverse('core:public-search')
+        if q:
+            query_string = urlencode({'q': q})
+            location += '?{}'.format(query_string)
+        return location
+
+    class Index:
+        name = 'publication'
+
+
+def bulk_index_public():
+    public_publications = Publication.api.primary().filter(status='REVIEWED')
+    PublicationDoc.init()
+    logger.info('creating publication index')
+    bulk(client=connections.get_connection(),
+         actions=(PublicationDoc.from_instance(p) for p in public_publications.select_related('container') \
+         .prefetch_related('tags', 'sponsors', 'platforms', 'creators', 'model_documentation').iterator()))

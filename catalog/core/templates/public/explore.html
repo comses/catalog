@@ -1,0 +1,22 @@
+{% extends 'public/base.html' %}
+{% load add_field_css top_categories_by_content_type pagination_control from tags %}
+
+{% block content %}
+    <div class="container">
+        <nav class="navbar justify-content-between px-0">
+            <form class="form-inline px-0">
+                {% for field in form.visible_fields %}
+                    <label class="sr-only" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field|add_field_css:'form-control' }}
+                {% endfor %}
+                <button type="submit" class="btn btn-primary">Search</button>
+            </form>
+            <a class="btn btn-primary text-white"><span class="fas fa-chart"></span> Explore</a>
+        </nav>
+        <div class="row">
+            <div class="col-12">
+                {% top_categories_by_content_type content_type=content_type matches=matches %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

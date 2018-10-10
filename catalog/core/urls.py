@@ -1,3 +1,4 @@
+from django.urls import path
 from rest_framework import routers
 from rest_framework.urlpatterns import format_suffix_patterns
 from django.conf.urls import url
@@ -53,5 +54,7 @@ urlpatterns += [
     url(r'^network-relation/$', views.NetworkRelation.as_view(), name="network-relation"),
     url(r'^networkrelation/(?P<pk>\d+)/$', views.NetworkRelationDetail.as_view(),
         name='networkrelation'),
-
+    path('public/publications/', views.public_search_view, name='public-search'),
+    path('public/publications/<int:pk>/', views.PublicationDetailView.as_view(), name='public-publication-detail'),
+    path('public/', views.public_home, name='public-home')
 ]

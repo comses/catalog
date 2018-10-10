@@ -1,0 +1,9 @@
+{% for container in containers %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ container.name }}
+                {% if container.issn %}({{ container.issn }}){% endif %}</h5>
+            <p>Publication match count: <b>{{ container.hits }}</b></p>
+        </div>
+    </div>
+{% endfor %}

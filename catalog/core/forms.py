@@ -1,12 +1,14 @@
+import logging
+from collections import namedtuple
+
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
+from django.forms import Form
 from django.utils.translation import ugettext_lazy as _
-
-from citation.models import Publication
 from haystack.forms import SearchForm
 from haystack.inputs import Raw
 
-import logging
+from citation.models import Author, Container, Platform, Publication, Sponsor, Tag
 
 logger = logging.getLogger(__name__)
 
@@ -102,3 +104,27 @@ class CatalogSearchForm(SearchForm):
         if not self.cleaned_data['q']:
             sqs = sqs.order_by('-date_published')
         return sqs
+
+
+ContentTypeChoice = namedtuple('ContentTypeChoice', ['value', 'label', 'model'])
+
+
+CONTENT_TYPE_CHOICES = [
+    ContentTypeChoice(value=model._meta.verbose_name_plural, label=model._meta.verbose_name_plural.title(), model=model)
+    for model in [Author, Platform, Sponsor, Tag]
+]
+CONTENT_TYPE_CHOICES.insert(1, ContentTypeChoice(Container._meta.verbose_name_plural, 'Journals and Other Media', Container))
+
+CONTENT_TYPE_SEARCH = {
+    c.value: c.model for c in CONTENT_TYPE_CHOICES
+}
+
+
+class PublicSearchForm(Form):
+    q = forms.CharField(label='Search')
+
+
+class PublicExploreForm(Form):
+    content_type = forms.ChoiceField(choices=[(c.value, c.label) for c in CONTENT_TYPE_CHOICES], label='Content Type')
+    topic = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Search'}))
+    order_by = forms.ChoiceField(choices=(('count', 'Publication Count Desc'), ('citations', 'Total Publication Citations Desc'), ('index', 'h-index Desc')))

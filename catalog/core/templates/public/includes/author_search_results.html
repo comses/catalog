@@ -1,0 +1,10 @@
+{% for author in authors %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ author.name }}</h5>
+            {% if author.orcid %}<p>ORCID: {{ author.orcid }}</p>{% endif %}
+            {% if author.researcherid %}<p>ResearcherID: {{ author.researcherid }}</p>{% endif %}
+            <p>Publication match count: <b>{{ author.hits }}</b></p>
+        </div>
+    </div>
+{% endfor %}

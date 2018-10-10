@@ -12,8 +12,11 @@ from __future__ import print_function
 import os
 import logging
 import sys
+from elasticsearch_dsl.connections import connections
 
 DEBUG = True
+
+connections.create_connection(hosts=['elasticsearch:9200'], timeout=60, sniff_on_start=True, sniff_on_connection_fail=True, sniffer_timeout=60)
 
 # tweaking standard BASE_DIR because we're in the settings subdirectory.
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))

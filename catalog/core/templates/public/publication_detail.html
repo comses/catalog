@@ -1,0 +1,56 @@
+{% extends 'public/base.html' %}
+{% load list_authors from tags %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h3>{{ publication.title }}</h3>
+                <p>Authored by {{ publication.creators.all|list_authors }}</p>
+                {% if publication.doi %}
+                    <p>DOI: <a href="https://doi.org/{{ publication.doi }}">{{ publication.doi }}</a></p>
+                {% endif %}
+                <p>
+                    <b>Sponsors:</b>
+                    {% for sponsor in publication.sponsors.all %}
+                        <span class="badge badge-info">{{ sponsor.name }}</span>
+                        {% empty %}
+                        No sponsors listed
+                    {% endfor %}
+                </p>
+                <p>
+                    <b>Platforms:</b>
+                    {% for platform in publication.platforms.all %}
+                        <span class="badge badge-info">{{ platform.name }}</span>
+                        {% empty %}
+                        No platforms listed
+                    {% endfor %}
+                </p>
+                <p>
+                    <b>Model Documentation:</b>
+                    {% for model_documentation in publication.model_documentation.all %}
+                        <span class="badge badge-info">{{ model_documentation.name }}</span>
+                        {% empty %}
+                        No documentation
+                    {% endfor %}
+                </p>
+                <p>
+                    <b>Model Code URL:</b>
+                    {% if publication.code_archive_url %}
+                        <a href="{{ publication.code_archive_url }}">{{ publication.code_archive_url }}</a>
+                    {% else %}
+                        Model code not found
+                    {% endif %}
+                </p>
+
+
+                <h4>Abstract</h4>
+                {{ publication.abstract }}
+                <h5>Tags</h5>
+                {% for tag in publication.tags.all %}
+                    <span class="badge badge-info">{{ tag.name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock content %}

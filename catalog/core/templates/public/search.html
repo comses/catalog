@@ -1,0 +1,172 @@
+{% extends 'public/base.html' %}
+{% load add_field_css facet_checkbox list_authors pagination_control from tags %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-9 offset-3 pt-2">
+                <form>
+                    {% with form.visible_fields|first as field %}
+                        <div class="form-group">
+                            <label class="sr-only" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg"
+                                       placeholder="Enter search terms here" value="{{ query }}"
+                                       aria-label="Search" name="q" id="{{ field.id_for_label }}">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-primary btn-lg" type="submit">Search</button>
+                                    <a class="btn btn-outline-info btn-lg" data-toggle="collapse"
+                                       href="#searchExplanation"
+                                       role="button"
+                                       aria-expanded="false" aria-controls="searchExplanation">
+                                        ?
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endwith %}
+                </form>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 collapse" id="searchExplanation">
+                <div class="card">
+                    <div class="card-title">
+                        <h5 class="card-text">Possible Searches</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <form>
+                    <div class="card my-1">
+                        <div class="card-header">
+                            Top Authors (Count)
+                        </div>
+                        <div class="card-body">
+                            {% for author in facets.authors.count %}
+                                {% facet_checkbox author %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card my-1">
+                        <div class="card-header">
+                            Top Journals (Count)
+                        </div>
+                        <div class="card-body">
+                            {% for journal in facets.containers.count %}
+                                {% facet_checkbox journal %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card my-1">
+                        <div class="card-header">
+                            Top Programming Platforms (Count)
+                        </div>
+                        <div class="card-body">
+                            {% for platform in facets.platforms.count %}
+                                {% facet_checkbox platform %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card my-1">
+                        <div class="card-header">
+                            Top Sponsors (Count)
+                        </div>
+                        <div class="card-body">
+                            {% for sponsor in facets.sponsors.count %}
+                                {% facet_checkbox sponsor %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card my-1">
+                        <div class="card-header">
+                            Top Tags (Count)
+                        </div>
+                        <div class="card-body">
+                            {% for tag in facets.tags.count %}
+                                {% facet_checkbox tag %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                </form>
+            </div>
+            <div class="col-lg-9">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div>Page {{ current_page }}</div>
+                        {% pagination_control paginator current_page %}
+                        <div>Results ({{ total_hits }})</div>
+                    </div>
+                    <div class="btn-group align-self-start">
+                        <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="exploreMenu"
+                           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span class="fas fa-list-ol"></span> Explore
+                        </a>
+
+                        <div class="dropdown-menu" aria-labelledby="exploreMenu">
+                            <a class="dropdown-item" href="#">Top Authors</a>
+                            <a class="dropdown-item" href="#">Top Platforms</a>
+                            <a class="dropdown-item" href="#">Top Sponsors</a>
+                            <a class="dropdown-item" href="#">Top Tags</a>
+                        </div>
+                    </div>
+                </div>
+                {% for publication in publications %}
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title"><a href="{{ publication.get_public_detail_url }}">
+                                {{ publication.title }}
+                            </a></h5>
+                            <div class="container px-0">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small><b>Published on:</b> {{ publication.date_published|date:"M d, Y" }}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="float-md-right"><b>Published
+                                            by:</b> {{ publication.container.name }}
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small><b>Sponsored by:</b>
+                                            {% for sponsor in publication.sponsors %}
+                                                <span class="badge badge-info">{{ sponsor.name }}</span>
+                                                {% empty %}
+                                                Unknown
+                                            {% endfor %}
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="float-md-right"><b>Platforms: </b>
+                                            {% for platform in publication.platforms %}
+                                                <span class="badge badge-info">{{ platform.name }}</span>
+                                                {% empty %}
+                                                Unknown
+                                            {% endfor %}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <b>Authored by:</b> {{ publication.authors|list_authors }}
+                            </div>
+                            <b class="card-text">Tags</b>
+                            <p class="card-text">
+                                {% for tag in publication.tags %}
+                                    <span class="badge badge-info">{{ tag.name }}</span>
+                                {% endfor %}
+                            </p>
+                        </div>
+                    </div>
+                {% endfor %}
+                <div>
+                    {% pagination_control paginator current_page %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

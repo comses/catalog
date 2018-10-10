@@ -5,6 +5,7 @@ from collections import Counter
 from datetime import timedelta, datetime
 from hashlib import sha1
 from json import dumps
+from pprint import pprint
 
 import markdown
 from dateutil.parser import parse as datetime_parse
@@ -17,7 +18,7 @@ from django.db import models
 from django.db.models import Count, Q, F, Value as V, Max
 from django.db.models.functions import Concat
 from django.http import JsonResponse, HttpResponseRedirect, StreamingHttpResponse
-from django.shortcuts import get_object_or_404, resolve_url
+from django.shortcuts import get_object_or_404, resolve_url, render, redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -25,12 +26,14 @@ from django.utils.http import is_safe_url
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
-from django.views.generic import TemplateView, FormView
+from django.views.generic import TemplateView, FormView, DetailView
 from haystack.generic_views import SearchView
 from haystack.query import SearchQuerySet
 from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 
+from catalog.core.forms import CONTENT_TYPE_SEARCH, PublicSearchForm, PublicExploreForm
+from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch
 from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
                                     generate_aggregated_distribution_data, generate_network_graph)
@@ -667,3 +670,75 @@ class NetworkRelation(LoginRequiredMixin, generics.GenericAPIView):
 
         return Response({"data": json.dumps(network), "group": json.dumps(filter_group)},
                         template_name="visualization/network-graph.html")
+
+
+def create_paginator(current_page, total_hits, page_size=10):
+    n_pages = -(-total_hits // page_size)
+    paginator = {}
+    if current_page - 1 > 0:
+        paginator['previous'] = current_page - 1
+    if current_page + 1 <= n_pages:
+        paginator['next'] = current_page + 1
+    paginator['range'] = range(max(current_page - 5, 1), min(current_page + 5, n_pages))
+    paginator['max'] = n_pages
+    return paginator
+
+
+def public_search_view(request):
+    q = request.GET.get('q', '')
+    current_page = int(request.GET.get('page', 1))
+
+    from_qs = (current_page - 1) * 10
+    to_qs = from_qs + 10
+    publication_query = PublicationDocSearch()
+    publication_query.full_text(q=q, start=from_qs, end=to_qs)
+    publications, facets = publication_query.agg_by_count()
+
+    pprint(facets)
+
+    total_hits = publications.hits.total
+    paginator = create_paginator(current_page=current_page, total_hits=total_hits)
+    logger.info(paginator)
+    form = PublicSearchForm(initial={'q': q})
+    context = {'publications': publications, 'facets': facets, 'query': q, 'from': from_qs, 'to': to_qs,
+               'form': form, 'paginator': paginator, 'current_page': current_page, 'total_hits': total_hits}
+    context.update(PublicationDoc.get_breadcrumb_data())
+    return render(request, 'public/search.html', context)
+
+
+def public_explore_view(request):
+    topic = request.GET.get('topic')
+    content_type = request.GET.get('content_type', 'authors')
+    order_by = request.GET.get('order_by', '-count')
+
+    model = CONTENT_TYPE_SEARCH[content_type]
+    matches = PublicationDoc().agg_by_model(q=topic, model=model)
+
+    form = PublicExploreForm(initial={'content_type': content_type, 'order_by': order_by, 'topic': topic})
+    return render(request, 'public/explore.html',
+                  context={'content_type': content_type, 'form': form, 'matches': matches})
+
+
+def public_home(request):
+    q = request.GET.get('q', '')
+    if q:
+        return redirect(PublicationDoc.get_public_list_url(q=q))
+    return render(request, 'public/home.html')
+
+
+class PublicationDetailView(DetailView):
+    pk_url_kwarg = 'pk'
+    context_object_name = 'publication'
+    model = Publication
+    template_name = 'public/publication_detail.html'
+
+    def get_queryset(self):
+        return Publication.api.primary().filter(status='REVIEWED')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['breadcrumb_trail'] = [
+            {'link': reverse('core:public-home'), 'text': 'Home'},
+            {'link': PublicationDoc.get_public_list_url(), 'text': 'Publications'},
+            {'text': self.object.title}]
+        return context

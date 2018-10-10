@@ -1,0 +1,8 @@
+{% for match in matches %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">{{ match.name }}</h5>
+            <p>Publication match count: <b>{{ match.hits }}</b></p>
+        </div>
+    </div>
+{% endfor %}

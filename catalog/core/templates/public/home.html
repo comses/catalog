@@ -1,0 +1,82 @@
+{% extends 'public/base.html' %}
+
+{% block breadcrumb %}
+{% endblock %}
+
+{% block content %}
+    <main role="main">
+        <section class="jumbotron text-center">
+            <div class="container">
+                <h1 class="jumbotron-heading">CoMSES Catalog</h1>
+                <p class="lead text-muted">
+                    A bibliographic database of agent based modeling papers and their models
+                </p>
+                <form>
+                    <div class="col-md-8 offset-md-2">
+                        <div class="form-group">
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg"
+                                       placeholder="Enter search terms here"
+                                       aria-label="Search" name="q" id="search">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-primary btn-lg" type="submit">Search</button>
+                                    <a class="btn btn-outline-info btn-lg" data-toggle="collapse"
+                                            {#                               href="#searchExplanation"#}
+                                       role="button"
+                                       aria-expanded="false" aria-controls="searchExplanation">
+                                        ?
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+        <section class="album py-5 bg-light">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card mb-4 box-shadow">
+                            <div class="card-img-top bg-secondary"
+                                 style="height: 225px; width: 100%">
+                                <div class="text-center">
+                                    <span class="fas fa-search fa-5x align-middle text-white" style="line-height: 225px"></span>
+                                </div>
+                            </div>
+                            <div class="card-body text-center">
+                                Find publications
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card mb-4 box-shadow">
+                            <div class="card-img-top bg-secondary"
+                                 style="height: 225px; width: 100%">
+                                <div class="text-center">
+                                    <span class="fas fa-file-alt fa-5x align-middle text-white" style="line-height: 225px"></span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text text-center">Add your papers</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card mb-4 box-shadow">
+                            <div class="card-img-top bg-secondary"
+                                 style="height: 225px; width: 100%">
+                                <div class="text-center">
+                                    <span class="fas fa-chart-line fa-5x align-middle text-white" style="line-height: 225px"></span>
+                                </div>
+                            </div>
+                            <div class="card-body text-center">
+                                Visualize search results
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+{% endblock %}

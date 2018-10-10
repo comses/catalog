@@ -57,6 +57,7 @@ class VueMultiselectView extends InputWidgetView {
                 Multiselect: VueMultiselect.default
             },
             created() {
+                console.log('created multiselect');
                 self.$bus.$on('update-value', this.handleUpdateSelectedOptions);
                 self.$bus.$on('update-options', this.handleUpdateOptions);
                 self.$bus.$on('update-model-name', this.handleUpdateModelName);
@@ -94,7 +95,6 @@ class VueMultiselectView extends InputWidgetView {
 
                 handleUpdateOptions: function(options) {
                     this.options = options;
-                    // this.$refs.select.$el.focus();
                 },
 
                 handleUpdateModelName: function(modelName) {

@@ -1,0 +1,18 @@
+<ul class="nav">
+    {% if paginator.previous %}
+        <li class="nav-item">
+            <a class="nav-link" href="?q={{ query }}&page={{ paginator.previous }}">«</a>
+        </li>
+    {% endif %}
+    {% for page in paginator.range %}
+        <li class="nav-item">
+            <a class="nav-link{% if current_page == page %} disabled{% endif %}"
+             href="?q={{ query }}&page={{ page }}">{{ page }}</a>
+        </li>
+    {% endfor %}
+    {% if paginator.next %}
+        <li class="nav-item">
+            <a class="nav-link" href="?q={{ query }}&page={{ paginator.next }}">»</a>
+        </li>
+    {% endif %}
+</ul>
