@@ -690,9 +690,9 @@ def public_search_view(request):
 
     from_qs = (current_page - 1) * 10
     to_qs = from_qs + 10
-    publication_query = PublicationDocSearch()
-    publication_query.full_text(q=q, start=from_qs, end=to_qs)
-    publications, facets = publication_query.agg_by_count()
+    publication_query = PublicationDocSearch().full_text(q=q)[from_qs:to_qs].agg_by_count()
+    publications = publication_query.execute()
+    facets = publication_query.cache
 
     pprint(facets)
 

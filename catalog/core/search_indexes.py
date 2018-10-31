@@ -136,22 +136,15 @@ class TopHits:
 
 
 class AbstractAgg:
-    def __init__(self, queryset, name, field_name):
-        self.queryset = queryset
+    def __init__(self, name, field_name):
         self.name = name
         self.field_name = field_name
 
     @classmethod
-    def from_model(cls, model_or_queryset, name=None, field_name=None):
-        if isinstance(model_or_queryset, QuerySet):
-            model = model_or_queryset.model
-            queryset = model_or_queryset
-        else:
-            model = model_or_queryset
-            queryset = model.objects.all()
+    def from_model(cls, model, name=None, field_name=None):
         name = name if name else str(model._meta.verbose_name_plural)
         field_name = field_name if field_name is not None else name
-        return cls(queryset=queryset, name=name, field_name=field_name)
+        return cls(name=name, field_name=field_name)
 
     def extract(self, response):
         data = self.extract_count(response)
@@ -207,39 +200,54 @@ class NestedAgg(AbstractAgg):
 
 
 class PublicationDocSearch:
-    def __init__(self):
-        self.search = PublicationDoc.search()
-        self.aggs = [
-            NestedAgg.from_model(Author),
-            UnnestedAgg.from_model(Container, field_name='container'),
-            NestedAgg.from_model(Platform),
-            NestedAgg.from_model(Sponsor),
-            NestedAgg.from_model(Tag)
-        ]
-        self.cache = {}
+    aggs = [
+        NestedAgg.from_model(Author),
+        UnnestedAgg.from_model(Container, field_name='container'),
+        NestedAgg.from_model(Platform),
+        NestedAgg.from_model(Sponsor),
+        NestedAgg.from_model(Tag)
+    ]
 
-    def full_text(self, q, start, end):
+    def __init__(self, search=None, cache=None):
+        self.search = PublicationDoc.search() if search is None else search
+        self.cache = {} if cache is None else cache
+
+    def __getitem__(self, val):
+        return PublicationDocSearch(self.search[val])
+
+    def full_text(self, q):
         if q:
-            self.search = self.search.query('match', **{ALL_DATA_FIELD: q})[start:end]
+            return PublicationDocSearch(self.search.query('match', **{ALL_DATA_FIELD: q}))
         else:
-            self.search = self.search.sort('-date_published')[start:end]
+            return PublicationDocSearch(self.search.sort('-date_published'))
+
+    def source(self, fields=None, **kwargs):
+        return PublicationDocSearch(self.search.source(fields=fields, **kwargs))
+
+    def scan(self):
+        return self.search.scan()
 
     def agg_by_count(self):
+        s = self.search._clone()
         for agg in self.aggs:
-            agg.count(self.search)
+            agg.count(s)
+        return PublicationDocSearch(s)
+
+    def execute(self):
         response = self.search.execute()
         for agg in self.aggs:
             self.cache.update(agg.extract(response))
-        return response, self.cache
+        return response
 
 
 class PublicationDoc(DocType):
     all_data = edsl.Text()
+    id = edsl.Integer()
     title = edsl.Text(copy_to=ALL_DATA_FIELD)
     date_published = edsl.Date()
     last_modified = edsl.Date()
     contact_email = edsl.Keyword(copy_to=ALL_DATA_FIELD)
-    container = edsl.Object()
+    container = edsl.Object(ContainerInnerDoc)
     tags = edsl.Nested(RelatedInnerDoc)
     sponsors = edsl.Nested(RelatedInnerDoc)
     platforms = edsl.Nested(RelatedInnerDoc)
@@ -250,6 +258,7 @@ class PublicationDoc(DocType):
     def from_instance(cls, publication):
         container = publication.container
         doc = cls(meta={'id': publication.id},
+                  id=publication.id,
                   title=publication.title,
                   date_published=publication.date_published,
                   last_modified=publication.date_modified,
