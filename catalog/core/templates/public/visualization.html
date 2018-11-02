@@ -1,0 +1,32 @@
+{% extends 'public/base.html' %}
+
+{% block content %}
+    <div class="container">
+        <form class="row">
+            <div class="col-md-7">
+                <div class="form-group">
+                    <input type="text" class="form-control form-control-lg"
+                           placeholder="Enter search terms here" value="{{ search }}"
+                           aria-label="Search" name="search" id="search">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label class="sr-only" for="content_type">Content Type</label>
+                    <select class="form-control form-control-lg" name="content_type">
+                        {% for content_type_option in content_type_options %}
+                            <option value="{{ content_type_option.value }}"
+                                    {% if content_type == content_type_option.value %} selected{% endif %}>
+                                {{ content_type_option.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class=" col-md-2">
+                <button class="btn btn-outline-primary btn-lg" type="submit">Search</button>
+            </div>
+        </form>
+        {{ script|safe }}
+    </div>
+{% endblock %}

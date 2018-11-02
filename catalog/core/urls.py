@@ -54,7 +54,8 @@ urlpatterns += [
     url(r'^network-relation/$', views.NetworkRelation.as_view(), name="network-relation"),
     url(r'^networkrelation/(?P<pk>\d+)/$', views.NetworkRelationDetail.as_view(),
         name='networkrelation'),
+    path('public/visualization/', views.public_visualization_view, name='public-visualization'),
     path('public/publications/', views.public_search_view, name='public-search'),
     path('public/publications/<int:pk>/', views.PublicationDetailView.as_view(), name='public-publication-detail'),
-    path('public/', views.public_home, name='public-home')
+    path('public/', views.public_home, name='public-home'),
 ]

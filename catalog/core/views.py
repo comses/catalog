@@ -8,6 +8,7 @@ from json import dumps
 from pprint import pprint
 
 import markdown
+from bokeh.embed import server_document
 from dateutil.parser import parse as datetime_parse
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
@@ -704,6 +705,34 @@ def public_search_view(request):
                'form': form, 'paginator': paginator, 'current_page': current_page, 'total_hits': total_hits}
     context.update(PublicationDoc.get_breadcrumb_data())
     return render(request, 'public/search.html', context)
+
+
+def public_visualization_view(request):
+    base_url = 'http://localhost:5006/visualization'
+    content_type = request.GET.get('content_type', 'sponsors')
+    arguments = {'content_type': content_type}
+    search = request.GET.get('search', '')
+    if search:
+        arguments['search'] = search
+    breadcrumb_trail = [
+        {'link': reverse('core:public-home'), 'text': 'Home'},
+        {'text': 'Visualization'},
+    ]
+    if search:
+        breadcrumb_trail.append({'text': search})
+
+    content_type_options = [
+        {'value': 'authors', 'label': 'Authors'},
+        {'value': 'journals', 'label': 'Journals'},
+        {'value': 'platforms', 'label': 'Platforms'},
+        {'value': 'sponsors', 'label': 'Sponsors'},
+        {'value': 'tags', 'label': 'Tags'}
+    ]
+    script = server_document(url=base_url, arguments=arguments)
+    return render(request, 'public/visualization.html',
+                  context={'script': script, 'breadcrumb_trail': breadcrumb_trail,
+                           'content_type_options': content_type_options,
+                           'search': search, 'content_type': content_type})
 
 
 def public_explore_view(request):
