@@ -22,10 +22,11 @@ services:
     restart: always
     volumes:
       - data:/var/lib/postgresql/data
+      - ./deploy/conf/postgres_password:/run/secrets/postgres
     environment:
       POSTGRES_USER: catalog
       # FIXME: secure secrets properly
-      POSTGRES_PASSWORD: g9vDlM3im2Nd7faCYamnmVljaOXK9de3v2qF629Zm7pdFZfReGXDHENufaYkh2Z
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres
       POSTGRES_DB: comses_catalog
   nginx:
     image: nginx:latest

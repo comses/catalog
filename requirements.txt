@@ -23,3 +23,11 @@ ipython
 invoke
 python-coveralls
 django_redis
+
+# visualization dependencies
+numpy
+django-pandas
+pandas
+
+# bokeh dependencies
+bokeh

@@ -55,10 +55,10 @@ services:
     image: postgres:9.6
     volumes:
       - data:/var/lib/postgresql/data
+      - ./deploy/conf/postgres_password:/run/secrets/password
     environment:
       POSTGRES_USER: catalog
-      # FIXME: replace with something more secure, see https://github.com/docker/docker/issues/13490
-      POSTGRES_PASSWORD: CHANGEME_CATALOG_DB_PASSWORD
+      POSTGRES_PASSWORD_FILE: /run/secrets/password
       POSTGRES_DB: comses_catalog
   django:
     build:
@@ -70,6 +70,7 @@ services:
       - .:/code
       - solr:/etc/solr/mycores/
       - logs:/catalog/logs
+      - ./deploy/conf/config.ini:/secrets/config.ini
     environment:
       DJANGO_SETTINGS_MODULE: 'catalog.settings.dev'
       LANG: "C.UTF-8"

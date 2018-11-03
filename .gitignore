@@ -5,6 +5,7 @@
 solr-*
 zotero_data.json
 .vagrant
+*.swp
 
 # IDE Files
 .idea

@@ -9,14 +9,19 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 from __future__ import print_function
 
-import os
 import logging
+import os
 import sys
+import configparser
+
 from elasticsearch_dsl.connections import connections
 
-DEBUG = True
+DEBUG = False
+config = configparser.ConfigParser()
+config.read('/secrets/config.ini')
 
-connections.create_connection(hosts=['elasticsearch:9200'], timeout=60, sniff_on_start=True, sniff_on_connection_fail=True, sniffer_timeout=60)
+connections.create_connection(hosts=['elasticsearch:9200'], timeout=60, sniff_on_start=True,
+                              sniff_on_connection_fail=True, sniffer_timeout=60)
 
 # tweaking standard BASE_DIR because we're in the settings subdirectory.
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
@@ -34,16 +39,23 @@ MANAGERS = ADMINS
 
 DATA_DIR = 'data'
 
+HAYSTACK_CONNECTIONS = {
+    'default': {
+        'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
+        'URL': 'http://{0}:{1}/solr/{2}'.format(config.get('solr', 'HOST'),
+                                                config.get('solr', 'PORT'),
+                                                config.get('solr', 'CORE_NAME'))
+    },
+}
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(DATA_DIR, 'catalog.sqlite3'),
-    },
-    'postgres': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'comses_catalog',
-        'USER': 'catalog',
-        'PASSWORD': '',
+        'HOST': config.get('db', 'HOST'),
+        'NAME': config.get('db', 'NAME'),
+        'PASSWORD': config.get('db', 'PASSWORD'),
+        'PORT': config.get('db', 'PORT'),
+        'USER': config.get('db', 'USER'),
     }
 }
 CACHES = {
@@ -274,6 +286,11 @@ LOGGING = {
             'handlers': ['catalog.file', 'console', 'sentry'],
             'propagate': False,
         },
+        'bokeh': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+            'propagate': False,
+        },
     }
 }
 
@@ -293,3 +310,5 @@ RAVEN_CONFIG = {
     'dsn': 'https://public:secret@sentry.commons.asu.edu/4?timeout=30',
     # 'release': raven.fetch_git_sha(BASE_DIR),
 }
+
+SECRET_KEY = config.get('django', 'SECRET_KEY')
