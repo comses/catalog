@@ -18,12 +18,8 @@ services:
   redis:
     image: redis:latest
     restart: always
-    expose:
-      - "6379"
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
-    ports:
-      - "127.0.0.1:9200:9200"
     environment:
       - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
@@ -45,12 +41,6 @@ services:
       - ./deploy/elasticsearch.conf.d/log4j2.properties:/usr/share/elasticsearch/config/log4j2.properties
       - ./deploy/elasticsearch.conf.d/elasticsearch-dev.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - esdata:/usr/share/elasticsearch/data
-  kibana:
-    image: docker.elastic.co/kibana/kibana:6.3.0
-    ports:
-      - "127.0.0.1:5601:5601"
-    links:
-      - elasticsearch
   db:
     image: postgres:9.6
     volumes:
@@ -61,18 +51,13 @@ services:
       POSTGRES_PASSWORD_FILE: /run/secrets/password
       POSTGRES_DB: comses_catalog
   django:
-    build:
-      context: ./
-      args:
-        RUN_SCRIPT: "./deploy/docker/dev.sh"
-    image: comses/catalog
     volumes:
       - .:/code
       - solr:/etc/solr/mycores/
       - logs:/catalog/logs
       - ./deploy/conf/config.ini:/secrets/config.ini
     environment:
-      DJANGO_SETTINGS_MODULE: 'catalog.settings.dev'
+      DJANGO_SETTINGS_MODULE: 'catalog.settings.prod'
       LANG: "C.UTF-8"
       DB_USER: catalog
       DB_HOST: db
@@ -81,14 +66,11 @@ services:
       SOLR_HOST: solr
       SOLR_PORT: 8983
       SOLR_CORE_NAME: catalog_core
-    ports:
-      - "127.0.0.1:8000:8000"
-      - "127.0.0.1:8001:8001"
-      - "127.0.0.1:5006:5006"
     links:
       - db
+      - redis
+      - elasticsearch
       - solr
-      - redis:redis
 volumes:
   solr:
     driver: local

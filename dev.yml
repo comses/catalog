@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"
+  django:
+    build:
+      context: ./
+      args:
+        RUN_SCRIPT: "./deploy/docker/dev.sh"
+    image: comses/catalog/dev:latest
+    environment:
+      DJANGO_SETTINGS_MODULE: 'catalog.settings.dev'
+    ports:
+      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:5006:5006"
+  kibana:
+    image: docker.elastic.co/kibana/kibana:6.3.0
+    links:
+      - elasticsearch
+    ports:
+      - "127.0.0.1:5601:5601"
+  solr:
+    ports:
+      - "127.0.0.1:8983:8983"

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Convenience script for calling docker-compose in development
+
+docker-compose -f base.yml -f dev.yml $@

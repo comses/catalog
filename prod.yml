@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  django:
+    build:
+      context: ./
+      args:
+        RUN_SCRIPT: "./deploy/docker/prod.sh"
+    image: comses/catalog/prod:latest
+    restart: always
+    volumes:
+      - ./deploy/backup/cron-script:/etc/cron.daily/autopgsqlbackup
+      - ./docker/shared:/shared
+      - static:/catalog/static
+      - uwsgisocket:/catalog/socket
+  nginx:
+    image: nginx:latest
+    restart: always
+    volumes:
+    - ./deploy/nginx/catalog-haproxy.conf:/etc/nginx/nginx.conf
+    - ./deploy/nginx/uwsgi_params:/catalog/uwsgi_params
+    - uwsgisocket:/catalog/socket
+    - static:/catalog/static
+    - logs:/var/log/nginx
+    command: ["nginx", "-g", "daemon off;"]
+    ports:
+    - "127.0.0.1:8180:80"
+    links:
+    - django
+
+volumes:
+  uwsgisocket:
+    driver: local

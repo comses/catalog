@@ -9,7 +9,7 @@ import sys
 
 # push current working directory onto the path to access catalog.settings
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-os.environ['DJANGO_SETTINGS_MODULE'] = 'catalog.settings'
+os.environ['DJANGO_SETTINGS_MODULE'] = 'catalog.settings.dev'
 
 from django.conf import settings
 
