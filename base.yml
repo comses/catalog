@@ -42,7 +42,7 @@ services:
       - ./deploy/elasticsearch.conf.d/elasticsearch-dev.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - esdata:/usr/share/elasticsearch/data
   db:
-    image: postgres:9.6
+    image: postgres:10
     volumes:
       - data:/var/lib/postgresql/data
       - ./deploy/conf/postgres_password:/run/secrets/password

@@ -4,18 +4,16 @@ ARG RUN_SCRIPT=./deploy/docker/dev.sh
 ARG UBUNTU_MIRROR=mirror.math.princeton.edu/pub
 
 RUN sed -i "s|archive.ubuntu.com|${UBUNTU_MIRROR}|" /etc/apt/sources.list \
-    && echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" | tee /etc/apt/sources.list.d/postgresql.list \
     && apt-get update && apt-get install -q -y \
     curl \
     git \
     libxml2-dev \
+    postgresql-client \
     python3-dev \
     python3-pip \
+    python3-setuptools \
     ssmtp \
     wget \
-    && wget -q -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
-    && curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get install -y nodejs \
-    && apt-get update && apt-get install -q -y postgresql-9.6 postgresql-client-9.6 libpq-dev libpq5 autopostgresqlbackup \
     && update-alternatives --install /usr/bin/python python /usr/bin/python3 1000 \
     && mkdir -p /etc/service/django \
     && mkdir -p /etc/service/bokeh  \
