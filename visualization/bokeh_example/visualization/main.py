@@ -21,9 +21,11 @@ logger.info('starting')
 def extract_query():
     doc = curdoc()
     args = doc.session_context.request.arguments if doc and doc.session_context else {}
+    logger.info(args)
     content_type_arg = args.get('content_type')
     content_type = content_type_arg[0].decode() if content_type_arg else 'sponsors'
-    search_arg = args.get('search')
+    search_arg = args.get('q')
+
     search = search_arg[0].decode() if search_arg else ''
     query = Query(content_type=content_type, search=search)
     return query
@@ -35,8 +37,8 @@ logger.info('extracted query: {}'.format(query.content_type))
 
 
 def retrieve_matches(search, content_type):
-    s = PublicationDocSearch().full_text(q=search).agg_by_count()
-    response = s.execute()
+    s = PublicationDocSearch().find(q=search, field_name_to_ids={}).agg_by_count()
+    response = s.execute(filters={})
     return s.cache[content_type]['count']
 
 
@@ -106,7 +108,7 @@ page = column(
 
 
 def update_chart():
-    page.children[1] = CodeAvailabilityChart(search=query.search, model_name=query.content_type,
+    page.children[0] = CodeAvailabilityChart(search=query.search, model_name=query.content_type,
                                              indices=top_matches_data_source.selected.indices).render()
 
 
