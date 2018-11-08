@@ -38,13 +38,14 @@
             </div>
             <div class="col-lg-3">
                 <form>
+                    <input type="hidden" value="{{ query }}" name="q">
                     <div class="card my-1">
                         <div class="card-header">
                             Top Authors (Count)
                         </div>
                         <div class="card-body">
                             {% for author in facets.authors.count %}
-                                {% facet_checkbox author %}
+                                {% facet_checkbox author "authors" %}
                             {% endfor %}
                         </div>
                     </div>
@@ -53,8 +54,8 @@
                             Top Journals (Count)
                         </div>
                         <div class="card-body">
-                            {% for journal in facets.containers.count %}
-                                {% facet_checkbox journal %}
+                            {% for journal in facets.container.count %}
+                                {% facet_checkbox journal "container" %}
                             {% endfor %}
                         </div>
                     </div>
@@ -64,7 +65,7 @@
                         </div>
                         <div class="card-body">
                             {% for platform in facets.platforms.count %}
-                                {% facet_checkbox platform %}
+                                {% facet_checkbox platform "platforms" %}
                             {% endfor %}
                         </div>
                     </div>
@@ -74,7 +75,7 @@
                         </div>
                         <div class="card-body">
                             {% for sponsor in facets.sponsors.count %}
-                                {% facet_checkbox sponsor %}
+                                {% facet_checkbox sponsor "sponsors" %}
                             {% endfor %}
                         </div>
                     </div>
@@ -84,7 +85,7 @@
                         </div>
                         <div class="card-body">
                             {% for tag in facets.tags.count %}
-                                {% facet_checkbox tag %}
+                                {% facet_checkbox tag "tags" %}
                             {% endfor %}
                         </div>
                     </div>
@@ -98,19 +99,9 @@
                         {% pagination_control paginator current_page %}
                         <div>Results ({{ total_hits }})</div>
                     </div>
-                    <div class="btn-group align-self-start">
-                        <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="exploreMenu"
-                           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            <span class="fas fa-list-ol"></span> Explore
-                        </a>
-
-                        <div class="dropdown-menu" aria-labelledby="exploreMenu">
-                            <a class="dropdown-item" href="#">Top Authors</a>
-                            <a class="dropdown-item" href="#">Top Platforms</a>
-                            <a class="dropdown-item" href="#">Top Sponsors</a>
-                            <a class="dropdown-item" href="#">Top Tags</a>
-                        </div>
-                    </div>
+                    <a class="btn btn-secondary align-self-start" href="{{ visualization_url }}" role="button">
+                        <span class="fas fa-list-ol"></span> Explore
+                    </a>
                 </div>
                 {% for publication in publications %}
                     <div class="card">

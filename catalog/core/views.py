@@ -18,7 +18,7 @@ from django.core.cache import cache
 from django.db import models
 from django.db.models import Count, Q, F, Value as V, Max
 from django.db.models.functions import Concat
-from django.http import JsonResponse, HttpResponseRedirect, StreamingHttpResponse
+from django.http import JsonResponse, HttpResponseRedirect, StreamingHttpResponse, QueryDict
 from django.shortcuts import get_object_or_404, resolve_url, render, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -685,24 +685,38 @@ def create_paginator(current_page, total_hits, page_size=10):
     return paginator
 
 
+def normalize_search_querydict(qd: QueryDict):
+    q = qd.get('q', '')
+    field_names = PublicationDocSearch.get_filter_field_names()
+    filters = {}
+    for field_name in field_names:
+        filters[field_name] = set(int(ident) for ident in qd.getlist(field_name))
+    return q, filters
+
+
 def public_search_view(request):
-    q = request.GET.get('q', '')
+    q, filters = normalize_search_querydict(request.GET)
     current_page = int(request.GET.get('page', 1))
 
     from_qs = (current_page - 1) * 10
     to_qs = from_qs + 10
-    publication_query = PublicationDocSearch().full_text(q=q)[from_qs:to_qs].agg_by_count()
-    publications = publication_query.execute()
+    publication_query = PublicationDocSearch().find(q=q, field_name_to_ids=filters)[from_qs:to_qs].agg_by_count()
+    publications = publication_query.execute(filters=filters)
     facets = publication_query.cache
-
-    pprint(facets)
 
     total_hits = publications.hits.total
     paginator = create_paginator(current_page=current_page, total_hits=total_hits)
-    logger.info(paginator)
     form = PublicSearchForm(initial={'q': q})
+
+    visualization_url = reverse('core:public-visualization')
+    if q or filters:
+        query_dict = request.GET.copy()
+        query_dict.pop('page', None)
+        visualization_url += '?{}'.format(query_dict.urlencode())
+
     context = {'publications': publications, 'facets': facets, 'query': q, 'from': from_qs, 'to': to_qs,
-               'form': form, 'paginator': paginator, 'current_page': current_page, 'total_hits': total_hits}
+               'form': form, 'paginator': paginator, 'current_page': current_page, 'total_hits': total_hits,
+               'visualization_url': visualization_url}
     context.update(PublicationDoc.get_breadcrumb_data())
     return render(request, 'public/search.html', context)
 

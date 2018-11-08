@@ -33,9 +33,10 @@ def list_authors(authors):
 
 
 @register.inclusion_tag('public/includes/facet_checkbox.html')
-def facet_checkbox(instance):
-    return {'name_attr': instance['id'],
+def facet_checkbox(instance, field):
+    return {'name_attr': field,
             'id_attr': instance['id'],
+            'checked': instance['checked'],
             'name': instance['name'],
             'statistic': instance['publication_count']}
 

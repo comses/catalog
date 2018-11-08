@@ -1,5 +1,5 @@
 <div class="form-check">
-    <input class="form-check-input" type="checkbox" value="" name="{{ name_attr }}" id="{{ id_attr }}">
+    <input class="form-check-input" type="checkbox" {% if checked %}checked{% endif %} value="{{ id_attr }}" name="{{ name_attr }}" id="{{ id_attr }}">
     <label class="form-check-label" for="{{ id_attr }}">
         {{ name }} (<b>{{ statistic }}</b>)
     </label>

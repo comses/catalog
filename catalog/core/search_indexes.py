@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 from django.db.models import QuerySet
 from django.urls import reverse
 from haystack import indexes
+from typing import Dict, List
 
 from citation.models import Publication, Platform, Sponsor, Tag, ModelDocumentation, Container, Author
 
@@ -101,7 +102,7 @@ def bulk_index_update():
 ##########################################
 
 from elasticsearch.helpers import bulk
-from elasticsearch_dsl import DocType, connections, InnerDoc, aggs
+from elasticsearch_dsl import DocType, connections, InnerDoc, aggs, query
 import elasticsearch_dsl as edsl
 
 ALL_DATA_FIELD = 'all_data'
@@ -136,18 +137,11 @@ class TopHits:
 
 
 class AbstractAgg:
-    def __init__(self, name, field_name):
+    def __init__(self, name):
         self.name = name
-        self.field_name = field_name
 
-    @classmethod
-    def from_model(cls, model, name=None, field_name=None):
-        name = name if name else str(model._meta.verbose_name_plural)
-        field_name = field_name if field_name is not None else name
-        return cls(name=name, field_name=field_name)
-
-    def extract(self, response):
-        data = self.extract_count(response)
+    def extract(self, response, ids):
+        data = self.extract_count(response, ids)
         return {self.name: {'count': data}}
 
 
@@ -161,16 +155,17 @@ class UnnestedAgg(AbstractAgg):
 
     def count(self, search):
         search.aggs.bucket(self._terms_bucket_name,
-                           aggs.Terms(field='{}.id'.format(self.field_name))) \
+                           aggs.Terms(field='{}.id'.format(self.name))) \
             .bucket(self._top_hit_bucket_name,
-                    aggs.TopHits(size=1, _source={'includes': [self.field_name]}))
+                    aggs.TopHits(size=1, _source={'includes': [self.name]}))
 
-    def extract_count(self, response):
+    def extract_count(self, response, ids):
         term_buckets = response.aggs[self._terms_bucket_name].buckets
         results = []
         for bucket in term_buckets:
             result = {'publication_count': bucket.doc_count}
-            result.update(bucket[self._top_hit_bucket_name].hits.hits[0]['_source'][self.field_name])
+            result.update(bucket[self._top_hit_bucket_name].hits.hits[0]['_source'][self.name])
+            result['checked'] = result['id'] in ids
             results.append(result)
         return results
 
@@ -184,29 +179,62 @@ class NestedAgg(AbstractAgg):
     _top_hit_bucket_name = 'top_hit'
 
     def count(self, search):
-        search.aggs.bucket(self._top_bucket_name, aggs.Nested(path=self.field_name)) \
+        search.aggs.bucket(self._top_bucket_name, aggs.Nested(path=self.name)) \
             .bucket(self._terms_bucket_name,
-                    aggs.Terms(field='{}.id'.format(self.field_name))) \
-            .bucket(self._top_hit_bucket_name, aggs.TopHits(size=1, _source={'includes': [self.field_name]}))
+                    aggs.Terms(field='{}.id'.format(self.name))) \
+            .bucket(self._top_hit_bucket_name, aggs.TopHits(size=1, _source={'includes': [self.name]}))
 
-    def extract_count(self, response):
+    def extract_count(self, response, ids):
         term_buckets = response.aggs[self._top_bucket_name][self._terms_bucket_name].buckets
         results = []
         for bucket in term_buckets:
             result = {'publication_count': bucket.doc_count}
             result.update(bucket[self._top_hit_bucket_name].hits.hits[0]['_source'])
+            result['checked'] = result['id'] in ids
+            logger.info('checked: %s, %i, %s', result['checked'], result['id'], ids)
             results.append(result)
         return results
 
 
+class FilterQuery:
+    def __init__(self, name):
+        self.field = '{}.id'.format(name)
+
+    def by_ids(self, ids):
+        return query.Q('terms', **{self.field: list(ids)})
+
+
+class NestedFilterQuery:
+    def __init__(self, name):
+        self.path = name
+        self.field = '{}.id'.format(name)
+
+    def by_ids(self, ids):
+        return query.Nested(path=self.path, query=query.Q('terms', **{self.field: list(ids)}))
+
+
 class PublicationDocSearch:
-    aggs = [
-        NestedAgg.from_model(Author),
-        UnnestedAgg.from_model(Container, field_name='container'),
-        NestedAgg.from_model(Platform),
-        NestedAgg.from_model(Sponsor),
-        NestedAgg.from_model(Tag)
-    ]
+    AUTHOR_FIELD_NAME = 'authors'
+    CONTAINER_FIELD_NAME = 'container'
+    PLATFORM_FIELD_NAME = 'platforms'
+    SPONSOR_FIELD_NAME = 'sponsors'
+    TAG_FIELD_NAME = 'tags'
+
+    aggs = {
+        AUTHOR_FIELD_NAME: NestedAgg(AUTHOR_FIELD_NAME),
+        CONTAINER_FIELD_NAME: UnnestedAgg(CONTAINER_FIELD_NAME),
+        PLATFORM_FIELD_NAME: NestedAgg(PLATFORM_FIELD_NAME),
+        SPONSOR_FIELD_NAME: NestedAgg(SPONSOR_FIELD_NAME),
+        TAG_FIELD_NAME: NestedAgg(TAG_FIELD_NAME)
+    }
+
+    filters = {
+        AUTHOR_FIELD_NAME: NestedFilterQuery(AUTHOR_FIELD_NAME),
+        CONTAINER_FIELD_NAME: FilterQuery(CONTAINER_FIELD_NAME),
+        PLATFORM_FIELD_NAME: NestedFilterQuery(PLATFORM_FIELD_NAME),
+        SPONSOR_FIELD_NAME: NestedFilterQuery(SPONSOR_FIELD_NAME),
+        TAG_FIELD_NAME: NestedFilterQuery(TAG_FIELD_NAME)
+    }
 
     def __init__(self, search=None, cache=None):
         self.search = PublicationDoc.search() if search is None else search
@@ -215,9 +243,23 @@ class PublicationDocSearch:
     def __getitem__(self, val):
         return PublicationDocSearch(self.search[val])
 
-    def full_text(self, q):
-        if q:
-            return PublicationDocSearch(self.search.query('match', **{ALL_DATA_FIELD: q}))
+    def _full_text(self, q):
+        return query.Match(**{ALL_DATA_FIELD: q})
+
+    def _filter(self, field_name_to_ids: Dict[str, List[int]]):
+        queries = []
+        for field_name in field_name_to_ids:
+            ids = field_name_to_ids[field_name]
+            queries.append(self.filters[field_name].by_ids(ids))
+        return queries
+
+    def find(self, q, field_name_to_ids):
+        queries = self._filter(field_name_to_ids)
+        full_text = self._full_text(q) if q else query.MatchAll()
+        if queries:
+            return PublicationDocSearch(self.search.query(query.Bool(should=queries, must=[full_text])))
+        elif q:
+            return PublicationDocSearch(self.search.query(full_text))
         else:
             return PublicationDocSearch(self.search.sort('-date_published'))
 
@@ -229,14 +271,21 @@ class PublicationDocSearch:
 
     def agg_by_count(self):
         s = self.search._clone()
-        for agg in self.aggs:
+        for agg in self.aggs.values():
             agg.count(s)
         return PublicationDocSearch(s)
 
-    def execute(self):
+    @classmethod
+    def get_filter_field_names(cls):
+        return [cls.AUTHOR_FIELD_NAME, cls.CONTAINER_FIELD_NAME,
+                cls.PLATFORM_FIELD_NAME, cls.SPONSOR_FIELD_NAME, cls.TAG_FIELD_NAME]
+
+    def execute(self, filters):
         response = self.search.execute()
-        for agg in self.aggs:
-            self.cache.update(agg.extract(response))
+        for name in self.aggs:
+            ids = filters.get(name, [])
+            agg = self.aggs[name]
+            self.cache.update(agg.extract(response, ids))
         return response
 
 
