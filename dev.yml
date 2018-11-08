@@ -12,6 +12,8 @@ services:
     image: comses/catalog/dev:latest
     environment:
       DJANGO_SETTINGS_MODULE: 'catalog.settings.dev'
+      BOKEH_DEV: 'true'
+      BOKEH_RESOURCES: 'server-dev'
     ports:
       - "127.0.0.1:8000:8000"
       - "127.0.0.1:5006:5006"
