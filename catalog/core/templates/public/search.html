@@ -12,9 +12,9 @@
                             <div class="input-group">
                                 <input type="text" class="form-control form-control-lg"
                                        placeholder="Enter search terms here" value="{{ query }}"
-                                       aria-label="Search" name="q" id="{{ field.id_for_label }}">
+                                       aria-label="Search" name="q" id="{{ field.id_for_label }}" form="search">
                                 <div class="input-group-append">
-                                    <button class="btn btn-outline-primary btn-lg" type="submit">Search</button>
+                                    <button class="btn btn-outline-primary btn-lg" type="submit" form="search">Search</button>
                                     <a class="btn btn-outline-info btn-lg" data-toggle="collapse"
                                        href="#searchExplanation"
                                        role="button"
@@ -37,8 +37,7 @@
                 </div>
             </div>
             <div class="col-lg-3">
-                <form>
-                    <input type="hidden" value="{{ query }}" name="q">
+                <form id="search">
                     <div class="card my-1">
                         <div class="card-header">
                             Top Authors (Count)

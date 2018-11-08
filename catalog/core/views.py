@@ -727,7 +727,7 @@ def public_visualization_view(request):
     arguments = {'content_type': content_type}
     search = request.GET.get('search', '')
     if search:
-        arguments['search'] = search
+        arguments['q'] = search
     breadcrumb_trail = [
         {'link': reverse('core:public-home'), 'text': 'Home'},
         {'text': 'Visualization'},
