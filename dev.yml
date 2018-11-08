@@ -17,7 +17,7 @@ services:
       - "127.0.0.1:5006:5006"
   kibana:
     image: docker.elastic.co/kibana/kibana:6.3.0
-    links:
+    depends_on:
       - elasticsearch
     ports:
       - "127.0.0.1:5601:5601"

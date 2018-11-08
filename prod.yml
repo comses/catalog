@@ -24,9 +24,9 @@ services:
     - logs:/var/log/nginx
     command: ["nginx", "-g", "daemon off;"]
     ports:
-    - "127.0.0.1:8180:80"
-    links:
-    - django
+      - "80:80"
+    depends_on:
+      - django
 
 volumes:
   uwsgisocket:
