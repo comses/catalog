@@ -1,10 +1,10 @@
-FROM comses/base:1.1.0
+FROM comses/base:1.2.0
 
 ARG RUN_SCRIPT=./deploy/docker/dev.sh
 ARG UBUNTU_MIRROR=mirror.math.princeton.edu/pub
 
 RUN sed -i "s|archive.ubuntu.com|${UBUNTU_MIRROR}|" /etc/apt/sources.list \
-    && echo "deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main" | tee /etc/apt/sources.list.d/postgresql.list \
+    && echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" | tee /etc/apt/sources.list.d/postgresql.list \
     && apt-get update && apt-get install -q -y \
     curl \
     git \
@@ -15,16 +15,18 @@ RUN sed -i "s|archive.ubuntu.com|${UBUNTU_MIRROR}|" /etc/apt/sources.list \
     wget \
     && wget -q -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
     && curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get install -y nodejs \
-    && apt-get update && apt-get install -q -y postgresql-9.6 postgresql-client-9.6 libpq-dev autopostgresqlbackup \
+    && apt-get update && apt-get install -q -y postgresql-9.6 postgresql-client-9.6 libpq-dev libpq5 autopostgresqlbackup \
     && update-alternatives --install /usr/bin/python python /usr/bin/python3 1000 \
     && mkdir -p /etc/service/django \
-    && touch /etc/service/django/run /etc/postgresql-backup-pre \
-    && chmod a+x /etc/service/django/run /etc/postgresql-backup-pre \
+    && mkdir -p /etc/service/bokeh  \
+    && touch /etc/service/django/run /etc/service/bokeh/run /etc/postgresql-backup-pre \
+    && chmod a+x /etc/service/django/run /etc/service/bokeh/run /etc/postgresql-backup-pre \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY ./deploy/db/autopostgresqlbackup.conf /etc/default/autopostgresqlbackup
 COPY ./deploy/db/postgresql-backup-pre /etc/
 COPY ${RUN_SCRIPT} /etc/service/django/run
+COPY ./deploy/docker/bokeh.sh /etc/service/bokeh/run
 
 COPY deploy/mail/ssmtp.conf /etc/ssmtp/ssmtp.conf
 # copy cron script to be run daily
