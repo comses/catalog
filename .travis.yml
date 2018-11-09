@@ -17,7 +17,7 @@ before_install:
   - ./compose
   - sudo sysctl -w vm.max_map_count=262144
 install: 
-  - docker-compose build --pull
+  - ./build.sh
   - pip3 install python-coveralls coverage
 script:
   - docker-compose run --rm django /code/deploy/docker/test.sh
