@@ -3,12 +3,13 @@ from collections import namedtuple
 
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
-from django.forms import Form
+from django.contrib.auth.models import User
+from django.forms import Form, ModelForm
 from django.utils.translation import ugettext_lazy as _
 from haystack.forms import SearchForm
 from haystack.inputs import Raw
 
-from citation.models import Author, Container, Platform, Publication, Sponsor, Tag
+from citation.models import Author, Container, Platform, Publication, Sponsor, Tag, SuggestedPublication, Submitter
 
 logger = logging.getLogger(__name__)
 
@@ -108,12 +109,12 @@ class CatalogSearchForm(SearchForm):
 
 ContentTypeChoice = namedtuple('ContentTypeChoice', ['value', 'label', 'model'])
 
-
 CONTENT_TYPE_CHOICES = [
     ContentTypeChoice(value=model._meta.verbose_name_plural, label=model._meta.verbose_name_plural.title(), model=model)
     for model in [Author, Platform, Sponsor, Tag]
 ]
-CONTENT_TYPE_CHOICES.insert(1, ContentTypeChoice(Container._meta.verbose_name_plural, 'Journals and Other Media', Container))
+CONTENT_TYPE_CHOICES.insert(1, ContentTypeChoice(Container._meta.verbose_name_plural, 'Journals and Other Media',
+                                                 Container))
 
 CONTENT_TYPE_SEARCH = {
     c.value: c.model for c in CONTENT_TYPE_CHOICES
@@ -127,4 +128,53 @@ class PublicSearchForm(Form):
 class PublicExploreForm(Form):
     content_type = forms.ChoiceField(choices=[(c.value, c.label) for c in CONTENT_TYPE_CHOICES], label='Content Type')
     topic = forms.CharField(widget=forms.TextInput(attrs={'placeholder': 'Search'}))
-    order_by = forms.ChoiceField(choices=(('count', 'Publication Count Desc'), ('citations', 'Total Publication Citations Desc'), ('index', 'h-index Desc')))
+    order_by = forms.ChoiceField(choices=(
+        ('count', 'Publication Count Desc'), ('citations', 'Total Publication Citations Desc'),
+        ('index', 'h-index Desc')))
+
+
+class SuggestedPublicationForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.submitter = kwargs.pop('submitter', None)
+        super().__init__(*args, **kwargs)
+
+    class Meta:
+        model = SuggestedPublication
+        fields = ['doi', 'title', 'journal', 'volume', 'issue', 'pages']
+        widgets = {
+            'doi': forms.TextInput,
+            'journal': forms.TextInput,
+            'title': forms.TextInput,
+        }
+
+    def save(self, commit=True):
+        suggested_publication = SuggestedPublication(**self.cleaned_data, submitter=self.submitter)
+        suggested_publication.save()
+        return suggested_publication
+
+
+class SubmitterForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    class Meta:
+        model = Submitter
+        fields = ['email']
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if self.user is None and not email:
+            raise forms.ValidationError('Must set an email address if are requesting anonymously')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('Cannot set email address to that of an existing user')
+        return email
+
+    def save(self, commit=True):
+        if self.user is not None:
+            submitter = Submitter(user=self.user)
+        else:
+            submitter = Submitter(email=self.cleaned_data['email'])
+        submitter.save()
+        return submitter
+

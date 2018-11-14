@@ -5,12 +5,12 @@ from collections import Counter
 from datetime import timedelta, datetime
 from hashlib import sha1
 from json import dumps
-from pprint import pprint
 
 import markdown
 from bokeh.embed import server_document
 from dateutil.parser import parse as datetime_parse
 from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core import signing
@@ -33,7 +33,8 @@ from haystack.query import SearchQuerySet
 from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 
-from catalog.core.forms import CONTENT_TYPE_SEARCH, PublicSearchForm, PublicExploreForm
+from catalog.core.forms import CONTENT_TYPE_SEARCH, PublicSearchForm, PublicExploreForm, SuggestedPublicationForm, \
+    SubmitterForm
 from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch
 from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
@@ -767,6 +768,39 @@ def public_home(request):
     if q:
         return redirect(PublicationDoc.get_public_list_url(q=q))
     return render(request, 'public/home.html')
+
+
+def suggest_a_publication(request):
+    def render_page(submitter_form, suggested_publication_form):
+        return render(request, template_name='public/suggest_a_publication.html', context={
+            'breadcrumb_trail': [
+                {'link': reverse('core:public-home'), 'text': 'Home'},
+                {'link': PublicationDoc.get_public_list_url(), 'text': 'Publications'},
+                {'text': 'Suggest'}
+            ],
+            'submitter_form': submitter_form,
+            'suggested_publication_form': suggested_publication_form
+        })
+
+    user = request.user if not request.user.is_anonymous else None
+
+    if request.POST:
+        submitter_form = SubmitterForm(request.POST, user=user)
+        if not submitter_form.is_valid():
+            suggested_publication_form = SuggestedPublicationForm(request.POST)
+            return render_page(submitter_form=submitter_form, suggested_publication_form=suggested_publication_form)
+        submitter = submitter_form.save()
+
+        suggested_publication_form = SuggestedPublicationForm(request.POST, submitter=submitter)
+        if not suggested_publication_form.is_valid():
+            return render_page(submitter_form=submitter_form, suggested_publication_form=suggested_publication_form)
+
+        suggested_publication = suggested_publication_form.save()
+        messages.add_message(request, messages.SUCCESS, 'Successfully publication addition request for {}'.format(
+            suggested_publication.doi or suggested_publication.title))
+        return HttpResponseRedirect(redirect_to=reverse('core:public-search'))
+    else:
+        return render_page(submitter_form=SubmitterForm(), suggested_publication_form=SuggestedPublicationForm())
 
 
 class PublicationDetailView(DetailView):

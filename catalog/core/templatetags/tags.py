@@ -1,7 +1,9 @@
 import re
 
 from django import template
+from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.forms import CheckboxInput
 from django.template.loader import get_template
 
 from citation.models import Author, Platform, Sponsor, Tag, Container
@@ -48,6 +50,23 @@ def add_field_css(field, css_classes: str):
     css_classes = field.css_classes(css_classes)
     deduped_css_classes = ' '.join(set(css_classes.split(' ')))
     return field.as_widget(attrs={'class': deduped_css_classes})
+
+
+@register.filter()
+def is_checkbox(bound_field):
+    return isinstance(bound_field.field.widget, CheckboxInput)
+
+
+@register.inclusion_tag('public/includes/form.html')
+def render_form(form):
+    return {
+        'form': form
+    }
+
+@register.inclusion_tag('public/includes/message.html')
+def message(text, level):
+    style = messages.DEFAULT_TAGS[level]
+    return {'text': text, 'style': style}
 
 
 @register.simple_tag()

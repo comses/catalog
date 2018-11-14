@@ -56,6 +56,7 @@ urlpatterns += [
         name='networkrelation'),
     path('public/visualization/', views.public_visualization_view, name='public-visualization'),
     path('public/publications/', views.public_search_view, name='public-search'),
+    path('public/publications/add/', views.suggest_a_publication, name='suggest-a-publication'),
     path('public/publications/<int:pk>/', views.PublicationDetailView.as_view(), name='public-publication-detail'),
     path('public/', views.public_home, name='public-home'),
 ]
