@@ -1,10 +1,14 @@
 {% extends 'public/base.html' %}
-{% load add_field_css facet_checkbox list_authors pagination_control from tags %}
+{% load add_field_css list_authors pagination_control from tags %}
 
 {% block content %}
     <div class="container">
         <div class="row">
-            <div class="col-9 offset-3 pt-2">
+            <div class="col-lg-3 pt-2 pr-3">
+                <a class="btn btn-block btn-lg btn-light" href="{% url 'core:suggest-a-publication' %}">Suggest
+                    publication</a>
+            </div>
+            <div class="col-lg-9 pt-2">
                 <form>
                     {% with form.visible_fields|first as field %}
                         <div class="form-group">
@@ -12,9 +16,10 @@
                             <div class="input-group">
                                 <input type="text" class="form-control form-control-lg"
                                        placeholder="Enter search terms here" value="{{ query }}"
-                                       aria-label="Search" name="q" id="{{ field.id_for_label }}" form="search">
+                                       aria-label="Search" name="search" id="{{ field.id_for_label }}" form="search">
                                 <div class="input-group-append">
-                                    <button class="btn btn-outline-primary btn-lg" type="submit" form="search">Search</button>
+                                    <button class="btn btn-outline-primary btn-lg" type="submit" form="search">Search
+                                    </button>
                                     <a class="btn btn-outline-info btn-lg" data-toggle="collapse"
                                        href="#searchExplanation"
                                        role="button"
@@ -37,59 +42,7 @@
                 </div>
             </div>
             <div class="col-lg-3">
-                <form id="search">
-                    <div class="card my-1">
-                        <div class="card-header">
-                            Top Authors (Count)
-                        </div>
-                        <div class="card-body">
-                            {% for author in facets.authors.count %}
-                                {% facet_checkbox author "authors" %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="card my-1">
-                        <div class="card-header">
-                            Top Journals (Count)
-                        </div>
-                        <div class="card-body">
-                            {% for journal in facets.container.count %}
-                                {% facet_checkbox journal "container" %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="card my-1">
-                        <div class="card-header">
-                            Top Programming Platforms (Count)
-                        </div>
-                        <div class="card-body">
-                            {% for platform in facets.platforms.count %}
-                                {% facet_checkbox platform "platforms" %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="card my-1">
-                        <div class="card-header">
-                            Top Sponsors (Count)
-                        </div>
-                        <div class="card-body">
-                            {% for sponsor in facets.sponsors.count %}
-                                {% facet_checkbox sponsor "sponsors" %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="card my-1">
-                        <div class="card-header">
-                            Top Tags (Count)
-                        </div>
-                        <div class="card-body">
-                            {% for tag in facets.tags.count %}
-                                {% facet_checkbox tag "tags" %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Filter</button>
-                </form>
+                {% include 'public/includes/faceted_search.html' %}
             </div>
             <div class="col-lg-9">
                 <div class="d-flex justify-content-between">

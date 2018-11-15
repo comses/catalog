@@ -191,7 +191,6 @@ class NestedAgg(AbstractAgg):
             result = {'publication_count': bucket.doc_count}
             result.update(bucket[self._top_hit_bucket_name].hits.hits[0]['_source'])
             result['checked'] = result['id'] in ids
-            logger.info('checked: %s, %i, %s', result['checked'], result['id'], ids)
             results.append(result)
         return results
 
@@ -246,18 +245,21 @@ class PublicationDocSearch:
     def _full_text(self, q):
         return query.Match(**{ALL_DATA_FIELD: q})
 
-    def _filter(self, field_name_to_ids: Dict[str, List[int]]):
+    def _filter(self, facet_filters: Dict[str, List[int]]):
         queries = []
-        for field_name in field_name_to_ids:
-            ids = field_name_to_ids[field_name]
-            queries.append(self.filters[field_name].by_ids(ids))
+        for field_name in facet_filters:
+            ids = facet_filters[field_name]
+            if ids:
+                queries.append(self.filters[field_name].by_ids(ids))
         return queries
 
-    def find(self, q, field_name_to_ids):
-        queries = self._filter(field_name_to_ids)
+    def find(self, q, facet_filters):
+        logger.info('filters: %s', facet_filters)
+        queries = self._filter(facet_filters)
         full_text = self._full_text(q) if q else query.MatchAll()
         if queries:
-            return PublicationDocSearch(self.search.query(query.Bool(should=queries, must=[full_text])))
+            return PublicationDocSearch(self.search.query(
+                query.Bool(should=queries, must=[full_text], minimum_should_match=1)))
         elif q:
             return PublicationDocSearch(self.search.query(full_text))
         else:
@@ -280,10 +282,10 @@ class PublicationDocSearch:
         return [cls.AUTHOR_FIELD_NAME, cls.CONTAINER_FIELD_NAME,
                 cls.PLATFORM_FIELD_NAME, cls.SPONSOR_FIELD_NAME, cls.TAG_FIELD_NAME]
 
-    def execute(self, filters):
+    def execute(self, facet_filters):
         response = self.search.execute()
         for name in self.aggs:
-            ids = filters.get(name, [])
+            ids = facet_filters.get(name, [])
             agg = self.aggs[name]
             self.cache.update(agg.extract(response, ids))
         return response
@@ -333,10 +335,10 @@ class PublicationDoc(DocType):
         ]}
 
     @classmethod
-    def get_public_list_url(cls, q=None):
+    def get_public_list_url(cls, search=None):
         location = reverse('core:public-search')
-        if q:
-            query_string = urlencode({'q': q})
+        if search:
+            query_string = urlencode({'search': search})
             location += '?{}'.format(query_string)
         return location
 

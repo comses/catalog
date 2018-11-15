@@ -7,13 +7,13 @@
                 <div class="form-group">
                     <input type="text" class="form-control form-control-lg"
                            placeholder="Enter search terms here" value="{{ search }}"
-                           aria-label="Search" name="search" id="search">
+                           aria-label="Search" name="search" id="full_text" form="search">
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="form-group">
                     <label class="sr-only" for="content_type">Content Type</label>
-                    <select class="form-control form-control-lg" name="content_type">
+                    <select class="form-control form-control-lg" name="content_type" form="search">
                         {% for content_type_option in content_type_options %}
                             <option value="{{ content_type_option.value }}"
                                     {% if content_type == content_type_option.value %} selected{% endif %}>
@@ -24,9 +24,16 @@
                 </div>
             </div>
             <div class=" col-md-2">
-                <button class="btn btn-outline-primary btn-lg" type="submit">Search</button>
+                <button class="btn btn-outline-primary btn-block btn-lg" type="submit" form="search">Search</button>
             </div>
         </form>
-        {{ script|safe }}
+        <div class="row">
+            <section class="col-3">
+                {% include 'public/includes/faceted_search.html' %}
+            </section>
+            <section class="col-9">
+                {{ script|safe }}
+            </section>
+        </div>
     </div>
 {% endblock %}

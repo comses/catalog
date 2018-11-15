@@ -1,0 +1,32 @@
+{% extends 'public/base.html' %}
+{% load render_form from tags %}
+
+{% block content %}
+    <div class="container">
+        <p>
+            We welcome suggestions for publications which are not within the database. The current database is largely
+            based on search terms agent-based modeling and individual-based modeling. We recognize that not all relevant
+            publications have those keywords. As such you can send suggestions for publications to be included within
+            the database. Note that you need to be logged in as a comses net member to use this form. Note that at the
+            moment we only consider publications which are included within the ISI Web of Science since it allows us to
+            use good quality meta data to visualize the publication landscape.
+        </p>
+
+        <p>
+            Please provide enough information to identify the publication. If you provide a DOI you don't need to
+            provide anything else. Otherwise, you should provide at least the title and journal.
+        </p>
+
+        <p>
+            Publication addition requests are evaluated on a periodic basis.
+        </p>
+
+        <h5>Suggested Publication</h5>
+        <form method="post">
+            {% csrf_token %}
+            {% render_form suggested_publication_form %}
+            {% render_form submitter_form %}
+            <button type="submit" class="btn btn-primary">Create Suggestion</button>
+        </form>
+    </div>
+{% endblock %}

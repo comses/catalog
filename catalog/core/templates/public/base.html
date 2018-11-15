@@ -12,8 +12,13 @@
 <body>
 {% block header %}
     <div class="container sticky-top">
+        {% block notifications %}
+            {% for message in messages %}
+                 <div class="{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endblock %}
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="#">CoMSES Catalog</a>
+            <a class="navbar-brand" href="{% url 'core:public-home' %}">CoMSES Catalog</a>
         </nav>
         {% block breadcrumb %}
             <div class="col-12 px-0">

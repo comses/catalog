@@ -7,27 +7,37 @@ from bokeh.layouts import row, column
 from bokeh.models import TableColumn, DataTable, ColumnDataSource, Paragraph
 from bokeh.palettes import Spectral10
 from bokeh.plotting import figure
+from django.http import QueryDict
 
 from catalog.core.search_indexes import PublicationDocSearch
+from catalog.core.views import normalize_search_querydict
 from data_access import data_cache
 
 logger = logging.getLogger(__name__)
 
-Query = namedtuple('Query', ['content_type', 'search'])
+Query = namedtuple('Query', ['content_type', 'search', 'filters'])
 
 logger.info('starting')
+
+
+def bokeh_arguments_to_query_dict(arguments: dict) -> QueryDict:
+    qd = QueryDict(mutable=True)
+    for k, v in arguments.items():
+        for el in v:
+            qd[k] = el
+    return qd
 
 
 def extract_query():
     doc = curdoc()
     args = doc.session_context.request.arguments if doc and doc.session_context else {}
-    logger.info(args)
+    qd = bokeh_arguments_to_query_dict(args)
+    logger.info('args: %s', args)
+    logger.info('qd: %s', qd)
+    search, filters = normalize_search_querydict(qd)
     content_type_arg = args.get('content_type')
     content_type = content_type_arg[0].decode() if content_type_arg else 'sponsors'
-    search_arg = args.get('q')
-
-    search = search_arg[0].decode() if search_arg else ''
-    query = Query(content_type=content_type, search=search)
+    query = Query(content_type=content_type, search=search, filters=filters)
     return query
 
 
@@ -36,10 +46,10 @@ query = extract_query()
 logger.info('extracted query: {}'.format(query.content_type))
 
 
-def retrieve_matches(search, content_type):
-    s = PublicationDocSearch().find(q=search, field_name_to_ids={}).agg_by_count()
-    response = s.execute(filters={})
-    return s.cache[content_type]['count']
+def retrieve_matches():
+    s = PublicationDocSearch().find(q=query.search, facet_filters=query.filters).agg_by_count()
+    s.execute(facet_filters=query.filters)
+    return s.cache[query.content_type]['count']
 
 
 def create_search_match_table(data_source):
@@ -53,20 +63,19 @@ def create_search_match_table(data_source):
 
 p = Paragraph(text='Begin')
 top_matches_data_source = ColumnDataSource(
-    pd.DataFrame.from_records(retrieve_matches(search=query.search, content_type=query.content_type)))
+    pd.DataFrame.from_records(retrieve_matches()))
 match_table = create_search_match_table(top_matches_data_source)
 
 
 class CodeAvailabilityChart:
-    def __init__(self, search, model_name, indices):
-        self.search = search
+    def __init__(self, model_name, indices):
         self.indices = indices
         self.model_name = model_name
 
     def create_dataset(self):
         related_ids = top_matches_data_source.to_df().id.iloc[self.indices].values
         api = data_cache.get_model_data_access_api(self.model_name)
-        df = api.get_full_text_matches(self.search)
+        df = api.get_full_text_matches(query.search, facet_filters=query.filters)
         return api.get_year_related_counts(df=df, related_ids=related_ids)
 
     def create_view(self, df):
@@ -103,18 +112,18 @@ class CodeAvailabilityChart:
 
 
 page = column(
-    row(CodeAvailabilityChart(search=query.search, model_name=query.content_type, indices=[0, 1]).render()),
+    row(CodeAvailabilityChart(model_name=query.content_type, indices=[0, 1]).render()),
     row(match_table))
 
 
 def update_chart():
-    page.children[0] = CodeAvailabilityChart(search=query.search, model_name=query.content_type,
+    page.children[0] = CodeAvailabilityChart(model_name=query.content_type,
                                              indices=top_matches_data_source.selected.indices).render()
 
 
 def update_table():
     top_matches_data_source.data.update(ColumnDataSource(pd.DataFrame.from_records(
-        retrieve_matches(search=query.search, content_type=query.content_type))).data)
+        retrieve_matches())).data)
 
 
 top_matches_data_source.selected.on_change('indices', lambda attr, old, new: update_chart())

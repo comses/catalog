@@ -122,7 +122,7 @@ CONTENT_TYPE_SEARCH = {
 
 
 class PublicSearchForm(Form):
-    q = forms.CharField(label='Search')
+    search = forms.CharField(label='Search')
 
 
 class PublicExploreForm(Form):

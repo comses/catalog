@@ -17,11 +17,10 @@
                             <div class="input-group">
                                 <input type="text" class="form-control form-control-lg"
                                        placeholder="Enter search terms here"
-                                       aria-label="Search" name="q" id="search">
+                                       aria-label="Search" name="search" id="search">
                                 <div class="input-group-append">
                                     <button class="btn btn-outline-primary btn-lg" type="submit">Search</button>
                                     <a class="btn btn-outline-info btn-lg" data-toggle="collapse"
-                                            {#                               href="#searchExplanation"#}
                                        role="button"
                                        aria-expanded="false" aria-controls="searchExplanation">
                                         ?
@@ -36,7 +35,7 @@
         <section class="album py-5 bg-light">
             <div class="container">
                 <div class="row">
-                    <div class="col-md-4">
+                    <a class="col-md-4" href="{% url 'core:public-search' %}">
                         <div class="card mb-4 box-shadow">
                             <div class="card-img-top bg-secondary"
                                  style="height: 225px; width: 100%">
@@ -48,8 +47,8 @@
                                 Find publications
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
+                    </a>
+                    <a class="col-md-4" href="{% url 'core:suggest-a-publication' %}">
                         <div class="card mb-4 box-shadow">
                             <div class="card-img-top bg-secondary"
                                  style="height: 225px; width: 100%">
@@ -58,11 +57,11 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <p class="card-text text-center">Add your papers</p>
+                                <p class="card-text text-center">Suggest publications</p>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-4">
+                    </a>
+                    <a class="col-md-4" href="{% url 'core:public-visualization' %}">
                         <div class="card mb-4 box-shadow">
                             <div class="card-img-top bg-secondary"
                                  style="height: 225px; width: 100%">
@@ -74,7 +73,7 @@
                                 Visualize search results
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </div>
         </section>

@@ -1,0 +1,60 @@
+{% load facet_checkbox from tags %}
+
+<form id="search">
+    <div class="card my-1">
+        <div class="card-header">
+            Top Authors (Count)
+        </div>
+        <div class="card-body">
+            {% for author in facets.authors.count %}
+                {% facet_checkbox author "authors" %}
+                {% empty %} None
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card my-1">
+        <div class="card-header">
+            Top Journals (Count)
+        </div>
+        <div class="card-body">
+            {% for journal in facets.container.count %}
+                {% facet_checkbox journal "container" %}
+                {% empty %} None
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card my-1">
+        <div class="card-header">
+            Top Programming Platforms (Count)
+        </div>
+        <div class="card-body">
+            {% for platform in facets.platforms.count %}
+                {% facet_checkbox platform "platforms" %}
+                {% empty %} None
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card my-1">
+        <div class="card-header">
+            Top Sponsors (Count)
+        </div>
+        <div class="card-body">
+            {% for sponsor in facets.sponsors.count %}
+                {% facet_checkbox sponsor "sponsors" %}
+                {% empty %} None
+            {% endfor %}
+        </div>
+    </div>
+    <div class="card my-1">
+        <div class="card-header">
+            Top Tags (Count)
+        </div>
+        <div class="card-body">
+            {% for tag in facets.tags.count %}
+                {% facet_checkbox tag "tags" %}
+                {% empty %} None
+            {% endfor %}
+        </div>
+    </div>
+    <button type="submit" class="btn btn-block btn-outline-primary">Filter</button>
+</form>

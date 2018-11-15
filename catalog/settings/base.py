@@ -13,6 +13,7 @@ import logging
 import os
 import sys
 import configparser
+from django.contrib.messages import constants as messages
 
 
 DEBUG = False
@@ -180,6 +181,14 @@ CAS_AUTO_CREATE_USER = False
 CAS_RESPONSE_CALLBACKS = (
     'catalog.core.util.create_cas_user',
 )
+
+MESSAGE_TAGS = {
+    messages.DEBUG: 'alert alert-light',
+    messages.SUCCESS: 'alert alert-success',
+    messages.INFO: 'alert alert-info',
+    messages.WARNING: 'alert alert-danger',
+    messages.ERROR: 'alert alert-danger'
+}
 
 # static files configuration, see https://docs.djangoproject.com/en/1.9/ref/settings/#static-files
 

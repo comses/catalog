@@ -687,35 +687,36 @@ def create_paginator(current_page, total_hits, page_size=10):
 
 
 def normalize_search_querydict(qd: QueryDict):
-    q = qd.get('q', '')
+    search = qd.get('search', '')
     field_names = PublicationDocSearch.get_filter_field_names()
     filters = {}
     for field_name in field_names:
         filters[field_name] = set(int(ident) for ident in qd.getlist(field_name))
-    return q, filters
+    return search, filters
 
 
 def public_search_view(request):
-    q, filters = normalize_search_querydict(request.GET)
+    search, filters = normalize_search_querydict(request.GET)
     current_page = int(request.GET.get('page', 1))
 
     from_qs = (current_page - 1) * 10
     to_qs = from_qs + 10
-    publication_query = PublicationDocSearch().find(q=q, field_name_to_ids=filters)[from_qs:to_qs].agg_by_count()
-    publications = publication_query.execute(filters=filters)
+    publication_query = PublicationDocSearch().find(q=search, facet_filters=filters)[from_qs:to_qs].agg_by_count()
+    publications = publication_query.execute(facet_filters=filters)
     facets = publication_query.cache
 
     total_hits = publications.hits.total
     paginator = create_paginator(current_page=current_page, total_hits=total_hits)
-    form = PublicSearchForm(initial={'q': q})
+    form = PublicSearchForm(initial={'search': search})
 
     visualization_url = reverse('core:public-visualization')
-    if q or filters:
+    if search or filters:
         query_dict = request.GET.copy()
         query_dict.pop('page', None)
         visualization_url += '?{}'.format(query_dict.urlencode())
+        logger.info('qd: %s', query_dict)
 
-    context = {'publications': publications, 'facets': facets, 'query': q, 'from': from_qs, 'to': to_qs,
+    context = {'publications': publications, 'facets': facets, 'query': search, 'from': from_qs, 'to': to_qs,
                'form': form, 'paginator': paginator, 'current_page': current_page, 'total_hits': total_hits,
                'visualization_url': visualization_url}
     context.update(PublicationDoc.get_breadcrumb_data())
@@ -725,10 +726,13 @@ def public_search_view(request):
 def public_visualization_view(request):
     base_url = 'http://localhost:5006/visualization'
     content_type = request.GET.get('content_type', 'sponsors')
-    arguments = {'content_type': content_type}
-    search = request.GET.get('search', '')
-    if search:
-        arguments['q'] = search
+    search, filters = normalize_search_querydict(request.GET)
+    publication_query = PublicationDocSearch().find(q=search, facet_filters=filters)[:0].agg_by_count()
+    publication_query.execute(facet_filters=filters)
+    facets = publication_query.cache
+    arguments = request.GET.copy()
+    arguments.pop('page', None)
+
     breadcrumb_trail = [
         {'link': reverse('core:public-home'), 'text': 'Home'},
         {'text': 'Visualization'},
@@ -747,26 +751,14 @@ def public_visualization_view(request):
     return render(request, 'public/visualization.html',
                   context={'script': script, 'breadcrumb_trail': breadcrumb_trail,
                            'content_type_options': content_type_options,
-                           'search': search, 'content_type': content_type})
-
-
-def public_explore_view(request):
-    topic = request.GET.get('topic')
-    content_type = request.GET.get('content_type', 'authors')
-    order_by = request.GET.get('order_by', '-count')
-
-    model = CONTENT_TYPE_SEARCH[content_type]
-    matches = PublicationDoc().agg_by_model(q=topic, model=model)
-
-    form = PublicExploreForm(initial={'content_type': content_type, 'order_by': order_by, 'topic': topic})
-    return render(request, 'public/explore.html',
-                  context={'content_type': content_type, 'form': form, 'matches': matches})
+                           'search': search, 'content_type': content_type,
+                           'facets': facets})
 
 
 def public_home(request):
-    q = request.GET.get('q', '')
-    if q:
-        return redirect(PublicationDoc.get_public_list_url(q=q))
+    search = request.GET.get('search', '')
+    if search:
+        return redirect(PublicationDoc.get_public_list_url(search=search))
     return render(request, 'public/home.html')
 
 

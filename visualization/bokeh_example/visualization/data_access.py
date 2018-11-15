@@ -11,8 +11,8 @@ logger = logging.getLogger('data_access')
 
 
 class SearchMixin:
-    def get_full_text_matches(self, query):
-        publication_ids = [p.id for p in PublicationDocSearch().find(q=query, field_name_to_ids={}).source(['id']).scan()]
+    def get_full_text_matches(self, query, facet_filters):
+        publication_ids = [p.id for p in PublicationDocSearch().find(q=query, facet_filters=facet_filters).source(['id']).scan()]
         publication_matches = self.data_cache.publications.loc[publication_ids]
         return publication_matches
 

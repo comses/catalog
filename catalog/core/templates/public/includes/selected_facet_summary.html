@@ -1,0 +1,7 @@
+{% if facets %}
+    <div class="alert alert-info">
+        {% for facet in facets %}
+            <a class="btn btn-info" href="{{ facet.remove_url }}">{{ facet.name }}</a>
+        {% endfor %}
+    </div>
+{% endif %}
