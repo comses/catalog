@@ -1,6 +1,7 @@
 import logging
 from collections import namedtuple
 
+import requests
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
@@ -146,6 +147,22 @@ class SuggestedPublicationForm(ModelForm):
             'journal': forms.TextInput,
             'title': forms.TextInput,
         }
+        help_texts = {
+            'doi': 'A valid digital object identifier (should not include the URL https://doi.org)'
+        }
+
+    def clean_doi(self):
+        response = requests.get('https://doi.org/{}'.format(self.cleaned_data['doi']))
+        if response.status_code != 200:
+            raise forms.ValidationError('Could not resolve doi')
+        return self.cleaned_data['doi']
+
+    def clean(self):
+        has_doi = bool(self.cleaned_data['doi'])
+        has_title_and_journal = bool(self.cleaned_data['title'] and self.cleaned_data['journal'])
+        if not (has_doi or has_title_and_journal):
+            raise forms.ValidationError('Must have either a DOI or a title and journal')
+        return super().clean()
 
     def save(self, commit=True):
         suggested_publication = SuggestedPublication(**self.cleaned_data, submitter=self.submitter)
@@ -161,6 +178,9 @@ class SubmitterForm(ModelForm):
     class Meta:
         model = Submitter
         fields = ['email']
+        help_texts = {
+            'email': 'Your email address. Not needed if you are logged in'
+        }
 
     def clean_email(self):
         email = self.cleaned_data['email']
@@ -177,4 +197,3 @@ class SubmitterForm(ModelForm):
             submitter = Submitter(email=self.cleaned_data['email'])
         submitter.save()
         return submitter
-
