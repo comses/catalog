@@ -3,15 +3,15 @@ from collections import namedtuple
 
 import pandas as pd
 from bokeh.io import curdoc
-from bokeh.layouts import row, column
-from bokeh.models import TableColumn, DataTable, ColumnDataSource, Paragraph
+from bokeh.layouts import row, column, widgetbox, layout
+from bokeh.models import TableColumn, DataTable, ColumnDataSource, Paragraph, CheckboxGroup, Legend, Div
 from bokeh.palettes import Spectral10
 from bokeh.plotting import figure
 from django.http import QueryDict
 
 from catalog.core.search_indexes import PublicationDocSearch
 from catalog.core.views import normalize_search_querydict
-from data_access import data_cache
+from data_access import data_cache, IncludedStatistics
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,9 @@ def create_search_match_table(data_source):
         TableColumn(field='publication_count', title='Publication Match Count'),
     ]
     return DataTable(source=data_source,
-                     columns=columns)
+                     columns=columns,
+                     height=275,
+                     width=500)
 
 
 p = Paragraph(text='Begin')
@@ -66,11 +68,15 @@ top_matches_data_source = ColumnDataSource(
     pd.DataFrame.from_records(retrieve_matches()))
 match_table = create_search_match_table(top_matches_data_source)
 
+included_statistics_checkbox = CheckboxGroup(labels=IncludedStatistics.labels(),
+                                             active=[])
+
 
 class CodeAvailabilityChart:
-    def __init__(self, model_name, indices):
+    def __init__(self, model_name, indices, statistic_indices):
         self.indices = indices
         self.model_name = model_name
+        self.statistic_indices = statistic_indices
 
     def create_dataset(self):
         related_ids = top_matches_data_source.to_df().id.iloc[self.indices].values
@@ -81,7 +87,7 @@ class CodeAvailabilityChart:
     def create_view(self, df):
         p = figure(
             tools='pan,wheel_zoom,save',
-            title='Code Availability Over Time',
+            title='Publication Counts Over Time',
             plot_width=800)
         p.outline_line_color = None
         p.grid.grid_line_color = None
@@ -89,21 +95,37 @@ class CodeAvailabilityChart:
         p.yaxis.axis_label = 'Publication Added Count'
         color_mapper = Spectral10
         api = data_cache.get_model_data_access_api(self.model_name)
+
+        name_legend_items = []
         for i, (related_id, dfg) in enumerate(df.groupby('related__id')):
             name = api.get_related_names(related_id)['name']
-            p.line(
+            r = p.line(
                 x=dfg.index.get_level_values('year_published'),
                 y=dfg['count'],
-                legend=name,
                 line_width=2,
                 color=color_mapper[i])
-            p.line(
-                x=dfg.index.get_level_values('year_published'),
-                y=dfg['archived_count'],
-                legend='{} (Code Available)'.format(name),
-                line_width=2,
-                color=color_mapper[i],
-                line_dash='dashed')
+            name_legend_items.append((name, [r]))
+            for statistic_index in self.statistic_indices:
+                statistic_name = IncludedStatistics.names()[statistic_index]
+                statistic_style = IncludedStatistics.styles()[statistic_index]
+                p.line(
+                    x=dfg.index.get_level_values('year_published'),
+                    y=dfg[statistic_name],
+                    line_width=2,
+                    color=color_mapper[i],
+                    line_dash=statistic_style)
+        name_legend = Legend(items=name_legend_items, location='top_left')
+
+        line_style_legend_items = []
+        for statistic_index in self.statistic_indices:
+            statistic_label = IncludedStatistics.labels()[statistic_index]
+            statistic_style = IncludedStatistics.styles()[statistic_index]
+            r = p.line(x=[], y=[], line_width=2, color='black', line_dash=statistic_style) # Fake glyphs for rendering styles
+            line_style_legend_items.append((statistic_label, [r]))
+        line_style_legend = Legend(items=line_style_legend_items, location='top_right')
+
+        p.add_layout(name_legend)
+        p.add_layout(line_style_legend)
         return p
 
     def render(self):
@@ -112,13 +134,16 @@ class CodeAvailabilityChart:
 
 
 page = column(
-    row(CodeAvailabilityChart(model_name=query.content_type, indices=[0, 1]).render()),
-    row(match_table))
+    row(column(Div(text='<b>Available Statistics</b>'),included_statistics_checkbox), widgetbox(match_table)),
+    row(CodeAvailabilityChart(model_name=query.content_type, indices=[0, 1],
+                              statistic_indices=[]).render()))
 
 
 def update_chart():
-    page.children[0] = CodeAvailabilityChart(model_name=query.content_type,
-                                             indices=top_matches_data_source.selected.indices).render()
+    logger.info('statistic_indices: %s', included_statistics_checkbox.active)
+    page.children[1] = CodeAvailabilityChart(model_name=query.content_type,
+                                             indices=top_matches_data_source.selected.indices,
+                                             statistic_indices=included_statistics_checkbox.active).render()
 
 
 def update_table():
@@ -126,6 +151,8 @@ def update_table():
         retrieve_matches())).data)
 
 
+included_statistics_checkbox.on_change('active', lambda attr, old, new: update_chart())
+top_matches_data_source.selected.indices = [0, 1]
 top_matches_data_source.selected.on_change('indices', lambda attr, old, new: update_chart())
 
 curdoc().add_root(page)

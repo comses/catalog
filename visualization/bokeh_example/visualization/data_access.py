@@ -1,4 +1,6 @@
+import enum
 import logging
+
 import pandas as pd
 from django.db.models import QuerySet
 from django_pandas.io import read_frame
@@ -10,9 +12,42 @@ from citation.models import Publication, Author, PublicationAuthors, Platform, P
 logger = logging.getLogger('data_access')
 
 
+class IncludedStatistics(enum.Enum):
+    code_availability_count = 'Code Availability Count'
+    odd_count = 'ODD Documentation Count'
+    formal_description_count = 'Formal Description Count'
+    visual_documentation_count = 'Visual Documentation Count'
+
+    @classmethod
+    def levels(cls):
+        return [cls.code_availability_count,
+                cls.odd_count,
+                cls.formal_description_count,
+                cls.visual_documentation_count]
+
+    @classmethod
+    def names(cls):
+        if not hasattr(cls, '_names'):
+            cls._names = [l.name for l in cls.levels()]
+        return cls._names
+
+    @classmethod
+    def labels(cls):
+        if not hasattr(cls, '_levels'):
+            cls._levels = [l.value for l in cls.levels()]
+        return cls._levels
+
+    @classmethod
+    def styles(cls):
+        if not hasattr(cls, '_styles'):
+            cls._styles = ['dashed', 'dotted', '10 2', '2 10']
+        return cls._styles
+
+
 class SearchMixin:
     def get_full_text_matches(self, query, facet_filters):
-        publication_ids = [p.id for p in PublicationDocSearch().find(q=query, facet_filters=facet_filters).source(['id']).scan()]
+        publication_ids = [p.id for p in
+                           PublicationDocSearch().find(q=query, facet_filters=facet_filters).source(['id']).scan()]
         publication_matches = self.data_cache.publications.loc[publication_ids]
         return publication_matches
 
@@ -31,10 +66,17 @@ class ManyToManyModelDataAccess(SearchMixin):
         related_through_table = getattr(self.data_cache, self.related_through_name)
         related = related_through_table[related_through_table.related__id.isin(related_ids)]
         _counts_df = df.join(related, how='inner').groupby(['year_published', 'related__id']).agg(
-            dict(title='count', is_archived='sum'))
+            dict(title='count', is_archived='sum',
+                 has_formal_description='sum', has_odd='sum', has_visual_documentation='sum'))
         mi = self.data_cache.get_all_year_related_combinations(related_ids)
         counts_df = _counts_df.reindex(mi, fill_value=0)
-        return counts_df.rename(columns={'title': 'count', 'is_archived': 'archived_count'})
+        return counts_df.rename(columns={
+            'title': 'count',
+            'is_archived': IncludedStatistics.code_availability_count.name,
+            'has_formal_description': IncludedStatistics.formal_description_count.name,
+            'has_odd': IncludedStatistics.odd_count.name,
+            'has_visual_documentation': IncludedStatistics.visual_documentation_count.name
+        })
 
 
 class JournalDataAccess(SearchMixin):
@@ -43,11 +85,19 @@ class JournalDataAccess(SearchMixin):
         self.related_name = 'journals'
 
     def get_year_related_counts(self, df: pd.DataFrame, related_ids):
-        renames = {'container': 'related__id',
-                   'title': 'count',
-                   'is_archived': 'archived_count'}
+        renames = {
+            'container': 'related__id',
+            'title': 'count',
+            'is_archived': IncludedStatistics.code_availability_count.name,
+            'has_formal_description': IncludedStatistics.formal_description_count.name,
+            'has_odd': IncludedStatistics.odd_count.name,
+            'has_visual_documentation': IncludedStatistics.visual_documentation_count.name
+        }
         counts_df = df[df.container.isin(related_ids)].rename(columns=renames) \
-            .groupby(['year_published', 'container']).agg(dict(title='count', is_archived='sum'))
+            .groupby(['year_published', 'container',
+                      'has_formal_description', 'has_odd', 'has_visual_documentation']) \
+            .agg(dict(title='count', is_archived='sum',
+                      has_formal_description='sum', has_odd='sum', has_visual_documentation='sum'))
         mi = self.data_cache.get_all_year_related_combinations(related_ids)
         return counts_df.reindex(mi, fill_value=0)
 
@@ -71,12 +121,18 @@ class DataCache:
         self._publication_tags = None
 
     def _publication_as_dict(self, p: Publication):
+        model_documentation = set(d.name for d in p.model_documentation.all())
         return {'id': p.id,
                 'container': p.container.id,
                 'date_published': p.date_published,
                 'year_published':
                     p.date_published.year if p.date_published is not None else None,
                 'is_archived': p.is_archived,
+                'has_odd': 'ODD' in model_documentation,
+                'has_visual_documentation': any(
+                    d in model_documentation for d in ['UML', 'Flow Charts', 'AORML', 'Ontologies']),
+                'has_formal_description': any(
+                    d in model_documentation for d in ['Source code', 'Pseudocode', 'Mathematical description']),
                 'status': p.status,
                 'title': p.title}
 
@@ -96,7 +152,9 @@ class DataCache:
     @property
     def publication_queryset(self) -> QuerySet:
         if self._publication_queryset is None:
-            self._publication_queryset = Publication.api.primary().filter(status='REVIEWED').select_related('container')
+            self._publication_queryset = Publication.api.primary().filter(status='REVIEWED') \
+                .select_related('container') \
+                .prefetch_related('model_documentation')
         return self._publication_queryset
 
     @property
