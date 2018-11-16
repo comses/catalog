@@ -15,6 +15,7 @@ from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core import signing
 from django.core.cache import cache
+from django.core.mail import send_mail
 from django.db import models
 from django.db.models import Count, Q, F, Value as V, Max
 from django.db.models.functions import Concat
@@ -788,8 +789,12 @@ def suggest_a_publication(request):
             return render_page(submitter_form=submitter_form, suggested_publication_form=suggested_publication_form)
 
         suggested_publication = suggested_publication_form.save()
-        messages.add_message(request, messages.SUCCESS, 'Successfully publication addition request for {}'.format(
+        messages.add_message(request, messages.SUCCESS, 'Successful publication addition request for {}'.format(
             suggested_publication.doi or suggested_publication.title))
+        send_mail(subject='Suggested publication {}'.format(suggested_publication.short_name),
+                  message='You suggested adding publication {} to the catalog'.format(suggested_publication.short_name),
+                  from_email=settings.DEFAULT_FROM_EMAIL,
+                  recipient_list=[submitter.get_email()])
         return HttpResponseRedirect(redirect_to=reverse('core:public-search'))
     else:
         return render_page(submitter_form=SubmitterForm(), suggested_publication_form=SuggestedPublicationForm())
