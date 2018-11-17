@@ -18,7 +18,7 @@ from django.contrib.messages import constants as messages
 
 DEBUG = False
 config = configparser.ConfigParser()
-config.read('/secrets/config.ini')
+config.read('/run/secrets/catalog_django_config')
 
 # tweaking standard BASE_DIR because we're in the settings subdirectory.
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))

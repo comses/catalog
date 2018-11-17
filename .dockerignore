@@ -1,1 +1,9 @@
+.dockerignore
 **/*.sql
+base.yml
+dev.yml
+prod.yml
+
+docker-compose.yml
+
+deploy/images/**/*.Dockerfile

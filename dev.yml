@@ -1,14 +1,23 @@
-version: '3'
+version: '3.3'
 
 services:
   db:
     ports:
       - "127.0.0.1:5437:5432"
+    volumes:
+      - ./deploy/conf/postgres_password:/run/secrets/catalog_db_password
+  elasticsearch:
+    environment:
+      - bootstrap.memory_lock=true
+    ports:
+      ports:
+      - "127.0.0.1:9200:9200"
   django:
     build:
-      context: ./
       args:
         RUN_SCRIPT: "./deploy/docker/dev.sh"
+      context: ./
+      dockerfile: ./deploy/images/django.Dockerfile
     image: comses/catalog/dev:latest
     environment:
       DJANGO_SETTINGS_MODULE: 'catalog.settings.dev'
@@ -17,12 +26,18 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
       - "127.0.0.1:5006:5006"
+    volumes:
+      - ./deploy/conf/config.ini:/run/secrets/catalog_django_config
+      - .:/code
   kibana:
-    image: docker.elastic.co/kibana/kibana:6.3.0
     depends_on:
       - elasticsearch
+    image: docker.elastic.co/kibana/kibana:6.3.0
     ports:
       - "127.0.0.1:5601:5601"
   solr:
     ports:
       - "127.0.0.1:8983:8983"
+    volumes:
+      - ./deploy/solr/conf:/catalog-solr-conf
+      - ./deploy/solr/init.d/solr.in.sh:/opt/solr/bin/solr.in.sh

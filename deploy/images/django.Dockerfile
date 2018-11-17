@@ -1,4 +1,4 @@
-FROM comses/base:1.2.0
+FROM comses/base:1.2.0 as base
 
 ARG RUN_SCRIPT=./deploy/docker/dev.sh
 ARG UBUNTU_MIRROR=mirror.math.princeton.edu/pub

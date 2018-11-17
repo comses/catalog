@@ -1,20 +1,19 @@
-version: '3'
+version: '3.3'
 services:
   solr:
-    image: comses/solr:6.6
-    volumes:
-      - solr:/opt/solr/server/solr/mycores
-      - ./deploy/solr/conf:/catalog-solr-conf
-      - ./deploy/solr/init.d/solr.in.sh:/opt/solr/bin/solr.in.sh
-    ports:
-      - "127.0.0.1:8983:8983"
-    environment:
-      - SOLR_JAVA_MEM="-Xms2g -Xmx2g"
+    build:
+      context: ./
+      dockerfile: ./deploy/images/solr.Dockerfile
     entrypoint:
       - docker-entrypoint.sh
       - solr-precreate
       - catalog_core
       - /catalog-solr-conf
+    environment:
+      - SOLR_JAVA_MEM="-Xms2g -Xmx2g"
+    image: comses/catalog/solr:6.6
+    volumes:
+      - solr:/opt/solr/server/solr/mycores
   redis:
     image: redis:latest
     restart: always
@@ -22,7 +21,6 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.3.0
     environment:
       - cluster.name=docker-cluster
-      - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     ulimits:
       memlock:
@@ -35,8 +33,6 @@ services:
       resources:
         limits:
           memory: 1g
-    ports:
-      - "127.0.0.1:9200:9200"
     cap_add:
       - IPC_LOCK
     volumes:
@@ -47,17 +43,14 @@ services:
     image: postgres:10
     volumes:
       - data:/var/lib/postgresql/data
-      - ./deploy/conf/postgres_password:/run/secrets/password
     environment:
       POSTGRES_USER: catalog
-      POSTGRES_PASSWORD_FILE: /run/secrets/password
+      POSTGRES_PASSWORD_FILE: /run/secrets/catalog_db_password
       POSTGRES_DB: comses_catalog
   django:
     volumes:
-      - .:/code
       - solr:/etc/solr/mycores/
       - logs:/catalog/logs
-      - ./deploy/conf/config.ini:/secrets/config.ini
     environment:
       DJANGO_SETTINGS_MODULE: 'catalog.settings.prod'
       LANG: "C.UTF-8"

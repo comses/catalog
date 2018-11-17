@@ -1,28 +1,41 @@
-version: '3'
+version: '3.3'
 
 services:
+  db:
+    secrets:
+      - catalog_db_password
+  elasticsearch:
+    environment:
+      - network.host=_eth0:ipv4_
+      - discovery.type=zen
+      - discovery.zen.ping.unicast.hosts=tasks.elasticsearch
   django:
     build:
-      context: ./
       args:
         RUN_SCRIPT: "./deploy/docker/prod.sh"
+      context: ./
+      dockerfile: ./deploy/images/django.Dockerfile
     image: comses/catalog/prod:latest
     restart: always
+    secrets:
+      - catalog_django_config
     volumes:
       - ./deploy/backup/cron-script:/etc/cron.daily/autopgsqlbackup
-      - ./docker/shared:/shared
       - static:/catalog/static
       - uwsgisocket:/catalog/socket
   nginx:
-    image: nginx:latest
+    build:
+      context: ./
+      dockerfile: ./deploy/images/nginx.Dockerfile
+    image: comses/catalog/nginx:latest
     restart: always
     volumes:
-    - ./deploy/nginx/catalog-haproxy.conf:/etc/nginx/nginx.conf
-    - ./deploy/nginx/uwsgi_params:/catalog/uwsgi_params
     - uwsgisocket:/catalog/socket
     - static:/catalog/static
     - logs:/var/log/nginx
     command: ["nginx", "-g", "daemon off;"]
+    deploy:
+      mode: global
     ports:
       - "80:80"
     depends_on:
@@ -31,3 +44,9 @@ services:
 volumes:
   uwsgisocket:
     driver: local
+
+secrets:
+  catalog_django_config:
+    file: ./deploy/conf/config.ini
+  catalog_db_password:
+    file: ./deploy/conf/postgres_password
