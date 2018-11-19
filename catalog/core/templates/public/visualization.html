@@ -2,36 +2,129 @@
 
 {% block content %}
     <div class="container">
-        <form class="row">
-            <div class="col-md-7">
-                <div class="form-group">
-                    <input type="text" class="form-control form-control-lg"
-                           placeholder="Enter search terms here" value="{{ search }}"
-                           aria-label="Search" name="search" id="full_text" form="search">
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="form-group">
-                    <label class="sr-only" for="content_type">Content Type</label>
-                    <select class="form-control form-control-lg" name="content_type" form="search">
-                        {% for content_type_option in content_type_options %}
-                            <option value="{{ content_type_option.value }}"
-                                    {% if content_type == content_type_option.value %} selected{% endif %}>
-                                {{ content_type_option.label }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <div class=" col-md-2">
-                <button class="btn btn-outline-primary btn-block btn-lg" type="submit" form="search">Search</button>
-            </div>
-        </form>
         <div class="row">
-            <section class="col-3">
-                {% include 'public/includes/faceted_search.html' %}
+            <section class="col-lg-3">
+                <form id="search">
+                    {% include 'public/includes/faceted_search.html' %}
+                </form>
             </section>
-            <section class="col-9">
+            <section class="col-lg-9">
+                <div class="row" id="help">
+                    <div class="col-12 py-1">
+                        <div class="card">
+                            <div class="card-header py-1" id="helpDescriptionTitle">
+                                <h5 class="my-0">
+                                    <button class="btn btn-link" data-toggle="collapse" aria-expanded="false"
+                                            data-target="#helpDescription" aria-controls="helpDescription">
+                                        Visualization Definitions and Description
+                                    </button>
+                                </h5>
+                            </div>
+                            <div id="helpDescription" class="collapse" aria-labelledby="helpDescriptionTitle"
+                                 data-parent="help">
+                                <div class="card-body">
+                                    <h5>How to search</h5>
+
+                                    <ol>
+                                        <li>
+                                            <p>
+                                                To visualize a search result you can search by keywords (optional) and
+                                                filter by authors, journals, platforms, sponsors and tags from the bar
+                                                on the left.
+                                            </p>
+                                        </li>
+                                        <li>
+                                            Select what content you want to visualize. This could be author, journal,
+                                            platform, sponsor and tag
+                                        </li>
+                                    </ol>
+
+                                    <p>
+                                        The resulting search results will include all results that match the keywords
+                                        entered and at least one of the filter criteria
+                                    </p>
+
+                                    <h5>What to plot</h5>
+
+                                    <ol>
+                                        <li>
+                                            Select statistics you want to plot from the <i>Available Statistics</i>
+                                            section. You can choose from:
+                                            <dl>
+                                                <dt>Code Availability Count</dt>
+                                                <dd>Publications with successfully downloadable model code
+                                                </dd>
+
+                                                <dt>Formal Description Count</dt>
+                                                <dd>Publications with pseudocode or mathematical description (Count)</dd>
+
+                                                <dt>ODD Documentation Count</dt>
+                                                <dd>Publications with an Overview, Design concepts and Details
+                                                    document (Count)
+                                                </dd>
+
+                                                <dt>Visual Documentation Count</dt>
+                                                <dd>Publications with UML, flowcharts or ontologies (Count)</dd>
+                                            </dl>
+                                        </li>
+                                        <li>
+                                            Select which authors, journals, platforms, sponsors or tags you want to want
+                                            to plot from the table. To select one just click on the appropriate row. To
+                                            select many <code>Ctnl+Click</code> the rows.
+                                        </li>
+                                    </ol>
+
+                                    <h5>Interpreting the plot</h5>
+
+                                    <p>
+                                        The plot will show the total number of publications published that year for the
+                                        content item selected in the summary table (could be a author, journal,
+                                        platform, sponsor or tag) as well as any other count statistics you selected.
+                                    </p>
+
+                                    <h5>Data Quality</h5>
+
+                                    <p>
+                                        Only publications in the ISI Web of Science matching particular keywords (such
+                                        as agent base modeling) or explicitly requested for inclusion are in the
+                                        database.
+                                    </p>
+
+                                    <p>
+                                        Publication data is loaded in periodically (a few times a year) so count data
+                                        for the last year will be inaccurate.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-7">
+                        <div class="form-group">
+                            <input type="text" class="form-control form-control-lg"
+                                   placeholder="Enter search terms here" value="{{ search }}"
+                                   aria-label="Search" name="search" id="full_text" form="search">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="sr-only" for="content_type">Content Type</label>
+                            <select class="form-control form-control-lg" name="content_type" form="search">
+                                {% for content_type_option in content_type_options %}
+                                    <option value="{{ content_type_option.value }}"
+                                            {% if content_type == content_type_option.value %} selected{% endif %}>
+                                        {{ content_type_option.label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class=" col-md-2">
+                        <button class="btn btn-outline-primary btn-block btn-lg" type="submit" form="search">Search
+                        </button>
+                    </div>
+                </div>
                 {{ script|safe }}
             </section>
         </div>
