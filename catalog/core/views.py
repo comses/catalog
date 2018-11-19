@@ -12,6 +12,7 @@ from dateutil.parser import parse as datetime_parse
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core import signing
 from django.core.cache import cache
@@ -696,6 +697,7 @@ def normalize_search_querydict(qd: QueryDict):
     return search, filters
 
 
+@login_required()
 def public_search_view(request):
     search, filters = normalize_search_querydict(request.GET)
     current_page = int(request.GET.get('page', 1))
@@ -724,6 +726,7 @@ def public_search_view(request):
     return render(request, 'public/search.html', context)
 
 
+@login_required()
 def public_visualization_view(request):
     base_url = 'http://localhost:5006/visualization'
     content_type = request.GET.get('content_type', 'sponsors')
@@ -756,6 +759,7 @@ def public_visualization_view(request):
                            'facets': facets})
 
 
+@login_required()
 def public_home(request):
     search = request.GET.get('search', '')
     if search:
@@ -763,6 +767,7 @@ def public_home(request):
     return render(request, 'public/home.html')
 
 
+@login_required()
 def suggest_a_publication(request):
     def render_page(submitter_form, suggested_publication_form):
         return render(request, template_name='public/suggest_a_publication.html', context={
@@ -800,7 +805,7 @@ def suggest_a_publication(request):
         return render_page(submitter_form=SubmitterForm(), suggested_publication_form=SuggestedPublicationForm())
 
 
-class PublicationDetailView(DetailView):
+class PublicationDetailView(LoginRequiredMixin, DetailView):
     pk_url_kwarg = 'pk'
     context_object_name = 'publication'
     model = Publication
