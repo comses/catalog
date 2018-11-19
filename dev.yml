@@ -10,7 +10,6 @@ services:
     environment:
       - bootstrap.memory_lock=true
     ports:
-      ports:
       - "127.0.0.1:9200:9200"
   django:
     build:
