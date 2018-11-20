@@ -750,7 +750,7 @@ def public_visualization_view(request):
         {'value': 'sponsors', 'label': 'Sponsors'},
         {'value': 'tags', 'label': 'Tags'}
     ]
-    script = server_document(url='http://localhost:5006/visualization', relative_urls=True, arguments=arguments)
+    script = server_document(url=settings.BOKEH_BASE_URL, relative_urls=True, arguments=arguments)
     return render(request, 'public/visualization.html',
                   context={'script': script, 'breadcrumb_trail': breadcrumb_trail,
                            'content_type_options': content_type_options,
