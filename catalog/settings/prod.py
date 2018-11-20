@@ -3,7 +3,10 @@ from .base import *
 
 DEBUG = False
 
-BOKEH_BASE_URL = '/bokeh/visualization'
+BOKEH_SERVE_SETTINGS = {
+    'url': '/bokeh/visualization',
+    'relative_urls': True
+}
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 

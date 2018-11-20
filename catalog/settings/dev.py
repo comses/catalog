@@ -2,7 +2,10 @@ from .base import *
 
 DEBUG = True
 
-BOKEH_BASE_URL = 'http://localhost:5006/visualization'
+BOKEH_SERVE_SETTINGS = {
+    'url': 'http://localhost:5006/visualization',
+    'relative_urls': False
+}
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
