@@ -65,7 +65,7 @@ def create_search_match_table(data_source):
 
 p = Paragraph(text='Begin')
 top_matches_data_source = ColumnDataSource(
-    pd.DataFrame.from_records(retrieve_matches()))
+    pd.DataFrame.from_records(retrieve_matches(), columns=['id', 'name', 'publication_count']))
 match_table = create_search_match_table(top_matches_data_source)
 
 included_statistics_checkbox = CheckboxGroup(labels=IncludedStatistics.labels(),
@@ -79,7 +79,9 @@ class CodeAvailabilityChart:
         self.statistic_indices = statistic_indices
 
     def create_dataset(self):
-        related_ids = top_matches_data_source.to_df().id.iloc[self.indices].values
+        df = top_matches_data_source.to_df()
+        indices = [self.indices[i] for i in range(min(len(self.indices), len(df.index)))]
+        related_ids = top_matches_data_source.to_df().id.iloc[indices].values
         api = data_cache.get_model_data_access_api(self.model_name)
         df = api.get_full_text_matches(query.search, facet_filters=query.filters)
         return api.get_year_related_counts(df=df, related_ids=related_ids)
