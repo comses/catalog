@@ -728,7 +728,6 @@ def public_search_view(request):
 
 @login_required()
 def public_visualization_view(request):
-    base_url = 'http://localhost:5006/visualization'
     content_type = request.GET.get('content_type', 'sponsors')
     search, filters = normalize_search_querydict(request.GET)
     publication_query = PublicationDocSearch().find(q=search, facet_filters=filters)[:0].agg_by_count()
@@ -751,7 +750,7 @@ def public_visualization_view(request):
         {'value': 'sponsors', 'label': 'Sponsors'},
         {'value': 'tags', 'label': 'Tags'}
     ]
-    script = server_document(url=base_url, arguments=arguments)
+    script = server_document(url=settings.BOKEH_BASE_URL, arguments=arguments)
     return render(request, 'public/visualization.html',
                   context={'script': script, 'breadcrumb_trail': breadcrumb_trail,
                            'content_type_options': content_type_options,

@@ -13,6 +13,7 @@
 {% url 'core:github' as github_url %}
 {% url 'core:export_data' as export_data_url %}
 {% url 'core:visualization' as visualization %}
+{% url 'core:public-home' as explore_url %}
 
 <!doctype html>
 <html class="no-js" lang="">
@@ -57,7 +58,7 @@
                             {% if user.is_superuser %}
                             <li class='{{ request|active_re:publications_url }}'><a href='{{ publications_url }}'><i class='fa fa-newspaper-o'></i> All Publications</a></li>
                             <li class='{{ request|active_re:search_url }}'><a href='{{ search_url }}'><i class='fa fa-search'></i> Search</a></li>
-                            <li class='{{ request|active_re:visualization }}'><a href='{{ visualization }}'><i class='fa fa-bar-chart'></i> Visualization</a></li>
+                            <li class='{{ request|active_re:explore_url }}'><a href='{{ explore_url }}'><i class='fa fa-bar-chart'></i> Explore</a></li>
                             {% endif %}
                         {% endif %}
                         <li class='{{ request|active_re:contact_url }}'><a href='{{ contact_url }}'><i class='fa fa-bell-o'></i> Contact us</a></li>

@@ -61,6 +61,7 @@ services:
       SOLR_HOST: solr
       SOLR_PORT: 8983
       SOLR_CORE_NAME: catalog_core
+      BOKEH_RESOURCES: cdn
     depends_on:
       - db
       - redis

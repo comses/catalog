@@ -2,6 +2,8 @@ from .base import *
 
 DEBUG = True
 
+BOKEH_BASE_URL = 'http://localhost:5006/visualization'
+
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 INSTALLED_APPS += ('debug_toolbar',)

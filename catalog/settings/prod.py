@@ -3,6 +3,8 @@ from .base import *
 
 DEBUG = False
 
+BOKEH_BASE_URL = '/bokeh/visualization'
+
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 # Raven DSN access to sentry server, customize
