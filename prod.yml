@@ -16,6 +16,8 @@ services:
       context: ./
       dockerfile: ./deploy/images/django.Dockerfile
     image: comses/catalog/prod:latest
+    environment:
+      DOMAIN_NAME: 'catalog-dev.comses.net'
     expose:
       - "5006"
     restart: always
