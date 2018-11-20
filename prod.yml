@@ -16,6 +16,8 @@ services:
       context: ./
       dockerfile: ./deploy/images/django.Dockerfile
     image: comses/catalog/prod:latest
+    expose:
+      - "5006"
     restart: always
     secrets:
       - catalog_django_config
@@ -24,10 +26,12 @@ services:
       - static:/catalog/static
       - uwsgisocket:/catalog/socket
   nginx:
-    build:
-      context: ./
-      dockerfile: ./deploy/images/nginx.Dockerfile
-    image: comses/catalog/nginx:latest
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+      - source: uwsgi_params
+        target: /catalog/uwsgi_params
+    image: nginx:latest
     restart: always
     volumes:
     - uwsgisocket:/catalog/socket
@@ -40,6 +44,18 @@ services:
       - "80:80"
     depends_on:
       - django
+  solr:
+    configs:
+      - source: solr_in_sh
+        target: /opt/solr/bin/solr.in.sh
+
+configs:
+  nginx_conf:
+    file: ./deploy/nginx/catalog-haproxy.conf
+  solr_in_sh:
+    file: ./deploy/solr/init.d/solr.in.sh
+  uwsgi_params:
+    file: ./deploy/nginx/uwsgi_params
 
 volumes:
   uwsgisocket:
