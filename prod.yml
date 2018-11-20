@@ -18,6 +18,8 @@ services:
     image: comses/catalog/prod:latest
     environment:
       DOMAIN_NAME: 'catalog-dev.comses.net'
+      BOKEH_LOG_LEVEL: warn
+      BOKEH_PY_LOG_LEVEL: warn
     expose:
       - "5006"
     restart: always
