@@ -9,12 +9,12 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 from __future__ import print_function
 
+import configparser
 import logging
 import os
 import sys
-import configparser
-from django.contrib.messages import constants as messages
 
+from django.contrib.messages import constants as messages
 
 DEBUG = False
 config = configparser.ConfigParser()
@@ -43,6 +43,21 @@ HAYSTACK_CONNECTIONS = {
                                                 config.get('solr', 'PORT'),
                                                 config.get('solr', 'CORE_NAME'))
     },
+}
+
+ELASTICSEARCH = {
+    'default': {
+        'hosts': [
+            {
+                'host': 'elasticsearch',
+                'max_retries': 5,
+                'port': '9200',
+                'sniff_on_start': True,
+                'sniff_timeout': 60,
+                'sniff_on_connection_fail': True
+            }
+        ]
+    }
 }
 
 DATABASES = {
@@ -158,7 +173,7 @@ THIRD_PARTY_APPS = (
     'cas',
 )
 
-CATALOG_APPS = ('catalog.core.apps.CoreConfig', 'citation.apps.CitationConfig', )
+CATALOG_APPS = ('catalog.core.apps.CoreConfig', 'citation.apps.CitationConfig',)
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + CATALOG_APPS
 
