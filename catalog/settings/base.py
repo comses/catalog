@@ -332,3 +332,4 @@ RAVEN_CONFIG = {
 }
 
 SECRET_KEY = config.get('django', 'SECRET_KEY')
+BOKEH_SECRET_KEY = config.get('bokeh', 'SECRET_KEY')
