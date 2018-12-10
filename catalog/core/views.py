@@ -678,15 +678,28 @@ class NetworkRelation(LoginRequiredMixin, generics.GenericAPIView):
                         template_name="visualization/network-graph.html")
 
 
-def create_paginator(current_page, total_hits, page_size=10):
+def create_paginator_url(page: int, query_dict: QueryDict):
+    url = '?page={}'.format(page)
+    if query_dict:
+        url += '&{}'.format(query_dict.urlencode())
+    return url
+
+
+def create_paginator(current_page: int, query_dict: QueryDict, total_hits, page_size=10):
     n_pages = -(-total_hits // page_size)
     paginator = {}
     if current_page - 1 > 0:
-        paginator['previous'] = current_page - 1
+        paginator['previous'] = create_paginator_url(current_page - 1, query_dict)
     if current_page + 1 <= n_pages:
-        paginator['next'] = current_page + 1
-    paginator['range'] = range(max(current_page - 5, 1), min(current_page + 5, n_pages))
-    paginator['max'] = n_pages
+        paginator['next'] = create_paginator_url(current_page + 1, query_dict)
+    paginator['range'] = [{'page': page, 'url': create_paginator_url(page, query_dict)} for page in
+                          range(max(current_page - 5, 1), min(current_page + 5, n_pages + 1))]
+    if current_page - 5 > 1:
+        paginator['min'] = {'page': 1, 'url': create_paginator_url(1, query_dict)}
+        paginator['min_exact'] = current_page - 5 == 2
+    if current_page + 5 <= n_pages:
+        paginator['max'] = {'page': n_pages, 'url': create_paginator_url(n_pages, query_dict)}
+        paginator['max_exact'] = current_page + 5 == n_pages
     return paginator
 
 
@@ -702,7 +715,8 @@ def normalize_search_querydict(qd: QueryDict):
 @login_required()
 def public_search_view(request):
     search, filters = normalize_search_querydict(request.GET)
-    current_page = int(request.GET.get('page', 1))
+    query_dict = request.GET.copy()
+    current_page = int(query_dict.pop('page', [1])[0])
 
     from_qs = (current_page - 1) * 10
     to_qs = from_qs + 10
@@ -711,12 +725,11 @@ def public_search_view(request):
     facets = publication_query.cache
 
     total_hits = publications.hits.total
-    paginator = create_paginator(current_page=current_page, total_hits=total_hits)
+    paginator = create_paginator(current_page=current_page, query_dict=query_dict, total_hits=total_hits)
     form = PublicSearchForm(initial={'search': search})
 
     visualization_url = reverse('core:public-visualization')
     if search or filters:
-        query_dict = request.GET.copy()
         query_dict.pop('page', None)
         visualization_url += '?{}'.format(query_dict.urlencode())
 

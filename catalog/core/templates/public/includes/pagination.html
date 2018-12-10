@@ -1,18 +1,28 @@
 <ul class="nav">
-    {% if paginator.previous %}
+    {% if paginator.min %}
         <li class="nav-item">
-            <a class="nav-link" href="?q={{ query }}&page={{ paginator.previous }}">«</a>
+            <a class="nav-link" href="{{ paginator.min.url }}">{{ paginator.min.page }}</a>
         </li>
+        {% if not paginator.min_exact %}
+            <li class="nav-item">
+                ...
+            </li>
+        {% endif %}
     {% endif %}
-    {% for page in paginator.range %}
+    {% for page_data in paginator.range %}
         <li class="nav-item">
-            <a class="nav-link{% if current_page == page %} disabled{% endif %}"
-             href="?q={{ query }}&page={{ page }}">{{ page }}</a>
+            <a class="nav-link{% if current_page == page_data.page %} disabled{% endif %}"
+             href="{{ page_data.url }}">{{ page_data.page }}</a>
         </li>
     {% endfor %}
-    {% if paginator.next %}
+    {% if paginator.max %}
+        {% if not paginator.max_exact %}
+            <li class="nav-item">
+                ...
+            </li>
+        {% endif %}
         <li class="nav-item">
-            <a class="nav-link" href="?q={{ query }}&page={{ paginator.next }}">»</a>
+            <a class="nav-link" href="{{ paginator.max.url }}">{{ paginator.max.page }}</a>
         </li>
     {% endif %}
 </ul>
