@@ -7,7 +7,7 @@ from django_pandas.io import read_frame
 
 from catalog.core.search_indexes import PublicationDocSearch
 from citation.models import Publication, Author, PublicationAuthors, Platform, PublicationPlatforms, Sponsor, \
-    PublicationSponsors, Tag, PublicationTags
+    PublicationSponsors, Tag, PublicationTags, Container
 
 logger = logging.getLogger('data_access')
 
@@ -80,24 +80,26 @@ class ManyToManyModelDataAccess(SearchMixin):
 
 
 class JournalDataAccess(SearchMixin):
+    related_name = 'container'
+
     def __init__(self, data_cache: 'DataCache'):
         self.data_cache = data_cache
-        self.related_name = 'journals'
 
     def get_year_related_counts(self, df: pd.DataFrame, related_ids):
         renames = {
-            'container': 'related__id',
             'title': 'count',
             'is_archived': IncludedStatistics.code_availability_count.name,
             'has_formal_description': IncludedStatistics.formal_description_count.name,
             'has_odd': IncludedStatistics.odd_count.name,
             'has_visual_documentation': IncludedStatistics.visual_documentation_count.name
         }
-        counts_df = df[df.container.isin(related_ids)].rename(columns=renames) \
-            .groupby(['year_published', 'container',
-                      'has_formal_description', 'has_odd', 'has_visual_documentation']) \
+        counts_df = df[df.container.isin(related_ids)] \
+            .rename(columns={'container': 'related__id'}) \
+            .groupby(['year_published', 'related__id']) \
             .agg(dict(title='count', is_archived='sum',
                       has_formal_description='sum', has_odd='sum', has_visual_documentation='sum'))
+        counts_df = counts_df.rename(columns=renames)
+        # logger.info(counts_df.columns)
         mi = self.data_cache.get_all_year_related_combinations(related_ids)
         return counts_df.reindex(mi, fill_value=0)
 
@@ -110,6 +112,8 @@ class DataCache:
 
         self._authors = None
         self._publication_authors = None
+
+        self._containers = None
 
         self._platforms = None
         self._publication_platforms = None
@@ -140,6 +144,12 @@ class DataCache:
         return {
             'id': a.id,
             'name': a.name
+        }
+
+    def _container_as_dict(self, c: Container):
+        return {
+            'id': c.id,
+            'name': c.name
         }
 
     def _publication_author_as_dict(self, pa: PublicationAuthors):
@@ -182,6 +192,16 @@ class DataCache:
                  PublicationAuthors.objects.filter(publication__in=self.publication_queryset).select_related('author')),
                 index='publication__id')
         return self._publication_authors
+
+    @property
+    def container(self):
+        if self._containers is None:
+            self._containers = pd.DataFrame.from_records(
+                (self._container_as_dict(c) for c in
+                Container.objects.filter(publications__in=self.publication_queryset).distinct()),
+                index='id'
+            )
+        return self._containers
 
     @property
     def platforms(self):
@@ -235,7 +255,8 @@ class DataCache:
         return self._publication_tags
 
     def get_model_data_access_api(self, related_name, related_through_name=None):
-        related_name = related_name
+        if related_name == JournalDataAccess.related_name:
+            return JournalDataAccess(data_cache=self)
         if related_through_name is None:
             related_through_name = 'publication_{}'.format(related_name)
         return ManyToManyModelDataAccess(data_cache=self, related_name=related_name,

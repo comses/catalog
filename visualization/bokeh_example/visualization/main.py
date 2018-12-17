@@ -9,8 +9,7 @@ from bokeh.palettes import Spectral10
 from bokeh.plotting import figure
 from django.http import QueryDict
 
-from catalog.core.search_indexes import PublicationDocSearch
-from catalog.core.views import normalize_search_querydict
+from catalog.core.search_indexes import PublicationDocSearch, normalize_search_querydict
 from data_access import data_cache, IncludedStatistics
 
 logger = logging.getLogger(__name__)
