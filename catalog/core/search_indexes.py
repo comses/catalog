@@ -2,6 +2,7 @@ import logging
 from urllib.parse import urlencode
 
 from django.db.models import QuerySet
+from django.http import QueryDict
 from django.urls import reverse
 from haystack import indexes
 from typing import Dict, List
@@ -125,6 +126,15 @@ class ContainerInnerDoc(InnerDoc):
 class RelatedInnerDoc(InnerDoc):
     id = edsl.Integer(required=True)
     name = edsl.Text(copy_to=ALL_DATA_FIELD)
+
+
+def normalize_search_querydict(qd: QueryDict):
+    search = qd.get('search', '')
+    field_names_lookup = PublicationDocSearch.get_filter_field_names()
+    filters = {}
+    for field_name in field_names_lookup:
+        filters[field_name] = set(int(ident) for ident in qd.getlist(field_name))
+    return search, filters
 
 
 class TopHits:
@@ -344,6 +354,9 @@ class PublicationDoc(DocType):
 
     class Index:
         name = 'publication'
+        settings = {
+            'number_of_shards': 1
+        }
 
 
 def bulk_index_public():
