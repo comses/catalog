@@ -39,7 +39,7 @@ from rest_framework.response import Response
 
 from catalog.core.forms import PublicSearchForm, SuggestedPublicationForm, \
     SubmitterForm
-from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch
+from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict
 from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
                                     generate_aggregated_distribution_data, generate_network_graph)
@@ -703,15 +703,6 @@ def create_paginator(current_page: int, query_dict: QueryDict, total_hits, page_
     return paginator
 
 
-def normalize_search_querydict(qd: QueryDict):
-    search = qd.get('search', '')
-    field_names = PublicationDocSearch.get_filter_field_names()
-    filters = {}
-    for field_name in field_names:
-        filters[field_name] = set(int(ident) for ident in qd.getlist(field_name))
-    return search, filters
-
-
 @login_required()
 def public_search_view(request):
     search, filters = normalize_search_querydict(request.GET)
@@ -776,7 +767,7 @@ def public_visualization_view(request):
 
     content_type_options = [
         {'value': 'authors', 'label': 'Authors'},
-        {'value': 'journals', 'label': 'Journals'},
+        {'value': 'container', 'label': 'Journals'},
         {'value': 'platforms', 'label': 'Platforms'},
         {'value': 'sponsors', 'label': 'Sponsors'},
         {'value': 'tags', 'label': 'Tags'}
