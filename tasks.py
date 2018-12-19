@@ -1,11 +1,10 @@
-from invoke import task
-from invoke.tasks import call
-
 import logging
 import os
 import re
 import sys
 
+from invoke import task
+from invoke.tasks import call
 
 # push current working directory onto the path to access catalog.settings
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -106,6 +105,7 @@ def reset_database(ctx):
     ctx.run('dropdb -w --if-exists -e {db_name} -U {db_user} -h {db_host}'.format(**env), echo=True, warn=True)
     ctx.run('createdb -w {db_name} -U {db_user} -h {db_host}'.format(**env), echo=True, warn=True)
 
+
 @task(aliases=['rfd'])
 def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True, force=False):
     import django
@@ -138,6 +138,7 @@ def create_pgpass_file(ctx, force=False):
         pgpass.write('db:*:*:{db_user}:{db_password}\n'.format(db_password=db_password, **env))
         ctx.run('chmod 0600 ~/.pgpass')
 
+
 @task
 def backup(ctx, path='/backups/postgres'):
     create_pgpass_file(ctx)
@@ -162,10 +163,14 @@ def zotero_import(ctx, group=None, collection=None):
 
 @task(aliases=['ri'])
 def rebuild_index(ctx, noinput=False):
+    import django
+    django.setup()
+    from catalog.core.search_indexes import bulk_index_public
     cmd = '{python} manage.py rebuild_index'
     if noinput:
         cmd += ' --noinput'
     ctx.run(cmd.format(**env))
+    bulk_index_public()
 
 
 @task
