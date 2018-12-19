@@ -27,6 +27,7 @@ services:
       - "127.0.0.1:5006:5006"
     volumes:
       - ./deploy/conf/config.ini:/run/secrets/catalog_django_config
+      - ./deploy/conf/bokeh_secret_key:/run/secrets/bokeh_secret_key
       - .:/code
   kibana:
     depends_on:

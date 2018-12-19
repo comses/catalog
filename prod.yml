@@ -24,6 +24,7 @@ services:
       - "5006"
     restart: always
     secrets:
+      - bokeh_secret_key
       - catalog_django_config
     volumes:
       - ./deploy/backup/cron-script:/etc/cron.daily/autopgsqlbackup
@@ -70,3 +71,5 @@ secrets:
     file: ./deploy/conf/config.ini
   catalog_db_password:
     file: ./deploy/conf/postgres_password
+  bokeh_secret_key:
+    file: ./deploy/conf/bokeh_secret_key

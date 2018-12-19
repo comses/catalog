@@ -6,7 +6,7 @@ set -o nounset
 
 DOMAIN_NAME=${DOMAIN_NAME:-localhost:8000}
 
-export BOKEH_SECRET_KEY=$(</code/deploy/conf/bokeh_secret_key)
+export BOKEH_SECRET_KEY=$(</run/secrets/bokeh_secret_key)
 export BOKEH_SIGN_SESSIONS=yes
 
 cd /code/visualization/bokeh_example
