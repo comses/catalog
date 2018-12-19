@@ -141,14 +141,15 @@ class SuggestedPublicationForm(ModelForm):
 
     class Meta:
         model = SuggestedPublication
-        fields = ['doi', 'title', 'journal', 'volume', 'issue', 'pages']
+        fields = ['doi', 'code_archive_url', 'title', 'journal', 'volume', 'issue', 'pages']
         widgets = {
             'doi': forms.TextInput,
             'journal': forms.TextInput,
             'title': forms.TextInput,
         }
         help_texts = {
-            'doi': 'A valid digital object identifier (should not include the URL https://doi.org)'
+            'doi': 'A valid digital object identifier (should not include the URL https://doi.org)',
+            'code_archive_url': 'A valid url to download all code, metadata and documentation necessary to run the model'
         }
 
     def clean_doi(self):
