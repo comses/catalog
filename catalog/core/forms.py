@@ -5,12 +5,14 @@ import requests
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
+from django.contrib.postgres.forms import SimpleArrayField
 from django.forms import Form, ModelForm
 from django.utils.translation import ugettext_lazy as _
 from haystack.forms import SearchForm
 from haystack.inputs import Raw
 
-from citation.models import Author, Container, Platform, Publication, Sponsor, Tag, SuggestedPublication, Submitter
+from citation.models import Author, Container, Platform, Publication, Sponsor, Tag, SuggestedPublication, Submitter, \
+    SuggestedMerge
 
 logger = logging.getLogger(__name__)
 
@@ -198,3 +200,17 @@ class SubmitterForm(ModelForm):
             submitter = Submitter(email=self.cleaned_data['email'])
         submitter.save()
         return submitter
+
+
+class SuggestedMergeForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['duplicate_names'].delimiter = '|'
+
+    class Meta:
+        model = SuggestedMerge
+        fields = ['content_type', 'duplicate_names']
+        help_texts = {
+            'content_type': 'Select the type of data you believe is duplicated',
+            'duplicate_names': 'Enter the exact names you believe are duplicated here separated by "|" (piping symbol)'
+        }

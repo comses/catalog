@@ -58,5 +58,6 @@ urlpatterns += [
     path('public/publications/', views.public_search_view, name='public-search'),
     path('public/publications/add/', views.suggest_a_publication, name='suggest-a-publication'),
     path('public/publications/<int:pk>/', views.PublicationDetailView.as_view(), name='public-publication-detail'),
+    path('public/merge/', views.SuggestedMergeCreateView.as_view(), name='public-merge'),
     path('public/', views.public_home, name='public-home'),
 ]

@@ -45,9 +45,14 @@
                         {% pagination_control paginator current_page %}
                         <div>Results ({{ total_hits }})</div>
                     </div>
-                    <a class="btn btn-secondary align-self-start" href="{{ visualization_url }}" role="button">
-                        <span class="fas fa-list-ol"></span> Explore
-                    </a>
+                    <div class="align-self-start">
+                        <a class="btn btn-secondary" href="{{ suggested_merge_url }}" role="button">
+                            Note duplicates
+                        </a>
+                        <a class="btn btn-secondary" href="{{ visualization_url }}" role="button">
+                            <span class="fas fa-list-ol"></span> Explore
+                        </a>
+                    </div>
                 </div>
                 {% for publication in publications %}
                     <div class="card">

@@ -31,21 +31,21 @@ from django.utils.http import is_safe_url
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
-from django.views.generic import TemplateView, FormView, DetailView
+from django.views.generic import TemplateView, FormView, DetailView, CreateView, ListView
 from haystack.generic_views import SearchView
 from haystack.query import SearchQuerySet
 from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 
 from catalog.core.forms import PublicSearchForm, SuggestedPublicationForm, \
-    SubmitterForm
+    SubmitterForm, SuggestedMergeForm
 from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict
 from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
                                     generate_aggregated_distribution_data, generate_network_graph)
 from citation.graphviz.globals import RelationClassifier, CacheNames
 from citation.models import (Publication, InvitationEmail, Platform, Sponsor, ModelDocumentation, Tag, Container,
-                             URLStatusLog)
+                             URLStatusLog, SuggestedMerge)
 from citation.ping_urls import categorize_url
 from citation.serializers import (InvitationSerializer, CatalogPagination, PublicationListSerializer,
                                   UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer,
@@ -726,7 +726,7 @@ def public_search_view(request):
 
     context = {'publications': publications, 'facets': facets, 'query': search, 'from': from_qs, 'to': to_qs,
                'form': form, 'paginator': paginator, 'current_page': current_page, 'total_hits': total_hits,
-               'visualization_url': visualization_url}
+               'visualization_url': visualization_url, 'suggested_merge_url': reverse('core:public-merge')}
     context.update(PublicationDoc.get_breadcrumb_data())
     return render(request, 'public/search.html', context)
 
@@ -842,3 +842,21 @@ class PublicationDetailView(LoginRequiredMixin, DetailView):
             {'link': PublicationDoc.get_public_list_url(), 'text': 'Publications'},
             {'text': self.object.title}]
         return context
+
+
+class SuggestedMergeCreateView(CreateView):
+    form_class = SuggestedMergeForm
+    context_object_name = 'suggested_merge'
+    template_name = 'public/suggestedmerge/create.html'
+
+    def form_valid(self, form):
+        form.instance.creator = self.request.user
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context_data = super().get_context_data(**kwargs)
+        context_data['breadcrumb_trail'] = [
+            {'link': reverse('core:public-home'), 'text': 'Home'},
+            {'link': PublicationDoc.get_public_list_url(), 'text': 'Publications'},
+            {'text': 'Suggest Duplicates'}]
+        return context_data
