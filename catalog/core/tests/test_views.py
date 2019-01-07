@@ -19,6 +19,7 @@ PUBLICATION_DETAIL_URL = 'citation:publication_detail'
 USER_PROFILE_URL = 'core:user_profile'
 WORKFLOW_URL = 'core:curator_workflow'
 SENT_INVITES_URL = 'core:send_invites'
+HOME_URL = 'core:public-home'
 
 
 class UrlTest(BaseTest):
@@ -45,7 +46,7 @@ class AuthTest(BaseTest):
     def test_login_with_good_credentials(self):
         response = self.post(self.login_url, {'username': self.default_username, 'password': self.default_password})
         self.assertTrue(200, response.status_code)
-        self.assertTrue(self.reverse(DASHBOARD_URL) in response['Location'])
+        self.assertTrue(self.reverse(HOME_URL) in response['Location'])
 
     def test_login_with_inactive_user(self):
         self.user.is_active = False

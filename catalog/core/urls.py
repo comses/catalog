@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework import routers
 from rest_framework.urlpatterns import format_suffix_patterns
-from django.conf.urls import url
+from django.conf.urls import url, include
 from django.views.generic import RedirectView, TemplateView
 
 from . import views
@@ -17,7 +17,7 @@ urlpatterns = format_suffix_patterns([
 ])
 
 # non django rest framework endpoints for authentication, user dashboard, workflow, and search URLs
-urlpatterns += [
+curator_urls = [
     url(r'^contact-us/$', views.ContactFormView.as_view(), name='contact_us'),
     url(r'^$', TemplateView.as_view(template_name='index.html'), name='index'),
     url(r'^dashboard/$', views.DashboardView.as_view(), name='dashboard'),
@@ -54,10 +54,14 @@ urlpatterns += [
     url(r'^network-relation/$', views.NetworkRelation.as_view(), name="network-relation"),
     url(r'^networkrelation/(?P<pk>\d+)/$', views.NetworkRelationDetail.as_view(),
         name='networkrelation'),
-    path('public/visualization/', views.public_visualization_view, name='public-visualization'),
-    path('public/publications/', views.public_search_view, name='public-search'),
-    path('public/publications/add/', views.suggest_a_publication, name='suggest-a-publication'),
-    path('public/publications/<int:pk>/', views.PublicationDetailView.as_view(), name='public-publication-detail'),
-    path('public/merge/', views.SuggestedMergeCreateView.as_view(), name='public-merge'),
-    path('public/', views.public_home, name='public-home'),
+]
+
+urlpatterns += [
+    path('curator/', include(curator_urls)),
+    path('visualization/', views.public_visualization_view, name='public-visualization'),
+    path('publications/', views.public_search_view, name='public-search'),
+    path('publications/add/', views.suggest_a_publication, name='suggest-a-publication'),
+    path('publications/<int:pk>/', views.PublicationDetailView.as_view(), name='public-publication-detail'),
+    path('merge/', views.SuggestedMergeCreateView.as_view(), name='public-merge'),
+    path('', views.public_home, name='public-home'),
 ]

@@ -16,7 +16,7 @@ urlpatterns = [
     path('accounts/password_change/done', auth_views.PasswordChangeDoneView.as_view(), name='password_change_done'),
     path('accounts/password_reset/', auth_views.PasswordResetView.as_view(), name='password_reset'),
     path('accounts/password_reset_done/', auth_views.PasswordResetDoneView.as_view(), name='password_reset_done'),
-    path('', include('citation.urls')),
+    path('api/', include('citation.urls')),
     path('', include('catalog.core.urls')),
 ]
 
