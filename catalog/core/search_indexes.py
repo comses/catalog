@@ -307,6 +307,8 @@ class PublicationDoc(DocType):
     title = edsl.Text(copy_to=ALL_DATA_FIELD)
     date_published = edsl.Date()
     last_modified = edsl.Date()
+    code_archive_url = edsl.Keyword()
+    doi = edsl.Keyword()
     contact_email = edsl.Keyword(copy_to=ALL_DATA_FIELD)
     container = edsl.Object(ContainerInnerDoc)
     tags = edsl.Nested(RelatedInnerDoc)
@@ -323,8 +325,10 @@ class PublicationDoc(DocType):
                   title=publication.title,
                   date_published=publication.date_published,
                   last_modified=publication.date_modified,
+                  code_archive_url=publication.code_archive_url,
                   contact_email=publication.contact_email,
                   container=ContainerInnerDoc(id=container.id, name=container.name, issn=container.issn),
+                  doi=publication.doi,
                   tags=[RelatedInnerDoc(id=t.id, name=t.name) for t in publication.tags.all()],
                   sponsors=[RelatedInnerDoc(id=s.id, name=s.name) for s in publication.sponsors.all()],
                   platforms=[RelatedInnerDoc(id=p.id, name=p.name) for p in publication.platforms.all()],
@@ -357,6 +361,74 @@ class PublicationDoc(DocType):
         settings = {
             'number_of_shards': 1
         }
+
+
+class AuthorDoc(DocType):
+    id = edsl.Integer(required=True)
+    orcid = edsl.Keyword()
+    researcherid = edsl.Keyword()
+    email = edsl.Keyword()
+    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+
+    @classmethod
+    def from_instance(cls, author):
+        doc = cls(meta = {'id': author.id},
+                  id = author.id,
+                  orcid = author.orcid,
+                  researcherid = author.researcherid,
+                  email = author.email,
+                  name = author.name)
+        return doc.to_dict(include_meta=True)
+
+
+class ContainerDoc(DocType):
+    id = edsl.Integer(required=True)
+    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+    issn = edsl.Keyword()
+
+    @classmethod
+    def from_instance(cls, container):
+        doc = cls(meta = {'id': container.id},
+                  id = container.id,
+                  name = container.name,
+                  issn = container.issn)
+        return doc.to_dict(include_meta=True)
+
+
+class PlatformDoc(DocType):
+    id = edsl.Integer(required=True)
+    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+
+    @classmethod
+    def from_instance(cls, instance):
+        doc = cls(meta = {'id': instance.id},
+                  id = instance.id,
+                  name = instance.name)
+        return doc.to_dict(include_meta=True)
+
+
+class SponsorDoc(DocType):
+    id = edsl.Integer(required=True)
+    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+
+    @classmethod
+    def from_instance(cls, instance):
+        doc = cls(meta = {'id': instance.id},
+                  id = instance.id,
+                  name = instance.name)
+        return doc.to_dict(include_meta=True)
+
+
+class TagDoc(DocType):
+    id = edsl.Integer(required=True)
+    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+
+    @classmethod
+    def from_instance(cls, instance):
+        doc = cls(meta={'id': instance.id},
+                  id = instance.id,
+                  name = instance.name)
+        return doc.to_dict(include_meta=True)
 
 
 def bulk_index_public():

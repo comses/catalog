@@ -92,7 +92,28 @@
                                         </small>
                                     </div>
                                 </div>
-                            </div>
+                                <div class="row">
+                                   <div class="col-md-6">
+                                        <small><b>Related Files:</b>
+                                            {% if publication.code_archive_url %}
+                                                <span class="badge badge-light">Code:  <a href="{{ publication.code_archive_url }}"><span class="fas fa-code"><span></a></span>
+                                            {% endif %}
+                                             {% if publication.doi %}
+                                                <span class="badge badge-light">Paper: <a href="https://doi.org/{{ publication.doi }}"><span class="far fa-file"><span></a></span>
+                                            {% endif %}
+                                       </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="float-md-right"><b>Documentation:</b>
+                                            {% for documentation in publication.model_documentation %}
+                                                <span class="badge badge-info">{{ documentation }}</span>
+                                                {% empty %}
+                                                Unknown
+                                            {% endfor %}
+                                        </small>
+                                    </div>
+                                </div>
+                           </div>
                             <div>
                                 <b>Authored by:</b> {{ publication.authors|list_authors }}
                             </div>
