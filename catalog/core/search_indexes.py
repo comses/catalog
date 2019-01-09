@@ -380,6 +380,9 @@ class AuthorDoc(DocType):
                   name = author.name)
         return doc.to_dict(include_meta=True)
 
+    class Index:
+        name = 'author'
+
 
 class ContainerDoc(DocType):
     id = edsl.Integer(required=True)
@@ -394,6 +397,9 @@ class ContainerDoc(DocType):
                   issn = container.issn)
         return doc.to_dict(include_meta=True)
 
+    class Index:
+        name = 'container'
+
 
 class PlatformDoc(DocType):
     id = edsl.Integer(required=True)
@@ -405,6 +411,9 @@ class PlatformDoc(DocType):
                   id = instance.id,
                   name = instance.name)
         return doc.to_dict(include_meta=True)
+
+    class Index:
+        name = 'container'
 
 
 class SponsorDoc(DocType):
@@ -418,6 +427,9 @@ class SponsorDoc(DocType):
                   name = instance.name)
         return doc.to_dict(include_meta=True)
 
+    class Index:
+        name = 'sponsor'
+
 
 class TagDoc(DocType):
     id = edsl.Integer(required=True)
@@ -430,11 +442,27 @@ class TagDoc(DocType):
                   name = instance.name)
         return doc.to_dict(include_meta=True)
 
+    class Index:
+        name = 'tag'
+
 
 def bulk_index_public():
     public_publications = Publication.api.primary().filter(status='REVIEWED')
     PublicationDoc.init()
+    AuthorDoc.init()
+    PlatformDoc.init()
+    SponsorDoc.init()
+    TagDoc.init()
     logger.info('creating publication index')
-    bulk(client=connections.get_connection(),
+    client = connections.get_connection()
+    bulk(client=client,
+         actions=(AuthorDoc.from_instance(a) for a in Author.objects.filter(publications__in=public_publications)))
+    bulk(client=client,
+         actions=(PlatformDoc.from_instance(p) for p in Platform.objects.filter(publications__in=public_publications)))
+    bulk(client=client,
+         actions=(SponsorDoc.from_instance(s) for s in Sponsor.objects.filter(publications__in=public_publications)))
+    bulk(client=client,
+         actions=(TagDoc.from_instance(t) for t in Tag.objects.filter(publications__in=public_publications)))
+    bulk(client=client,
          actions=(PublicationDoc.from_instance(p) for p in public_publications.select_related('container') \
          .prefetch_related('tags', 'sponsors', 'platforms', 'creators', 'model_documentation').iterator()))
