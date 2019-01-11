@@ -16,9 +16,11 @@ from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.contenttypes.models import ContentType
 from django.core import signing
 from django.core.cache import cache
 from django.core.mail import send_mail
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Count, Q, F, Value as V, Max
 from django.db.models.functions import Concat
@@ -28,6 +30,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import is_safe_url
+from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
@@ -39,7 +42,7 @@ from rest_framework.response import Response
 
 from catalog.core.forms import PublicSearchForm, SuggestedPublicationForm, \
     SubmitterForm, SuggestedMergeForm
-from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict
+from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict, get_search_index
 from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
                                     generate_aggregated_distribution_data, generate_network_graph)
@@ -844,10 +847,63 @@ class PublicationDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
+def autocomplete(request):
+    qd = request.GET
+    try:
+        model_name = qd['model_name']
+    except KeyError:
+        raise ValidationError(_('Missing model_name query param'), code='invalid')
+
+    try:
+        search = qd['search']
+    except KeyError:
+        raise ValidationError(_('Missing search query param'), code='invalid')
+
+    content_type = ContentType.objects.get(model=model_name)
+    model = content_type.model_class()
+    model_doc = get_search_index(model)
+    response =  model_doc.search().query('match', name=search).execute()
+    return JsonResponse({'matches': [{'id': h.id, 'name': h.name} for h in response.hits]})
+
+
+def create_suggested_merge(request):
+    try:
+        model_name = request.POST['model_name']
+    except KeyError:
+        raise ValidationError(_('Missing model name'), code='invalid')
+
+    try:
+        instances = request.POST['instances']
+    except KeyError:
+        raise ValidationError(_('Missing instances'), code='invalid')
+
+    try:
+        name = request.POST['name']
+    except KeyError:
+        raise ValidationError(_('Missing name'), code='invalid')
+
+    content_type = ContentType.objects.get(model=model_name)
+    creator = request.user
+    duplicates = [instance['id'] for instance in instances]
+    new_content = {'name': name }
+
+    suggested_merge = SuggestedMerge(
+        content_type=content_type,
+        creator=creator,
+        duplicates=duplicates,
+        new_content=new_content)
+    suggested_merge.save()
+    return JsonResponse({})
+
+
 class SuggestedMergeCreateView(CreateView):
     form_class = SuggestedMergeForm
     context_object_name = 'suggested_merge'
     template_name = 'public/suggestedmerge/create.html'
+
+    def get_success_url(self):
+        messages.add_message(self.request, messages.INFO, 'Successfuly submitted merge request')
+        return reverse('core:public-merge')
 
     def form_valid(self, form):
         form.instance.creator = self.request.user

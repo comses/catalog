@@ -1,11 +1,112 @@
 {% extends 'public/base.html' %}
 {% load render_form from tags %}
 
+{% block head %}
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/vue@2.5.21"></script>
+    <script src="https://unpkg.com/vue-multiselect@2.0.6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/vue-multiselect@2.0.6/dist/vue-multiselect.min.css">
+    <script>
+        Vue.component('multiselect', window.VueMultiselect.default);
+    </script>
+{% endblock %}
+
 {% block content %}
-    <div class="container">
-        <form method="post">
-            {% render_form form %}
-            <button class="btn btn-primary" type="submit">Save</button>
-        </form>
+<div class="container">
+    <div id="form">
+        <div class="form-group">
+            <label for="modelSelector">Content Type</label>
+            <select id="modelSelector" class="form-control" v-model="selectedModelName">
+               <option v-for="modelOption in modelOptions" :value="modelOption.value">
+                   ${ modelOption.label }
+               </option>
+           </select>
+       </div>
+       <div class="form-group">
+           <label for="instanceSelector">Instances</label>
+           <multiselect
+               v-model="selectedInstances"
+               id="mergeMultiselect"
+               track-by="id"
+               label="name"
+               placeholder="Type to find matches"
+               :options="instances"
+               :multiple="true"
+               :searchable="true"
+               :loading="isLoading"
+               :internal-search="false"
+               :clear-on-select="false"
+               :close-on-select="false"
+               @search-change="findCompletions"
+           >
+           </multiselect>
+       </div>
+        <button class="btn btn-primary" @click="submitMergeRequest">Submit Merge Request</button>
+        <div class="alert alert-danger" v-if="error">${ error } <button type="button" class="close" @click="clearError"><span class="fas fa-times"></span></button></div>
+        <div class="alert alert-primary" v-if="success">${ success } <button type="button" class="close" @click="clearSuccess"><span class="fas fa-times"></span></button></div>
     </div>
+</div>
+
+<script>
+	function getCookie(name) {
+	    let cookieValue = null;
+	    if (document.cookie && document.cookie != '') {
+	        let cookies = document.cookie.split(';');
+	        for (let i = 0; i < cookies.length; i++) {
+	            let cookie = cookies[i].trim();
+	            // Does this cookie string begin with the name we want?
+	            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+	                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+	                break;
+	            }
+	        }
+	    }
+	    return cookieValue;
+	}
+
+	const api = axios.create();
+	api.interceptors.request.use(config => {
+		config.headers['X-CSRFToken'] = getCookie('csrftoken');
+		return config;
+	});
+
+    new Vue({
+        delimiters: ['${', '}'],
+        el: '#form',
+        data: {
+            isLoading: false,
+            selectedModelName: 'author',
+            modelOptions: [
+                { label: 'Author', value: 'author' },
+                { label: 'Journal', value: 'container' },
+            ],
+            selectedInstances: [],
+            instances: [],
+            error: '',
+            success: ''
+        },
+        methods: {
+            findCompletions(query) {
+                this.isLoading = true;
+                api.get('/autocomplete/?model_name=' + this.selectedModelName + '&search=' + encodeURI(query)).then(response => {
+                    this.instances = response.data.matches;
+                    this.isLoading = false;
+                });
+            },
+            submitMergeRequest() {
+                api.post('', { 'model_name': this.selectedModelName, 'instances': this.selectedInstances }).then(response => {
+                    this.success = "Merge Submission Successful";
+                }).catch(error => {
+                    this.error = error.response.data;
+                });
+            },
+            clearError() {
+                this.error = '';
+            },
+            clearSuccess() {
+                this.success = '';
+            }
+        }
+    });
+</script>
 {% endblock %}
