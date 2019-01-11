@@ -1,9 +1,12 @@
 import logging
 from urllib.parse import urlencode
 
+from django.core.exceptions import ValidationError
 from django.db.models import QuerySet
 from django.http import QueryDict
 from django.urls import reverse
+from django.utils.translation import ugettext_lazy as _
+from elasticsearch_dsl import analyzer, tokenizer
 from haystack import indexes
 from typing import Dict, List
 
@@ -363,12 +366,41 @@ class PublicationDoc(DocType):
         }
 
 
+autocomplete_analyzer = analyzer('autocomplete_analyzer',
+                                 tokenizer=tokenizer(
+                                    'edge_ngram_tokenizer',
+                                    type='edge_ngram',
+                                    min_gram=3,
+                                    max_gram=10,
+                                    token_chars=[
+                                        "letter",
+                                        "digit"
+                                    ]),
+                                 filter=['lowercase', 'asciifolding', 'trim'])
+
+
+def get_search_index(model):
+    lookup = {
+        Author: AuthorDoc,
+        Container: ContainerDoc,
+        Platform: PlatformDoc,
+        Sponsor: SponsorDoc,
+        Tag: TagDoc,
+    }
+    try:
+        return lookup[model]
+    except KeyError:
+        raise ValidationError(_('Invalid model_name'), code='invalid')
+
+
 class AuthorDoc(DocType):
     id = edsl.Integer(required=True)
     orcid = edsl.Keyword()
     researcherid = edsl.Keyword()
     email = edsl.Keyword()
-    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+    name = edsl.Text(copy_to=ALL_DATA_FIELD,
+                     analyzer=autocomplete_analyzer,
+                     search_analyzer='standard')
 
     @classmethod
     def from_instance(cls, author):
@@ -386,7 +418,9 @@ class AuthorDoc(DocType):
 
 class ContainerDoc(DocType):
     id = edsl.Integer(required=True)
-    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+    name = edsl.Text(copy_to=ALL_DATA_FIELD,
+                     analyzer=autocomplete_analyzer,
+                     search_analyzer='standard')
     issn = edsl.Keyword()
 
     @classmethod
@@ -403,7 +437,9 @@ class ContainerDoc(DocType):
 
 class PlatformDoc(DocType):
     id = edsl.Integer(required=True)
-    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+    name = edsl.Text(copy_to=ALL_DATA_FIELD,
+                     analyzer=autocomplete_analyzer,
+                     search_analyzer='standard')
 
     @classmethod
     def from_instance(cls, instance):
@@ -413,12 +449,14 @@ class PlatformDoc(DocType):
         return doc.to_dict(include_meta=True)
 
     class Index:
-        name = 'container'
+        name = 'platform'
 
 
 class SponsorDoc(DocType):
     id = edsl.Integer(required=True)
-    name = edsl.Text(copy_to=ALL_DATA_FIELD)
+    name = edsl.Text(copy_to=ALL_DATA_FIELD,
+                     analyzer=autocomplete_analyzer,
+                     search_analyzer='standard')
 
     @classmethod
     def from_instance(cls, instance):
