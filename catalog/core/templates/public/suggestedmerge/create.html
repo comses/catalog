@@ -5,6 +5,7 @@
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="https://unpkg.com/vue@2.5.21"></script>
     <script src="https://unpkg.com/vue-multiselect@2.0.6"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/vue-multiselect@2.0.6/dist/vue-multiselect.min.css">
     <script>
         Vue.component('multiselect', window.VueMultiselect.default);
@@ -41,9 +42,13 @@
            >
            </multiselect>
        </div>
-        <button class="btn btn-primary" @click="submitMergeRequest">Submit Merge Request</button>
-        <div class="alert alert-danger" v-if="error">${ error } <button type="button" class="close" @click="clearError"><span class="fas fa-times"></span></button></div>
-        <div class="alert alert-primary" v-if="success">${ success } <button type="button" class="close" @click="clearSuccess"><span class="fas fa-times"></span></button></div>
+       <div class="form-group">
+           <label for="nameInput">New Name</label>
+           <input class="form-control" type="text" v-model="name">
+       </div>
+       <button class="btn btn-primary" @click="submitMergeRequest">Submit Merge Request</button>
+       <div class="alert alert-danger" v-if="error">${ error } <button type="button" class="close" @click="clearError"><span class="fas fa-times"></span></button></div>
+       <div class="alert alert-primary" v-if="success">${ success } <button type="button" class="close" @click="clearSuccess"><span class="fas fa-times"></span></button></div>
     </div>
 </div>
 
@@ -70,6 +75,15 @@
 		return config;
 	});
 
+    function sendAutocompleteRequest(query) {
+        this.isLoading = true;
+        api.get('/autocomplete/?model_name=' + this.selectedModelName + '&search=' + encodeURI(query)).then(response => {
+            this.instances = response.data.matches;
+            this.isLoading = false;
+        });
+    }
+    const debouncedAutocompleteRequest = _.debounce(sendAutocompleteRequest, 400);
+
     new Vue({
         delimiters: ['${', '}'],
         el: '#form',
@@ -79,22 +93,23 @@
             modelOptions: [
                 { label: 'Author', value: 'author' },
                 { label: 'Journal', value: 'container' },
+                { label: 'Platform', value: 'platform' },
+                { label: 'Sponsor', value: 'sponsor' },
+                { label: 'Tag', value: 'tag' }
             ],
             selectedInstances: [],
             instances: [],
+            name: '',
             error: '',
             success: ''
         },
         methods: {
-            findCompletions(query) {
-                this.isLoading = true;
-                api.get('/autocomplete/?model_name=' + this.selectedModelName + '&search=' + encodeURI(query)).then(response => {
-                    this.instances = response.data.matches;
-                    this.isLoading = false;
-                });
-            },
+            findCompletions: debouncedAutocompleteRequest,
             submitMergeRequest() {
-                api.post('', { 'model_name': this.selectedModelName, 'instances': this.selectedInstances }).then(response => {
+                api.post('', { 'model_name': this.selectedModelName, 'instances': this.selectedInstances, 'name': this.name }).then(response => {
+                    this.clearError();
+                    this.selectedInstances = [];
+                    this.name = '';
                     this.success = "Merge Submission Successful";
                 }).catch(error => {
                     this.error = error.response.data;

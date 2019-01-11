@@ -866,53 +866,55 @@ def autocomplete(request):
     return JsonResponse({'matches': [{'id': h.id, 'name': h.name} for h in response.hits]})
 
 
-def create_suggested_merge(request):
-    try:
-        model_name = request.POST['model_name']
-    except KeyError:
-        raise ValidationError(_('Missing model name'), code='invalid')
+class SuggestedMergeView:
+    def __call__(self, request):
+        logger.info('request')
+        logger.debug(request.body)
+        if request.method == 'POST':
+            try:
+                data = json.loads(request.body)
+            except json.JSONDecodeError:
+                raise ValidationError(_('Submitted JSON invalid'), code='invalid')
+            return self.create_suggested_merge(data, user=request.user)
+        else:
+            return self.retrieve_create_suggested_merge_page(request)
 
-    try:
-        instances = request.POST['instances']
-    except KeyError:
-        raise ValidationError(_('Missing instances'), code='invalid')
+    def create_suggested_merge(self, data, user):
+        logger.info('creating suggested merge')
+        try:
+            model_name = data['model_name']
+        except KeyError:
+            raise ValidationError(_('Missing model name'), code='invalid')
 
-    try:
-        name = request.POST['name']
-    except KeyError:
-        raise ValidationError(_('Missing name'), code='invalid')
+        try:
+            instances = data['instances']
+        except KeyError:
+            raise ValidationError(_('Missing instances'), code='invalid')
 
-    content_type = ContentType.objects.get(model=model_name)
-    creator = request.user
-    duplicates = [instance['id'] for instance in instances]
-    new_content = {'name': name }
+        try:
+            name = data['name']
+        except KeyError:
+            raise ValidationError(_('Missing name'), code='invalid')
 
-    suggested_merge = SuggestedMerge(
-        content_type=content_type,
-        creator=creator,
-        duplicates=duplicates,
-        new_content=new_content)
-    suggested_merge.save()
-    return JsonResponse({})
+        content_type = ContentType.objects.get(model=model_name)
+        creator = user
+        duplicates = [instance['id'] for instance in instances]
+        new_content = {'name': name }
 
+        suggested_merge = SuggestedMerge(
+            content_type=content_type,
+            creator=creator,
+            duplicates=duplicates,
+            new_content=new_content)
+        suggested_merge.save()
+        return JsonResponse({})
 
-class SuggestedMergeCreateView(CreateView):
-    form_class = SuggestedMergeForm
-    context_object_name = 'suggested_merge'
-    template_name = 'public/suggestedmerge/create.html'
-
-    def get_success_url(self):
-        messages.add_message(self.request, messages.INFO, 'Successfuly submitted merge request')
-        return reverse('core:public-merge')
-
-    def form_valid(self, form):
-        form.instance.creator = self.request.user
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context_data = super().get_context_data(**kwargs)
-        context_data['breadcrumb_trail'] = [
-            {'link': reverse('core:public-home'), 'text': 'Home'},
-            {'link': PublicationDoc.get_public_list_url(), 'text': 'Publications'},
-            {'text': 'Suggest Duplicates'}]
-        return context_data
+    def retrieve_create_suggested_merge_page(self, request):
+        context = {
+            'breadcrumb_trail': [
+                {'link': reverse('core:public-home'), 'text': 'Home'},
+                {'link': PublicationDoc.get_public_list_url(), 'text': 'Publications'},
+                {'text': 'Suggest Duplicates'}
+            ]
+        }
+        return render(request, 'public/suggestedmerge/create.html', context=context)
