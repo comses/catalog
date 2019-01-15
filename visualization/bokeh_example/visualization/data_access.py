@@ -1,5 +1,6 @@
 import enum
 import logging
+from pprint import pformat
 
 import pandas as pd
 from django.db.models import QuerySet
@@ -99,7 +100,6 @@ class JournalDataAccess(SearchMixin):
             .agg(dict(title='count', is_archived='sum',
                       has_formal_description='sum', has_odd='sum', has_visual_documentation='sum'))
         counts_df = counts_df.rename(columns=renames)
-        # logger.info(counts_df.columns)
         mi = self.data_cache.get_all_year_related_combinations(related_ids)
         return counts_df.reindex(mi, fill_value=0)
 
