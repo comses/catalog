@@ -707,7 +707,6 @@ def create_paginator(current_page: int, query_dict: QueryDict, total_hits, page_
     return paginator
 
 
-@login_required()
 def public_search_view(request):
     search, filters = normalize_search_querydict(request.GET)
     query_dict = request.GET.copy()
@@ -735,7 +734,6 @@ def public_search_view(request):
     return render(request, 'public/search.html', context)
 
 
-@login_required()
 def public_visualization_view(request):
     def build_script_tag():
         elementid = make_id()
@@ -784,7 +782,6 @@ def public_visualization_view(request):
                            'facets': facets})
 
 
-@login_required()
 def public_home(request):
     search = request.GET.get('search', '')
     if search:
@@ -830,7 +827,7 @@ def suggest_a_publication(request):
         return render_page(submitter_form=SubmitterForm(), suggested_publication_form=SuggestedPublicationForm())
 
 
-class PublicationDetailView(LoginRequiredMixin, DetailView):
+class PublicationDetailView(DetailView):
     pk_url_kwarg = 'pk'
     context_object_name = 'publication'
     model = Publication
