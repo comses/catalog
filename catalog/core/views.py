@@ -789,7 +789,6 @@ def public_home(request):
     return render(request, 'public/home.html')
 
 
-@login_required()
 def suggest_a_publication(request):
     def render_page(submitter_form, suggested_publication_form):
         return render(request, template_name='public/suggest_a_publication.html', context={
