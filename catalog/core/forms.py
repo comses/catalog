@@ -200,17 +200,3 @@ class SubmitterForm(ModelForm):
             submitter = Submitter(email=self.cleaned_data['email'])
         submitter.save()
         return submitter
-
-
-class SuggestedMergeForm(ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['duplicate_names'].delimiter = '|'
-
-    class Meta:
-        model = SuggestedMerge
-        fields = ['content_type', 'duplicate_names']
-        help_texts = {
-            'content_type': 'Select the type of data you believe is duplicated',
-            'duplicate_names': 'Enter the exact names you believe are duplicated here separated by "|" (piping symbol)'
-        }

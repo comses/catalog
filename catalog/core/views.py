@@ -41,8 +41,9 @@ from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 
 from catalog.core.forms import PublicSearchForm, SuggestedPublicationForm, \
-    SubmitterForm, SuggestedMergeForm
-from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict, get_search_index
+    SubmitterForm
+from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict, \
+    get_search_index
 from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
                                     generate_aggregated_distribution_data, generate_network_graph)
@@ -862,7 +863,7 @@ def autocomplete(request):
     content_type = ContentType.objects.get(model=model_name)
     model = content_type.model_class()
     model_doc = get_search_index(model)
-    response =  model_doc.search().query('match', name=search).execute()
+    response = model_doc.search().query('match', name=search).execute()
     return JsonResponse({'matches': [{'id': h.id, 'name': h.name} for h in response.hits]})
 
 
@@ -899,7 +900,7 @@ class SuggestedMergeView:
         content_type = ContentType.objects.get(model=model_name)
         creator = user
         duplicates = [instance['id'] for instance in instances]
-        new_content = {'name': name }
+        new_content = {'name': name}
 
         suggested_merge = SuggestedMerge(
             content_type=content_type,
