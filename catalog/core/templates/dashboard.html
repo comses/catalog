@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load tags %}
+{% load bootstrap3 %}
 {% block content %}
     <div class="row">
         <div class="col-md-6">
@@ -88,6 +89,9 @@
                         {% endfor %}
                         </tbody>
                     </table>
+                        {% if recently_updated.has_previous or recently_updated.has_next %}
+                            <div class="text-center">{% bootstrap_pagination recently_updated url=request.get_full_path %}</div>
+                        {% endif %}
                     {% else %}
                         No recently updated publications found.
                     {% endif %}

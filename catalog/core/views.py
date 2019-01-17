@@ -21,6 +21,7 @@ from django.core import signing
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Count, Q, F, Value as V, Max
 from django.db.models.functions import Concat
@@ -158,7 +159,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, number_of_publications=25, **kwargs):
         context = super(DashboardView, self).get_context_data(**kwargs)
-        last_week_datetime = timezone.now() - timedelta(days=7)
+        last_week_datetime = timezone.now() - timedelta(days=14)
         context['status'] = Counter()
 
         pub_count = Publication.objects.filter(is_primary=True).values('status').annotate(
@@ -180,8 +181,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             status=Publication.Status.AUTHOR_UPDATED)
         recently_updated_publications = Publication.objects.exclude(
             status=Publication.Status.AUTHOR_UPDATED)
-        recently_updated = recently_updated_publications.filter(
-            date_modified__gte=last_week_datetime, is_primary=True).order_by('-date_modified')[:number_of_publications]
+        recently_updated_list = recently_updated_publications.filter(
+            date_modified__gte=last_week_datetime, is_primary=True).order_by('-date_modified')
+        paginator = Paginator(recently_updated_list, number_of_publications)
+        page = self.request.GET.get('page')
+        recently_updated = paginator.get_page(page)
         context['recently_updated'] = recently_updated
         return context
 
