@@ -26,6 +26,11 @@
             <a class="navbar-brand" href="{% url 'core:public-home' %}">CoMSES Catalog</a>
             <div class="collapse navbar-collapse flex-md-column my-auto justify-content-end">
                 <ul class="navbar-nav ml-auto small">
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://comses.net/about/contact/">
+                            <span class="fas fa-bell"></span> Contact Us
+                        </a>
+                    </li>
                     {% if request.user.is_anonymous %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ login_url }}?next={{ request.path }}">Sign In</a>
