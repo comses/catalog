@@ -135,7 +135,7 @@
             <div class="col-md-6 form-group">
                 <label class="control-label" for="id_platforms">Platforms</label>
                 <select multiple class="form-control" id="id_platforms" name="platforms"
-                        data-bind="selectize: platforms, selectedOptions: selectedPlatforms, optionsValue: 'name', options: { create: true, load: getPlatformList, create: function(input) { return { name: input, id: input }}}">
+                        data-bind="selectize: platforms, selectedOptions: selectedPlatforms, optionsValue: 'name', options: { create: true, load: getPlatformList, delimiter: ';', create: function(input) { return { name: input, id: input }}}">
                 </select>
             </div>
         </div>
@@ -143,7 +143,7 @@
             <div class="col-md-12 form-group">
                 <label class="control-label" for="id_sponsors">Sponsors</label>
                 <select multiple class="form-control" id="id_sponsors" name="sponsors"
-                        data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList }">
+                        data-bind="selectize: sponsors, selectedOptions: selectedSponsors, optionsValue: 'name', options: { create: true, load: getSponsorList, delimiter: ';' }">
                 </select>
             </div>
         </div>
