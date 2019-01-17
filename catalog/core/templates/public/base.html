@@ -1,5 +1,6 @@
 {% url 'login' as login_url %}
 {% url 'logout' as logout_url %}
+{% url 'core:dashboard' as dashboard_url %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -42,6 +43,7 @@
                                 {{ request.user.username }}
                             </a>
                             <div class="dropdown-menu" aria-labelledby="signedInDropdownLink">
+                                <a class="dropdown-item" href="{{ dashboard_url }}">Curator Dashboard</a>
                                 <a class="dropdown-item" href="{{ logout_url }}">Sign out</a>
                             </div>
                         </li>
