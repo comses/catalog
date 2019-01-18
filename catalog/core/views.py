@@ -38,8 +38,9 @@ from django.views.decorators.debug import sensitive_post_parameters
 from django.views.generic import TemplateView, FormView, DetailView, CreateView, ListView
 from haystack.generic_views import SearchView
 from haystack.query import SearchQuerySet
-from rest_framework import status, renderers, generics
+from rest_framework import status, renderers, generics, serializers
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from catalog.core.forms import PublicSearchForm, SuggestedPublicationForm, \
     SubmitterForm
@@ -54,7 +55,8 @@ from citation.models import (Publication, InvitationEmail, Platform, Sponsor, Mo
 from citation.ping_urls import categorize_url
 from citation.serializers import (InvitationSerializer, CatalogPagination, PublicationListSerializer,
                                   UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer,
-                                  PublicationAggregationSerializer, AuthorAggregrationSerializer)
+                                  PublicationAggregationSerializer, AuthorAggregrationSerializer,
+                                  SuggestMergeSerializer)
 from .forms import CatalogAuthenticationForm, CatalogSearchForm
 
 logger = logging.getLogger(__name__)
@@ -867,40 +869,26 @@ def autocomplete(request):
     return JsonResponse({'matches': [{'id': h.id, 'name': h.name} for h in response.hits]})
 
 
-class SuggestedMergeView:
-    def __call__(self, request):
-        logger.info('request')
-        logger.debug(request.body)
-        if request.method == 'POST':
-            try:
-                data = json.loads(request.body)
-            except json.JSONDecodeError:
-                raise ValidationError(_('Submitted JSON invalid'), code='invalid')
-            return self.create_suggested_merge(data, user=request.user)
-        else:
-            return self.retrieve_create_suggested_merge_page(request)
+class SuggestedMergeView(APIView):
+    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer,)
+
+    def get(self, request):
+        return self.retrieve_create_suggested_merge_page(request)
+
+    def post(self, request):
+        user = request.user
+        data = request.data
+        return self.create_suggested_merge(data, user)
 
     def create_suggested_merge(self, data, user):
-        logger.info('creating suggested merge')
-        try:
-            model_name = data['model_name']
-        except KeyError:
-            raise ValidationError(_('Missing model name'), code='invalid')
+        serializer = SuggestMergeSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
 
-        try:
-            instances = data['instances']
-        except KeyError:
-            raise ValidationError(_('Missing instances'), code='invalid')
-
-        try:
-            name = data['name']
-        except KeyError:
-            raise ValidationError(_('Missing name'), code='invalid')
-
-        content_type = ContentType.objects.get(model=model_name)
+        content_type = ContentType.objects.get(model=validated_data['model_name'])
         creator = user
-        duplicates = [instance['id'] for instance in instances]
-        new_content = {'name': name}
+        duplicates = [instance['id'] for instance in validated_data['instances']]
+        new_content = {'name': validated_data['name']}
 
         suggested_merge = SuggestedMerge(
             content_type=content_type,
@@ -908,7 +896,7 @@ class SuggestedMergeView:
             duplicates=duplicates,
             new_content=new_content)
         suggested_merge.save()
-        return JsonResponse({})
+        return Response(data=status.HTTP_200_OK)
 
     def retrieve_create_suggested_merge_page(self, request):
         context = {
@@ -919,3 +907,19 @@ class SuggestedMergeView:
             ]
         }
         return render(request, 'public/suggestedmerge/create.html', context=context)
+
+
+def suggested_merge_list_view(request):
+    suggested_merge_list = SuggestedMerge.objects.order_by('-date_added')
+    paginator = Paginator(suggested_merge_list, 20)
+
+    page = request.GET.get('page')
+    suggested_merges = paginator.get_page(page)
+    suggested_merges.object_list = SuggestedMerge.annotate_names(list(suggested_merges.object_list))
+    breadcrumb_trail = [
+        {'link': reverse('core:public-home'), 'text': 'Home'},
+        {'link': PublicationDoc.get_public_list_url(), 'text': 'Publications'},
+        {'text': 'Duplicates'}
+    ]
+    return render(request, 'public/suggestedmerge/list.html',
+                  {'suggested_merges': suggested_merges, 'breadcrumb_trail': breadcrumb_trail})

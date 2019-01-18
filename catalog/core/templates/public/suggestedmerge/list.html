@@ -1,0 +1,58 @@
+{% extends 'public/base.html' %}
+
+{% block content %}
+    <div class="container">
+        <h1>Suggested Duplicates</h1>
+
+        <div class="row">
+            {% for suggested_merge in suggested_merges %}
+                <div class="card">
+                    <div class="card-body">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small><b>Content Type:</b> {{ suggested_merge.content_type.model.title }}</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <small><b>Created by:</b> {{ suggested_merge.creator.email }}</small>
+                                </div>
+                            </div>
+                        </div>
+            		    <p>
+                            <b>Old Names:</b>
+                        </p>
+                        <ul class="list-group list-group-flush">
+                            {% for related_instance in suggested_merge.duplicate_instances %}
+                                <li class="list-group-item">{{ related_instance.name }}</li>
+                            {% endfor %}
+                        </ul>
+                        <b>New name:</b> {{ suggested_merge.new_content.name }}
+                    </div>
+                    <div class="card-footer">
+                        <small class="text-muted">{{ suggested_merge.date_added|date:"b d, Y" }}</small>
+                    </div>
+                </div>
+            {% endfor %}
+
+        </div>
+        <div class="row">
+            <div class="pagination">
+                <span class="step-links">
+                    {% if suggested_merges.has_previous %}
+                        <a href="?page=1">&laquo; first</a>
+                        <a href="?page={{ suggested_merges.previous_page_number }}">previous</a>
+                    {% endif %}
+
+                    <span class="current">
+                        Page {{ suggested_merges.number }} of {{ suggested_merges.paginator.num_pages }}.
+                    </span>
+
+                    {% if contacts.has_next %}
+                        <a href="?page={{ suggested_merges.next_page_number }}">next</a>
+                        <a href="?page={{ suggested_merges.paginator.num_pages }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+{% endblock %}
