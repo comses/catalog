@@ -51,7 +51,7 @@ from citation.graphviz.data import (generate_aggregated_code_archived_platform_d
                                     generate_aggregated_distribution_data, generate_network_graph)
 from citation.graphviz.globals import RelationClassifier, CacheNames
 from citation.models import (Publication, InvitationEmail, Platform, Sponsor, ModelDocumentation, Tag, Container,
-                             URLStatusLog, SuggestedMerge)
+                             URLStatusLog, SuggestedMerge, Submitter)
 from citation.ping_urls import categorize_url
 from citation.serializers import (InvitationSerializer, CatalogPagination, PublicationListSerializer,
                                   UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer,
@@ -886,7 +886,7 @@ class SuggestedMergeView(APIView):
         validated_data = serializer.validated_data
 
         content_type = ContentType.objects.get(model=validated_data['model_name'])
-        creator = user
+        creator, created = Submitter.get_or_create(user=user, email=data.get('email', ''))
         duplicates = [instance['id'] for instance in validated_data['instances']]
         new_content = {'name': validated_data['name']}
 
