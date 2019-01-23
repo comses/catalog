@@ -24,10 +24,11 @@
                         <b>Last modified:</b> <span data-bind='text: date_modified'></span><br>
                         <b>DOI:</b>
                         <!-- ko if: doi -->
-                            <a target='_blank' data-bind='attr: { href: $root.doiLookup(doi) }'><span data-bind='text: doi'></span></a>
+                        <a target='_blank' data-bind='attr: { href: $root.doiLookup(doi) }'><span
+                                data-bind='text: doi'></span></a>
                         <!-- /ko -->
                         <!-- ko ifnot: doi -->
-                            Not available
+                        Not available
                         <!-- /ko -->
                         <div><b>Author(s):</b>
                             <ul class='list-inline' data-bind="foreach: creators">
@@ -155,23 +156,41 @@
                 </div>
             </div>
         </div>
-        <div class='row'>
-            <div class='col-md-12 form-group'>
-                <label class="control-label" for="id_code_archive_url">Code Archive URL</label>
-                <div class='input-group'>
-                    <span class='input-group-addon'><i class='fa fa-code'></i> </span>
-                    <input class="form-control" id="id_code_archive_url" maxlength="255" name="code_archive_url"
-                           placeholder="Code archive url" type="url" data-bind="value: code_archive_url">
-                    <span class='input-group-addon'>
-                    <!-- ko if: validCodeArchiveUrl -->
-                    <strong><a target='_blank' data-bind='attr: {href: codeArchiveUrl()}'>View
-                            <i class='fa fa-external-link'></i></a></strong>
+        <div class="row">
+            <div class="col-md-12">
+                <strong>Code Archive URLs</strong>
+            </div>
+            <div class="col-md-12">
+                <ul class="list-group" data-bind="foreach: codeArchiveUrls">
+                    <li class="list-group-item">
+                        <span class="badge btn btn-danger" data-bind="click: $root.deleteCodeArchiveUrl">Delete</span>
+                        <span class="badge btn btn-primary" data-bind="click: $root.updateCodeArchiveUrl"
+                              data-toggle="modal" data-target="#edit_code_archive_url">
+                            Edit
+                        </span>
+                        <!-- ko if: $root.validateCodeArchiveUrl(url()) -->
+                        <strong>
+                            <a target='_blank' data-bind='text: url, attr: {href: url()}'></a>
+                        </strong>
                         <!-- /ko -->
-                        <!-- ko ifnot: validCodeArchiveUrl -->
-                    <span>View <i class='fa fa-external-link'></i></span>
+                        <!-- ko ifnot: $root.validateCodeArchiveUrl(url()) -->
+                        <span data-bind="text: url"></span>
                         <!-- /ko -->
-                </span>
-                </div>
+                        <div class="pull-right">
+                            <strong>Status:</strong> <span data-bind="text: status"></span>
+                            <strong>Category:</strong> <span data-bind="text: category"></span>
+                            &nbsp;
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <button class="btn btn-primary" data-toggle="modal" type="button" data-target="#edit_code_archive_url"
+                        data-bind="click: addCodeArchiveUrl">
+                    Add Code Archive URL
+                </button>
             </div>
         </div>
         <div class='row'>
@@ -214,11 +233,50 @@
             </div>
         </div>
     </form>
+    <div class="modal fade" id="edit_code_archive_url" tabindex="-1" role="dialog"
+         aria-labelledby="edit_code_archive_url_label">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span class="fa fa-close"></span>
+                    </button>
+                    <h4 class="modal-title" id="add_code_archive_url_label">
+                        Edit Code Archive URL
+                    </h4>
+                </div>
+                <form class="modal-body" id="edit_code_archive_url_form">
+                    <div class="form-group">
+                        <label class="control-label" for="edit_code_archive_url_url">URL</label>
+                        <input class="form-control" id="edit_code_archive_url_url" type="url"
+                               data-bind="value: codeArchiveUrlEdit.url">
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label" for="edit_code_archive_url_category">Category</label>
+                        <select class="form-control" id="edit_code_archive_url_category"
+                                data-bind="options: codeArchiveUrlCategoryOptions, optionsText: 'label', optionsValue: 'value', value: codeArchiveUrlEdit.category">
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label" for="edit_code_archive_url_status">Status</label>
+                        <select class="form-control" id="edit_code_archive_url_status"
+                                data-bind="options: codeArchiveUrlStatusOptions, optionsText: 'label', optionsValue: 'value', value: codeArchiveUrlEdit.status">
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary" data-bind="click: keepCodeArchiveUrlChanges">Keep
+                        Changes
+                    </button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div>
 {% endblock content %}
 
 {% block javascript %}
     {% include "includes/note_form.html" %}
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.core.min.js"></script>
     <script src='//cdnjs.cloudflare.com/ajax/libs/jquery.matchHeight/0.7.0/jquery.matchHeight-min.js'></script>
 
     <script type="text/javascript">
@@ -280,8 +338,11 @@
                             + encodeURIComponent(creator.given_name() + ' ' + creator.family_name());
                     });
                 };
-                self.doiLookup = function(doi) {
-                    return ko.pureComputed(function() {
+                self.codeArchiveUrlStatusOptions = ko.observable(data.code_archive_status_options);
+                self.codeArchiveUrlCategoryOptions = ko.observable(data.code_archive_category_options);
+                self.codeArchiveUrlEdit = ko.mapping.fromJS(DataPreparation.createCodeArchiveUrl());
+                self.doiLookup = function (doi) {
+                    return ko.pureComputed(function () {
                         return $.urls.DOI_ORG + doi();
                     });
                 };
@@ -298,16 +359,19 @@
                         '&as_sauthors=' + encodeURIComponent(self.authorLastNames());
                 });
                 self.asuLibraryTitleLink = ko.pureComputed(function () {
-                    return 'https://arizona-asu-primo.hosted.exlibrisgroup.com/primo-explore/search?query=title,contains,' + encodeURIComponent(self.title()) + 
+                    return 'https://arizona-asu-primo.hosted.exlibrisgroup.com/primo-explore/search?query=title,contains,' + encodeURIComponent(self.title()) +
                         '&tab=default_tab&search_scope=Everything&sortby=rank&vid=01ASU&lang=en_US&mode=advanced&offset=0';
 
                 });
                 self.asuLibraryAuthorLink = ko.pureComputed(function () {
                     return 'https://arizona-asu-primo.hosted.exlibrisgroup.com/primo-explore/search?query=title,contains,' + encodeURIComponent(self.title())
-                        + ',AND&query=creator,contains,' + encodeURIComponent(self.authorLastNames()) + 
+                        + ',AND&query=creator,contains,' + encodeURIComponent(self.authorLastNames()) +
                         '&tab=default_tab&search_scope=Everything&sortby=rank&vid=01ASU&lang=en_US&mode=advanced&offset=0';
 
                 });
+                self.validateCodeArchiveUrl = function (url) {
+                    return url && validator.isURL(url);
+                };
                 self.validCodeArchiveUrl = ko.pureComputed(function () {
                     url = self.code_archive_url();
                     return url && validator.isURL(url);
@@ -321,6 +385,41 @@
                 self.publicationStatuses = ko.pureComputed(function () {
                     return Object.keys(self.status_options);
                 });
+                self.deleteCodeArchiveUrl = function (codeArchiveUrl) {
+                    self.codeArchiveUrls.remove(codeArchiveUrl);
+                };
+                self.addCodeArchiveUrl = function () {
+                    var newCodeArchiveUrl = DataPreparation.createCodeArchiveUrl();
+                    self.codeArchiveUrlEdit
+                        .id(newCodeArchiveUrl.id)
+                        .category(newCodeArchiveUrl.category)
+                        .creator(newCodeArchiveUrl.creator)
+                        .status(newCodeArchiveUrl.status)
+                        .uniqueId(newCodeArchiveUrl.uniqueId)
+                        .url(newCodeArchiveUrl.url);
+                };
+                self.updateCodeArchiveUrl = function () {
+                    var newCodeArchiveUrl = ko.toJS(this);
+                    self.codeArchiveUrlEdit
+                        .id(newCodeArchiveUrl.id)
+                        .category(newCodeArchiveUrl.category)
+                        .creator(newCodeArchiveUrl.creator)
+                        .status(newCodeArchiveUrl.status)
+                        .uniqueId(newCodeArchiveUrl.uniqueId)
+                        .url(newCodeArchiveUrl.url);
+                };
+                self.keepCodeArchiveUrlChanges = function () {
+                    var uniqueId = self.codeArchiveUrlEdit.uniqueId();
+                    var matchingCodeArchiveUrls = self.codeArchiveUrls().filter(function (codeArchiveUrl) {
+                        return codeArchiveUrl.uniqueId() === uniqueId;
+                    });
+                    if (matchingCodeArchiveUrls.length > 0) {
+                        self.codeArchiveUrls.replace(matchingCodeArchiveUrls[0], ko.mapping.fromJS(ko.mapping.toJS(self.codeArchiveUrlEdit)));
+                    } else {
+                        self.codeArchiveUrls.push(self.codeArchiveUrlEdit);
+                    }
+                    $('#edit_code_archive_url').modal('hide');
+                };
                 self.publicationStatus = function (status) {
                     return self.status_options[status];
                 };
@@ -378,12 +477,12 @@
                         return {'name': sponsor};
                     }));
 
-                    if(self.validCodeArchiveUrl()){
-                        if( data.selectedModelDocumentations.indexOf('Source code') < 0 ){
+                    if (self.validCodeArchiveUrl()) {
+                        if (data.selectedModelDocumentations.indexOf('Source code') < 0) {
                             data.selectedModelDocumentations.push('Source code');
                         }
-                    }else{
-                        if(data.selectedModelDocumentations.indexOf('Source code') >= 0 ){
+                    } else {
+                        if (data.selectedModelDocumentations.indexOf('Source code') >= 0) {
                             data.selectedModelDocumentations.remove('Source code');
                         }
                     }
@@ -488,8 +587,17 @@
                         return (auditlog.table === 'publication' && auditlog.row_id === current_publication_id) ||
                             (auditlog.table !== 'publication');
                     });
-                }
-                ,
+                },
+                createCodeArchiveUrl: function () {
+                    return {
+                        id: null,
+                        category: '',
+                        creator: null,
+                        status: 'available',
+                        url: '',
+                        uniqueId: _.uniqueId()
+                    }
+                },
                 prepare_viewModelJson: function (viewModelJson) {
                     var self = this;
                     var filter_other_publications = self.filter_other_publications_factory(viewModelJson.id);
@@ -500,12 +608,17 @@
                         });
                         return activity_log;
                     });
+                    viewModelJson.codeArchiveUrls = viewModelJson.code_archive_urls.map(function (code_archive_url) {
+                        code_archive_url.uniqueId = _.uniqueId();
+                        return code_archive_url;
+                    });
                     return viewModelJson;
                 }
             };
             var model = new PublicationDetail(viewModelJson);
             ko.applyBindings(model);
             $('.assigned-panel-group').matchHeight();
+            window.model = model;
         });
     </script>
 {% endblock javascript %}
