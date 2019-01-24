@@ -142,7 +142,7 @@ def create_pgpass_file(ctx, force=False):
 @task
 def backup(ctx, path='/backups/postgres'):
     create_pgpass_file(ctx)
-    ctx.run('/code/deploy/backup/autopgsqlbackup.sh -c /code/deploy/backup/autopgsqlbackup.conf')
+    ctx.run('autopostgresqlbackup -c /code/deploy/db/autopgsqlbackup.conf')
 
 
 @task(aliases=['idb', 'init_db'])
