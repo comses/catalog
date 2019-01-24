@@ -188,7 +188,7 @@ AUTHENTICATION_BACKENDS = (
 # CAS settings
 CAS_SERVER_URL = 'https://weblogin.asu.edu/cas/'
 CAS_IGNORE_REFERER = True
-CAS_REDIRECT_URL = '/dashboard/'
+CAS_REDIRECT_URL = '/curator/dashboard/'
 CAS_LOGOUT_COMPLETELY = True
 CAS_PROVIDE_URL_TO_LOGOUT = True
 CAS_FORCE_SSL_SERVICE_URL = True
