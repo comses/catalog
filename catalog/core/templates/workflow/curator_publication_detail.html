@@ -507,6 +507,7 @@
                     } else if (data_clone.container.name() === "") {
                         data_clone.container = null
                     }
+                    data_clone.code_archive_urls(self.codeArchiveUrls());
                     self.makeRequest("PUT", ko.toJSON(data_clone), window.location.pathname).done(function (result) {
                         result = DataPreparation.prepare_viewModelJson(result);
                         ko.mapping.fromJS(result, self);
