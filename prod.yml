@@ -27,7 +27,6 @@ services:
       - bokeh_secret_key
       - catalog_django_config
     volumes:
-      - ./docker/shared:/shared
       - static:/catalog/static
       - uwsgisocket:/catalog/socket
   nginx:
@@ -41,7 +40,7 @@ services:
     volumes:
     - uwsgisocket:/catalog/socket
     - static:/catalog/static
-    - logs:/var/log/nginx
+    - ./docker/shared/logs:/var/log/nginx
     command: ["nginx", "-g", "daemon off;"]
     deploy:
       mode: global

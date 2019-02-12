@@ -1,4 +1,9 @@
 # Created by https://www.gitignore.io/api/django,node
+#
+# Generated files + secrets
+bokeh_secret_key
+config.ini
+postgres_password
 
 # Temporary Files
 *~

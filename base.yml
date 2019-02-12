@@ -47,7 +47,7 @@ services:
   django:
     volumes:
       - solr:/etc/solr/mycores/
-      - logs:/catalog/logs
+      - ./docker/shared:/shared
     environment:
       DJANGO_SETTINGS_MODULE: 'catalog.settings.prod'
       LANG: "C.UTF-8"
@@ -72,6 +72,4 @@ volumes:
   data:
     driver: local
   static:
-    driver: local
-  logs:
     driver: local

@@ -227,7 +227,7 @@ def is_accessible(directory_path):
     return os.path.isdir(directory_path) and os.access(directory_path, os.W_OK | os.X_OK)
 
 
-LOG_DIRECTORY = '/catalog/logs'
+LOG_DIRECTORY = '/shared/catalog/logs'
 
 if not is_accessible(LOG_DIRECTORY):
     try:
