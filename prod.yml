@@ -27,7 +27,6 @@ services:
       - bokeh_secret_key
       - catalog_django_config
     volumes:
-      - ./deploy/backup/cron-script:/etc/cron.daily/autopgsqlbackup
       - static:/catalog/static
       - uwsgisocket:/catalog/socket
   nginx:

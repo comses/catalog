@@ -4,7 +4,8 @@ ARG RUN_SCRIPT=./deploy/docker/dev.sh
 ARG UBUNTU_MIRROR=mirror.math.princeton.edu/pub
 
 RUN sed -i "s|archive.ubuntu.com|${UBUNTU_MIRROR}|" /etc/apt/sources.list \
-    && apt-get update && apt-get install -q -y \
+    && apt-get update && apt-get install --no-install-recommends -q -y \
+    autopostgresqlbackup \
     curl \
     git \
     libxml2-dev \
