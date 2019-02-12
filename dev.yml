@@ -28,6 +28,7 @@ services:
     volumes:
       - ./deploy/conf/config.ini:/run/secrets/catalog_django_config
       - ./deploy/conf/bokeh_secret_key:/run/secrets/bokeh_secret_key
+      - ./docker/shared:/shared
       - .:/code
   kibana:
     depends_on:
