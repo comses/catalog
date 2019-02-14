@@ -142,12 +142,18 @@ MIDDLEWARE = (
     # 'raven.contrib.django.raven_compat.middleware.SentryResponseErrorIdMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'cas.middleware.CASMiddleware',
 )
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+# FIXME: is Bokeh served in an iframe?
+# X_FRAME_OPTIONS = 'DENY'
 
 ROOT_URLCONF = 'catalog.urls'
 WSGI_APPLICATION = 'catalog.wsgi.application'
