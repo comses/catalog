@@ -412,6 +412,7 @@
                 };
                 self.keepCodeArchiveUrlChanges = function () {
                     var uniqueId = self.codeArchiveUrlEdit.uniqueId();
+                    self.codeArchiveUrlEdit.system_overridable_category(false);
                     var matchingCodeArchiveUrls = self.codeArchiveUrls().filter(function (codeArchiveUrl) {
                         return codeArchiveUrl.uniqueId() === uniqueId;
                     });
