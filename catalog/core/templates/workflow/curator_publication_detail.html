@@ -178,7 +178,7 @@
                         <!-- /ko -->
                         <div class="pull-right">
                             <strong>Status:</strong> <span data-bind="text: status"></span>
-                            <strong>Category:</strong> <span data-bind="text: category"></span>
+                            <strong>Category:</strong> <span data-bind="text: category_name"></span>
                             &nbsp;
                         </div>
                     </li>
@@ -393,6 +393,7 @@
                     self.codeArchiveUrlEdit
                         .id(newCodeArchiveUrl.id)
                         .category(newCodeArchiveUrl.category)
+                        .category_name(newCodeArchiveUrl.category_name)
                         .creator(newCodeArchiveUrl.creator)
                         .status(newCodeArchiveUrl.status)
                         .system_overridable_category(newCodeArchiveUrl.system_overridable_category)
@@ -404,6 +405,7 @@
                     self.codeArchiveUrlEdit
                         .id(newCodeArchiveUrl.id)
                         .category(newCodeArchiveUrl.category)
+                        .category_name(newCodeArchiveUrl.category_name)
                         .creator(newCodeArchiveUrl.creator)
                         .status(newCodeArchiveUrl.status)
                         .system_overridable_category(newCodeArchiveUrl.system_overridable_category)
@@ -413,6 +415,8 @@
                 self.keepCodeArchiveUrlChanges = function () {
                     var uniqueId = self.codeArchiveUrlEdit.uniqueId();
                     self.codeArchiveUrlEdit.system_overridable_category(false);
+                    const category_name = self.codeArchiveUrlCategoryOptions().filter(option => option.value === self.codeArchiveUrlEdit.category())[0].label;
+                    self.codeArchiveUrlEdit.category_name(category_name);
                     var matchingCodeArchiveUrls = self.codeArchiveUrls().filter(function (codeArchiveUrl) {
                         return codeArchiveUrl.uniqueId() === uniqueId;
                     });
@@ -584,8 +588,7 @@
                         case 'UPDATE':
                             return self.display_update_auditlog(auditlog, current_publication_id);
                     }
-                }
-                ,
+                },
                 filter_other_publications_factory: function (current_publication_id) {
                     return (function (auditlog) {
                         return (auditlog.table === 'publication' && auditlog.row_id === current_publication_id) ||
@@ -595,7 +598,8 @@
                 createCodeArchiveUrl: function () {
                     return {
                         id: null,
-                        category: '',
+                        category: -1,
+                        category_name: 'Initial',
                         creator: null,
                         system_overridable_category: false,
                         status: 'available',
