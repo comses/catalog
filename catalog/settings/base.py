@@ -150,8 +150,6 @@ MIDDLEWARE = (
     'cas.middleware.CASMiddleware',
 )
 
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
 # FIXME: is Bokeh served in an iframe?
 # X_FRAME_OPTIONS = 'DENY'
 
