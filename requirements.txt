@@ -1,15 +1,15 @@
 Markdown==2.6.11
 cssselect==1.0.1
-Django>=2.0,<2.1 # django-cas needs https://github.com/kstateome/django-cas/pull/76/commits/5ced0c9c3c49e9810817457b000236ee794be99e to be merged before we can update
+Django>=2.1,<2.2
 django-autocomplete-light==3.2.10
-django-bootstrap3==9.1.0
-django-contact-form==1.4.2
-django-extensions==2.0.0
+django-bootstrap3==11.0.0
+django-contact-form==1.6.0
+django-extensions==2.1.5
 django-haystack==2.8.1
 django-model-utils==3.1.1
 djangorestframework==3.8.2
-django-cas-client==1.4.0
-psycopg2==2.7.4
+django-cas-client==1.5.0
+psycopg2-binary==2.7.6
 pysolr==3.7.0
 raven==6.5.0
 uWSGI==2.0.15
