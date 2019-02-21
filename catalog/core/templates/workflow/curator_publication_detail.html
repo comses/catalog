@@ -373,8 +373,7 @@
                     return url && validator.isURL(url);
                 };
                 self.validCodeArchiveUrl = ko.pureComputed(function () {
-                    url = self.code_archive_url();
-                    return url && validator.isURL(url);
+                    return self.codeArchiveUrls().length > 0;
                 });
                 self.codeArchiveUrl = ko.pureComputed(function () {
                     if (self.validCodeArchiveUrl()) {
