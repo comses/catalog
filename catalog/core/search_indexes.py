@@ -485,14 +485,11 @@ class TagDoc(DocType):
 
 
 def bulk_index_public():
-    public_publications = Publication.api.primary().filter(status='REVIEWED')
-    PublicationDoc.init()
-    AuthorDoc.init()
-    PlatformDoc.init()
-    SponsorDoc.init()
-    TagDoc.init()
-    logger.info('creating publication index')
     client = connections.get_connection()
+    for doc_class in (PublicationDoc, AuthorDoc, PlatformDoc, SponsorDoc, TagDoc):
+        client.indices.delete(index=doc_class.Index.name, ignore=[400, 404])
+        doc_class.init()
+    public_publications = Publication.api.primary().filter(status='REVIEWED')
     bulk(client=client,
          actions=(AuthorDoc.from_instance(a) for a in Author.objects.filter(publications__in=public_publications)))
     bulk(client=client,
