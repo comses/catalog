@@ -21,6 +21,7 @@ catalog.sql
 
 ### Docker
 docker-compose.yml
+docker
 
 ### Django ###
 catalog/settings/local.py

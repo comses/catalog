@@ -4,6 +4,7 @@ base.yml
 dev.yml
 prod.yml
 
+docker
 docker-compose.yml
 deploy/conf/*.ini
 deploy/conf/bokeh_secret_key
