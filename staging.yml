@@ -16,12 +16,13 @@ services:
       context: ./
       dockerfile: ./deploy/images/django.Dockerfile
     image: comses/catalog/prod:latest
+    configs:
+      - source: uwsgi_config
+        target: /code/deploy/uwsgi/catalog.ini
     environment:
       DOMAIN_NAME: 'catalog-dev.comses.net'
       BOKEH_LOG_LEVEL: warn
       BOKEH_PY_LOG_LEVEL: warn
-    expose:
-      - "5006"
     restart: always
     secrets:
       - bokeh_secret_key
@@ -40,7 +41,7 @@ services:
     volumes:
     - uwsgisocket:/catalog/socket
     - static:/catalog/static
-    - ./docker/shared/logs:/var/log/nginx
+    - ./docker/shared/nginx/logs:/var/log/nginx
     command: ["nginx", "-g", "daemon off;"]
     deploy:
       mode: global
@@ -60,6 +61,8 @@ configs:
     file: ./deploy/solr/init.d/solr.in.sh
   uwsgi_params:
     file: ./deploy/nginx/uwsgi_params
+  uwsgi_config:
+    file: ./deploy/uwsgi/catalog.ini
 
 volumes:
   uwsgisocket:
