@@ -866,7 +866,7 @@ def autocomplete(request):
     model = content_type.model_class()
     model_doc = get_search_index(model)
     response = model_doc.search().query('match', name=search).execute()
-    return JsonResponse({'matches': [{'id': h.id, 'name': h.name} for h in response.hits]})
+    return JsonResponse({'matches': [h.to_dict(include_meta=False, skip_empty=False) for h in response.hits]})
 
 
 class SuggestedMergeView(APIView):
@@ -888,7 +888,7 @@ class SuggestedMergeView(APIView):
         content_type = ContentType.objects.get(model=validated_data['model_name'])
         creator, created = Submitter.get_or_create(user=user, email=data.get('email', ''))
         duplicates = [instance['id'] for instance in validated_data['instances']]
-        new_content = {'name': validated_data['name']}
+        new_content = validated_data['new_content']
 
         suggested_merge = SuggestedMerge(
             content_type=content_type,

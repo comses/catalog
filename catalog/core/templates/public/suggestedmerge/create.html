@@ -17,7 +17,7 @@
     <div id="form">
         <div class="form-group">
             <label for="modelSelector">Content Type</label>
-            <select id="modelSelector" class="form-control" v-model="selectedModelName">
+            <select id="modelSelector" class="form-control" v-model="selectedModelName" @input="resetContent">
                <option v-for="modelOption in modelOptions" :value="modelOption.value">
                    ${ modelOption.label }
                </option>
@@ -26,7 +26,8 @@
        <div class="form-group">
            <label for="instanceSelector">Instances</label>
            <multiselect
-               v-model="selectedInstances"
+               @input="addInstance"
+               :value="selectedInstances"
                id="mergeMultiselect"
                track-by="id"
                label="name"
@@ -42,12 +43,40 @@
            >
            </multiselect>
        </div>
-       <div class="form-group">
+       <div class="form-group" v-if="selectedModelName !== 'author'">
            <label for="nameInput">New Name</label>
-           <input class="form-control" type="text" v-model="name">
+           <input class="form-control" type="text" v-model="newContent.name">
        </div>
+       <template v-else>
+           <div class="form-group">
+               <label for="givenNameInput">New Given Name</label>
+               <input class="form-control" type="text" v-model="newContent.given_name">
+           </div>
+           <div class="form-group">
+               <label for="familyNameInput">New Family Name</label>
+               <input class="form-control" type="text" v-model="newContent.family_name">
+           </div>
+           <div class="form-group">
+               <label for="orcidInput">New ORCID</label>
+               <input class="form-control" type="text" v-model="newContent.orcid">
+               <div class="badge badge-primary" v-for="email in selectedAttrValues.orcid"
+                    @click="newContent.orcid = orcid">${ orcid }</div>
+           </div>
+           <div class="form-group">
+               <label for="orcidInput">New ResearcherID</label>
+               <input class="form-control" type="text" v-model="newContent.researcherid">
+               <div class="badge badge-primary" v-for="email in selectedAttrValues.researcherid"
+                    @click="newContent.researcherid = researcherid">${ researcherid }</div>
+           </div>
+           <div class="form-group">
+               <label for="emailInput">New Email</label>
+               <input class="form-control" type="email" v-model="newContent.email">
+               <div class="badge badge-primary" v-for="email in selectedAttrValues.email"
+                    @click="newContent.email = email">${ email }</div>
+           </div>
+       </template>
        <div class="form-group" v-if="!loggedIn">
-           <label for="emailInput">Email</label>
+           <label for="yourEmailInput">Your Email Address</label>
            <input class="form-control" type="email" v-model="email">
        </div>
        <button class="btn btn-primary" @click="submitMergeRequest">Submit Merge Request</button>
@@ -84,6 +113,7 @@
         api.get('/autocomplete/?model_name=' + this.selectedModelName + '&search=' + encodeURI(query)).then(response => {
             this.instances = response.data.matches;
             this.isLoading = false;
+            this.resetContent();
         });
     }
     const debouncedAutocompleteRequest = _.debounce(sendAutocompleteRequest, 400);
@@ -102,23 +132,35 @@
                 { label: 'Tag', value: 'tag' }
             ],
             selectedInstances: [],
+            selectedAttrValues: {'email': [], 'orcid': [], 'researcherid': []},
             instances: [],
-            name: '',
+            newContent: {'given_name': '', 'family_name': '', 'name': '', 'orcid': '', 'researcherid': '', 'email': ''},
             email: '',
             error: '',
             success: '',
             loggedIn: {% if request.user.is_anonymous %}false{% else %}true{% endif %}
         },
         methods: {
+            addInstance(instances) {
+                this.selectedInstances = instances;
+                Vue.set(this.selectedAttrValues, 'email', instances.filter(a => !_.isEmpty(a.email)).map(a => a.email));
+                this.selectedAttrValues.orcid = instances.filter(a => !_.isEmpty(a.orcid)).map(a => a.orcid);
+                this.selectedAttrValues.researcherid = instances.filter(a => !_.isEmpty(a.researcherid)).map(a => a.researcherid);
+            },
+            resetContent() {
+                this.newContent = {'given_name': '', 'family_name': '', 'name': '', 'orcid': '', 'researcherid': '', 'email': ''};
+            },
             findCompletions: debouncedAutocompleteRequest,
             submitMergeRequest() {
-                const data = { 'model_name': this.selectedModelName, 'instances': this.selectedInstances, 'name': this.name };
+                const data = { 'model_name': this.selectedModelName, 'instances': this.selectedInstances, 'new_content': this.newContent };
                 if (!this.loggedIn) {
                     data['email'] = this.email;
                 }
                 api.post('', data).then(response => {
                     this.clearError();
                     this.selectedInstances = [];
+                    this.resetContent();
+                    this.selectedAttrValues = {'email': [], 'orcid': [], 'researcherid': []};
                     this.name = '';
                     this.success = "Merge Submission Successful";
                 }).catch(error => {
