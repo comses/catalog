@@ -174,7 +174,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['flagged'] = n_flagged
 
         context['complete'] = Publication.objects.filter(
-            is_primary=True, status=Publication.Status.REVIEWED).exclude(code_archive_url='').count()
+            is_primary=True, status=Publication.Status.REVIEWED) \
+            .annotate(n_code_archive_urls=models.Count('code_archive_urls')) \
+            .filter(n_code_archive_urls__gt=0).count()
         context['incomplete'] = context['status'][Publication.Status.REVIEWED] - context['complete']
 
         context['unreviewed_publications_count'] = Publication.objects.filter(
