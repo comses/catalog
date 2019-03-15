@@ -10,5 +10,20 @@ To build a development environment for the project you will need to install:
 
 * Up-to-date versions of [Docker](https://docs.docker.com/engine/installation/) and [Docker Compose](https://docs.docker.com/compose/install/)
 
-Copy `development.yml` to `docker-compose.yml` and then run `docker-compose up django` to build and bring up a `solr` instance, `postgres` container, and the
-`Django` web app container.
+## Development Environment Setup
+
+```
+git clone --recurse-submodules git@github.com:comses/catalog.git
+cd catalog
+./compose dev
+./build.sh
+docker-compose up -d
+```
+
+Then the database and search indices need to be loaded and populated with data
+
+```
+docker-compose exec django bash
+inv rfd -f
+inv ri
+```
