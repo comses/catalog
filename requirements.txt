@@ -31,3 +31,6 @@ pandas
 
 # bokeh dependencies
 bokeh
+
+# static visualization dependencies
+plotly

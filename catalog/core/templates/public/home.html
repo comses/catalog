@@ -1,5 +1,11 @@
 {% extends 'public/base.html' %}
 
+{% load explanation_tile from tags %}
+
+{% block head %}
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+{% endblock %}
+
 {% block breadcrumb %}
 {% endblock %}
 
@@ -55,50 +61,30 @@
         <section class="album py-5 bg-light">
             <div class="container">
                 <div class="row">
-                    <a class="col-md-4" href="{% url 'core:public-search' %}">
-                        <div class="card mb-4 box-shadow">
-                            <div class="card-img-top bg-secondary"
-                                 style="height: 225px; width: 100%">
-                                <div class="text-center">
-                                    <span class="fas fa-search fa-5x align-middle text-white"
-                                          style="line-height: 225px"></span>
-                                </div>
-                            </div>
-                            <div class="card-body text-center">
-                                Find publications
-                            </div>
-                        </div>
-                    </a>
-                    <a class="col-md-4" href="{% url 'core:suggest-a-publication' %}">
-                        <div class="card mb-4 box-shadow">
-                            <div class="card-img-top bg-secondary"
-                                 style="height: 225px; width: 100%">
-                                <div class="text-center">
-                                    <span class="fas fa-file-alt fa-5x align-middle text-white"
-                                          style="line-height: 225px"></span>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <p class="card-text text-center">Suggest publications</p>
-                            </div>
-                        </div>
-                    </a>
-                    <a class="col-md-4" href="{% url 'core:public-visualization' %}">
-                        <div class="card mb-4 box-shadow">
-                            <div class="card-img-top bg-secondary"
-                                 style="height: 225px; width: 100%">
-                                <div class="text-center">
-                                    <span class="fas fa-chart-line fa-5x align-middle text-white"
-                                          style="line-height: 225px"></span>
-                                </div>
-                            </div>
-                            <div class="card-body text-center">
-                                Visualize search results
-                            </div>
-                        </div>
-                    </a>
+                    <h1 class="col-12 text-center pb-4">Explore</h1>
                 </div>
+                {% for tile in tiles %}
+                    <div class="row">
+                        {% explanation_tile title=tile.title description=tile.description position=tile.position %}
+                        <div class="col-md-6 bg-white" style="height: 300px" id="{{ tile.id }}">
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
         </section>
     </main>
+    {% for tile in tiles %}
+        {% if tile.data_id %}
+            {{ tile.data|json_script:tile.data_id }}
+        {% endif %}
+    {% endfor %}
+    <script>
+        {% for tile in tiles %}
+            {% if tile.data %}
+                Plotly.newPlot('{{ tile.id }}',
+                    JSON.parse(document.getElementById('{{ tile.data_id }}').textContent).data,
+                    JSON.parse(document.getElementById('{{ tile.data_id }}').textContent).layout);
+            {% endif %}
+        {% endfor %}
+    </script>
 {% endblock %}

@@ -1,5 +1,6 @@
 import json
 import logging
+import textwrap
 import time
 from collections import Counter
 from datetime import timedelta, datetime
@@ -42,6 +43,7 @@ from rest_framework import status, renderers, generics, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from catalog.core import plots
 from catalog.core.forms import PublicSearchForm, SuggestedPublicationForm, \
     SubmitterForm
 from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict, \
@@ -791,10 +793,48 @@ def public_visualization_view(request):
 
 
 def public_home(request):
-    search = request.GET.get('search', '')
-    if search:
+    tiles = [
+        {
+            'title': 'Code Availability',
+            'description': 'Is model code available for the agent based model described in the publication?',
+            'id': 'code-availability-tile',
+            'data': plots.archive_url_category_graph().to_plotly_json(),
+            'data_id': 'code-availability-tile-data'
+        },
+        {
+            'title': 'Documentation Availability',
+            'description': textwrap.dedent("""
+                What documentation standards were followed to describe the behaviour and data requirements of the agent based model? 
+                """),
+            'position': 'order-md-last',
+            'id': 'documentation-availability-tile',
+            'data': plots.documentation_type_count_graph().to_plotly_json(),
+            'data_id': 'documentation-availability-tile-data'
+        },
+        {
+            'title': 'Authors',
+            'description': 'Who wrote the publication?',
+            'id': 'author-tile'
+        },
+        {
+            'title': 'Programming Platform',
+            'description': 'What agent based modeling framework was used to construct the agent based model associated with the publication?',
+            'position': 'order-md-last',
+            'id': 'platform-tile',
+            'data': plots.programming_platform_count_graph().to_plotly_json(),
+            'data_id': 'platform-tile-data'
+        },
+        {
+            'title': 'Sponsors',
+            'description': 'Who financed the research going into the publication?',
+            'id': 'sponsor-tile'
+        }
+    ]
+
+    search = request.GET.get('search')
+    if search is not None:
         return redirect(PublicationDoc.get_public_list_url(search=search))
-    return render(request, 'public/home.html')
+    return render(request, 'public/home.html', context={'tiles': tiles})
 
 
 def suggest_a_publication(request):

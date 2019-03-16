@@ -34,6 +34,11 @@ def list_authors(authors):
         return ', '.join(a.name for a in authors)
 
 
+@register.inclusion_tag('public/includes/explanation_tile.html')
+def explanation_tile(title, description, position):
+    return {'title': title, 'description': description, 'position': position}
+
+
 @register.inclusion_tag('public/includes/facet_checkbox.html')
 def facet_checkbox(instance, field):
     return {'name_attr': field,
