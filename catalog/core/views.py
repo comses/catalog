@@ -793,70 +793,18 @@ def public_visualization_view(request):
 
 
 def public_home(request):
-    tiles = [
-        {
-            'title': 'Agent Based Modeling Practices',
-            'description': 'Have agent based modeling researchers improved their archival practices over time?',
-            'id': 'agent-based-modeling-tile',
-            'data': plots.publication_counts_over_time().to_plotly_json(),
-            'data_id': 'agent-based-modeling-tile-data'
-        },
-        {
-            'title': 'Code Availability',
-            'description': 'Is model code available for the agent based model described in the publication?',
-            'id': 'code-availability-tile',
-            'data': plots.archive_url_status_plot().to_plotly_json(),
-            'data_id': 'code-availability-tile-data'
-        },
-        {
-            'title': 'Documentation Availability',
-            'description': textwrap.dedent("""
-                What documentation standards were followed to describe the behaviour and data requirements of the agent based model? 
-                """),
-            'id': 'documentation-availability-tile',
-            'data': plots.documentation_type_count_graph().to_plotly_json(),
-            'data_id': 'documentation-availability-tile-data'
-        },
-        {
-            'title': 'Archival',
-            'description': 'Where do researchers store their agent based model code?',
-            'id': 'code-archive-url-tile',
-            'data': plots.archive_url_category_plot().to_plotly_json(),
-            'data_id': 'code-archive-url-tile-data'
-        },
-        {
-            'title': 'Authors',
-            'description': 'Who wrote the publication?',
-            'id': 'author-tile',
-            'data': plots.most_prolific_authors_plot().to_plotly_json(),
-            'data_id': 'author-tile-data'
-        },
-        {
-            'title': 'Programming Platform',
-            'description': 'What agent based modeling framework was used to construct the agent based model associated with the publication?',
-            'id': 'platform-tile',
-            'data': plots.programming_platform_count_plot().to_plotly_json(),
-            'data_id': 'platform-tile-data'
-        },
-        {
-            'title': 'Sponsors',
-            'description': 'Who financed the research going into the publication?',
-            'id': 'sponsor-tile',
-            'data': plots.sponsor_count_plot().to_plotly_json(),
-            'data_id': 'sponsor-tile-data'
-        }
-    ]
-
-    for tile_index, tile in enumerate(tiles):
-        if tile_index % 2 == 0:
-            tile['position'] = 'order-md-last'
+    plot = {
+        'id': 'agent-based-modeling-tile',
+        'data': plots.publication_counts_over_time().to_plotly_json(),
+        'data_id': 'agent-based-modeling-tile-data'
+    }
 
     search = request.GET.get('search')
     if search is not None:
         return redirect(PublicationDoc.get_public_list_url(search=search))
     return render(request, 'public/home.html',
-                  context={'tiles': tiles,
-                           'n_publications': Publication.api.primary().filter(status='REVIEWED').count()})
+                  context={'plot': plot,
+                           'n_publications': Publication.api.primary().reviewed().count()})
 
 
 def suggest_a_publication(request):

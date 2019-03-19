@@ -117,6 +117,12 @@ def publication_counts_over_time():
         )
     ]
 
-    layout= go.Layout(title='Publications Published Over Time', legend=go.Legend(orientation='h'))
+    layout= go.Layout(
+        height=600,
+        legend=go.Legend(orientation='h'),
+        title='Publications',
+        yaxis=go.YAxis(title='Count'),
+        xaxis=go.XAxis(title='Year')
+    )
 
     return go.Figure(data=data, layout=layout)

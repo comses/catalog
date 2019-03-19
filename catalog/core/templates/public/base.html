@@ -18,45 +18,47 @@
 </head>
 <body>
 {% block header %}
-    <div class="container sticky-top">
-        {% block notifications %}
-            {% for message in messages %}
-                 <div class="{{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-        {% endblock %}
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="{% url 'core:public-home' %}">CoMSES Catalog</a>
-            <div class="collapse navbar-collapse flex-md-column my-auto justify-content-end">
-                <ul class="navbar-nav ml-auto small">
-                    <li class="nav-item">
-                        <a class="nav-link" href="https://comses.net/about/contact/">
-                            <span class="fas fa-bell"></span> Contact Us
-                        </a>
-                    </li>
-                    {% if request.user.is_anonymous %}
+    <div class="bg-light sticky-top">
+        <div class="container">
+            {% block notifications %}
+                {% for message in messages %}
+                     <div class="{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            {% endblock %}
+            <nav class="navbar navbar-expand-lg navbar-light">
+                <a class="navbar-brand" href="{% url 'core:public-home' %}">CoMSES Catalog</a>
+                <div class="collapse navbar-collapse flex-md-column my-auto justify-content-end">
+                    <ul class="navbar-nav ml-auto small">
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ login_url }}?next={{ request.path }}">Sign In</a>
-                        </li>
-                    {% else %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" id="signedInDropdownLink" data-toggle="dropdown"
-                               role="button" href="#" aria-haspopup="true" aria-expanded="false">
-                                {{ request.user.username }}
+                            <a class="nav-link" href="https://comses.net/about/contact/">
+                                <span class="fas fa-bell"></span> Contact Us
                             </a>
-                            <div class="dropdown-menu" aria-labelledby="signedInDropdownLink">
-                                <a class="dropdown-item" href="{{ dashboard_url }}">Curator Dashboard</a>
-                                <a class="dropdown-item" href="{{ logout_url }}">Sign out</a>
-                            </div>
                         </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </nav>
-        {% block breadcrumb %}
-            <div class="col-12 px-0">
-                {% include 'public/includes/breadcrumb.html' %}
-            </div>
-        {% endblock %}
+                        {% if request.user.is_anonymous %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ login_url }}?next={{ request.path }}">Sign In</a>
+                            </li>
+                        {% else %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" id="signedInDropdownLink" data-toggle="dropdown"
+                                   role="button" href="#" aria-haspopup="true" aria-expanded="false">
+                                    {{ request.user.username }}
+                                </a>
+                                <div class="dropdown-menu" aria-labelledby="signedInDropdownLink">
+                                    <a class="dropdown-item" href="{{ dashboard_url }}">Curator Dashboard</a>
+                                    <a class="dropdown-item" href="{{ logout_url }}">Sign out</a>
+                                </div>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </nav>
+            {% block breadcrumb %}
+                <div class="col-12 px-0">
+                    {% include 'public/includes/breadcrumb.html' %}
+                </div>
+            {% endblock %}
+        </div>
     </div>
 {% endblock %}
 
