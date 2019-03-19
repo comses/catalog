@@ -1,6 +1,7 @@
 import re
 
 from django import template
+from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.forms import CheckboxInput
@@ -72,6 +73,11 @@ def render_form(form):
 def message(text, level):
     style = messages.DEFAULT_TAGS[level]
     return {'text': text, 'style': style}
+
+
+@register.simple_tag()
+def raven_public_dsn():
+    return settings.RAVEN_PUBLIC_DSN
 
 
 @register.simple_tag()

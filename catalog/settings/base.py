@@ -331,9 +331,9 @@ REST_FRAMEWORK = {
 }
 
 RAVEN_CONFIG = {
-    'dsn': 'https://public:secret@sentry.commons.asu.edu/4?timeout=30',
-    # 'release': raven.fetch_git_sha(BASE_DIR),
+    'dsn': config.get('django', 'RAVEN_PRIVATE_DSN'),
 }
+RAVEN_PUBLIC_DSN = config.get('django', 'RAVEN_PUBLIC_DSN')
 
 SECRET_KEY = config.get('django', 'SECRET_KEY')
 BOKEH_SECRET_KEY = config.get('bokeh', 'SECRET_KEY')
