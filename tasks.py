@@ -31,8 +31,11 @@ def clean_update(ctx):
 
 
 @task
-def sh(ctx):
-    dj(ctx, 'shell_plus --ipython', pty=True)
+def sh(ctx, print_sql=False):
+    py_shell = 'shell_plus --ipython'
+    if print_sql:
+        py_shell += ' --print-sql'
+    dj(ctx, py_shell, pty=True)
 
 
 def dj(ctx, command, **kwargs):
