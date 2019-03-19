@@ -1,0 +1,23 @@
+{% load i18n %}
+{% blocktrans %}Dear {},{% endblocktrans %}
+
+{% blocktrans %}
+I contact you in regard to your publication “ “. I am part of CoMSES Net, a Spoke in the Big Data Network of the US
+National Science Foundation, and we focus on sharing and preserving computational models. As part of this we develop
+a database of publications on computational models (mainly agent-based and individual-based). This database will allow
+scholars to find relevant model code and makes it easier to build on each other’s work. As you may be aware there is
+increasingly attention to transparency and sharing of data and model code used for scientific publications
+(https://forum.comses.net/t/why-archive-your-model/7376 ).
+{% endblocktrans %}
+
+{% blocktrans %}
+Your publication was included (link) and we complement that you deposit the code in a public archive.
+{% endblocktrans %}
+
+
+Thanks!
+
+The CoMSES Network Editors
+
+
+
