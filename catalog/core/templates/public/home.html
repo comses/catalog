@@ -100,6 +100,55 @@
                 </div>
             </div>
         </section>
+        <div class="container pb-5 bg-white"></div>
+        <section class="album py-5 bg-light">
+            <div class="container">
+                <div class="row">
+                    <h1 class="col-12 text-center pb-4">Contribute</h1>
+                </div>
+                <div class="row">
+                    <a class="col-md-4" href="{% url 'core:suggest-a-publication' %}">
+                        <div class="card mb-4 box-shadow">
+                            <div class="card-img-top bg-secondary" style="height: 225px; width: 100%">
+                                <div class="text-center">
+                                    <span class="fas fa-file-alt fa-5x align-middle text-white"
+                                          style="line-height: 225px"></span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text text-center">Suggest publications</p>
+                            </div>
+                        </div>
+                    </a>
+                    <a class="col-md-4" href="{% url 'core:public-merge' %}">
+                        <div class="card mb-6 box-shadow">
+                            <div class="card-img-top bg-secondary" style="height: 225px; width: 100%">
+                                <div class="text-center">
+                                    <span class="fas fa-eraser fa-5x align-middle text-white"
+                                          style="line-height: 225px"></span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text text-center">Note Duplicates</p>
+                            </div>
+                        </div>
+                    </a>
+                    <a class="col-md-4" href="{% url 'core:github' %}">
+                        <div class="card mb-6 box-shadow">
+                            <div class="card-img-top bg-secondary" style="height: 225px; width: 100%">
+                                <div class="text-center">
+                                    <span class="fas fa-code fa-5x align-middle text-white"
+                                          style="line-height: 225px"></span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text text-center">Develop</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
     </main>
     {{ plot.data|json_script:plot.data_id }}
     <script>

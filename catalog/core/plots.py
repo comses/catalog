@@ -118,7 +118,6 @@ def publication_counts_over_time():
     ]
 
     layout= go.Layout(
-        height=600,
         legend=go.Legend(orientation='h'),
         title='Publications',
         yaxis=go.YAxis(title='Count'),
