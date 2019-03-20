@@ -14,11 +14,13 @@
         <section class="jumbotron py-3 mb-0 text-center">
             <div class="container">
                 <h1 class="jumbotron-heading">CoMSES Catalog</h1>
-                <p class="lead text-muted">
-                    A bibliographic database of <span style="font-weight: 900">{{ n_publications }}</span> agent and
-                    individual based
-                    models.
-                </p>
+                <div class="row justify-content-md-center">
+                    <p class="col-md-8 lead text-muted">
+                        A bibliographic database of <span style="font-weight: 900">{{ n_publications }}</span>
+                        publications of agent-based and individual-based models in all applications domains, from cancer
+                        modeling to ancient societies
+                    </p>
+                </div>
                 <form>
                     <div class="col-md-8 offset-md-2">
                         <div class="form-group">
@@ -47,9 +49,11 @@
                             sponsorship, programming platform, documentation) has been added where available.
                         </p>
                         <p>
-                            At the moment we focus on agent-based and individual-based models, and publications that are
-                            listed in the ISI Web of Science. This allows us to use good quality data to analyze the
-                            database and visualize relationships between publications/models.
+                            The database was created using keywords on agent-based and individual-based modeling and
+                            likely to be incomplete. If you have suggestions for additional publications recommend them
+                            <a href="{% url 'core:suggest-a-publication' %}">here</a>. We included meta-data for the
+                            publications and if you find any mistakes, please
+                            <a href="{% url 'core:contact_us' %}">contact us</a>.
                         </p>
                         <p>
                             You are invited to explore the database, submit suggestions for publications that you find
@@ -62,18 +66,38 @@
         </section>
         <section class="album">
             <div class="container">
-                <div class="row">
-                    <div class="col-md-12 bg-white px-0" id="{{ plot.id }}">
+                <div class="row justify-content-md-center">
+                    <div class="col-md-8 pt-4 text-center">
+                        With this catalog you can explore the world of agent-based and individual-based models and find
+                        models of your interest. If you have suggestions for additional publications, you can propose
+                        them <a href="{% url 'core:suggest-a-publication' %}">here</a>.
+                    </div>
+                </div>
+                <div class="row justify-content-md-center">
+                    <div class="col-md-10 bg-white px-0" id="{{ plot.id }}">
                     </div>
                 </div>
             </div>
         </section>
-        <section class="album py-3 bg-light">
+        <section class="album py-3 bg-secondary">
             <div class="container">
                 <div class="row">
-                    <h1 class="col-12 text-center">Explore</h1>
+                    <h1 class="col-12 text-center text-white">Explore</h1>
                 </div>
-                <div class="row">
+                <div class="row justify-content-md-center">
+                    <div class="col-md-10">
+                        <p class="text-white">
+                            If you want to explore the database, you can do this in different ways. You can use the
+                            search option to search for specific journals, topics or authors. With the visualization
+                            option you can explore visualize trends of selected items.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="album bg-light">
+            <div class="container">
+                <div class="row pt-4">
                     <div class="col-md-6">
                         <a href="{% url 'core:public-search' %}">
                             <div class="text-center"><span class="fas fa-search fa-2x"></span></div>
@@ -97,55 +121,6 @@
                             and more.
                         </p>
                     </div>
-                </div>
-            </div>
-        </section>
-        <div class="container pb-5 bg-white"></div>
-        <section class="album py-5 bg-light">
-            <div class="container">
-                <div class="row">
-                    <h1 class="col-12 text-center pb-4">Contribute</h1>
-                </div>
-                <div class="row">
-                    <a class="col-md-4" href="{% url 'core:suggest-a-publication' %}">
-                        <div class="card mb-4 box-shadow">
-                            <div class="card-img-top bg-secondary" style="height: 225px; width: 100%">
-                                <div class="text-center">
-                                    <span class="fas fa-file-alt fa-5x align-middle text-white"
-                                          style="line-height: 225px"></span>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <p class="card-text text-center">Suggest publications</p>
-                            </div>
-                        </div>
-                    </a>
-                    <a class="col-md-4" href="{% url 'core:public-merge' %}">
-                        <div class="card mb-6 box-shadow">
-                            <div class="card-img-top bg-secondary" style="height: 225px; width: 100%">
-                                <div class="text-center">
-                                    <span class="fas fa-eraser fa-5x align-middle text-white"
-                                          style="line-height: 225px"></span>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <p class="card-text text-center">Note Duplicates</p>
-                            </div>
-                        </div>
-                    </a>
-                    <a class="col-md-4" href="{% url 'core:github' %}">
-                        <div class="card mb-6 box-shadow">
-                            <div class="card-img-top bg-secondary" style="height: 225px; width: 100%">
-                                <div class="text-center">
-                                    <span class="fas fa-code fa-5x align-middle text-white"
-                                          style="line-height: 225px"></span>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <p class="card-text text-center">Develop</p>
-                            </div>
-                        </div>
-                    </a>
                 </div>
             </div>
         </section>
