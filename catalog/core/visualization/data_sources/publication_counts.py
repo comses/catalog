@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 
 from catalog.core.search_indexes import PublicationDocSearch
-from data_access import data_cache, IncludedStatistics
+from ..data_access import data_cache, IncludedStatistics
 from query import Query
 
 logger = logging.getLogger(__name__)

@@ -17,15 +17,13 @@ RUN sed -i "s|archive.ubuntu.com|${UBUNTU_MIRROR}|" /etc/apt/sources.list \
     wget \
     && update-alternatives --install /usr/bin/python python /usr/bin/python3 1000 \
     && mkdir -p /etc/service/django \
-    && mkdir -p /etc/service/bokeh  \
-    && touch /etc/service/django/run /etc/service/bokeh/run /etc/postgresql-backup-pre \
-    && chmod a+x /etc/service/django/run /etc/service/bokeh/run /etc/postgresql-backup-pre \
+    && touch /etc/service/django/run /etc/postgresql-backup-pre \
+    && chmod a+x /etc/service/django/run /etc/postgresql-backup-pre \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY ./deploy/db/autopostgresqlbackup.conf /etc/default/autopostgresqlbackup
 COPY ./deploy/db/postgresql-backup-pre /etc/
 COPY ${RUN_SCRIPT} /etc/service/django/run
-COPY ./deploy/docker/bokeh.sh /etc/service/bokeh/run
 
 COPY deploy/mail/ssmtp.conf /etc/ssmtp/ssmtp.conf
 # copy cron script to be run daily

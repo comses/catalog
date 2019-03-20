@@ -21,8 +21,6 @@ services:
         target: /code/deploy/uwsgi/catalog.ini
     environment:
       DOMAIN_NAME: 'catalog-dev.comses.net'
-      BOKEH_LOG_LEVEL: warn
-      BOKEH_PY_LOG_LEVEL: warn
     restart: always
     secrets:
       - bokeh_secret_key
@@ -73,5 +71,3 @@ secrets:
     file: ./deploy/conf/config.ini
   catalog_db_password:
     file: ./deploy/conf/postgres_password
-  bokeh_secret_key:
-    file: ./deploy/conf/bokeh_secret_key

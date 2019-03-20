@@ -29,8 +29,5 @@ numpy
 django-pandas==0.5.1
 pandas
 
-# bokeh dependencies
-bokeh
-
 # static visualization dependencies
 plotly

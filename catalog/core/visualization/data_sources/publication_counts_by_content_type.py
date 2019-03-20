@@ -1,6 +1,6 @@
 import logging
 
-from data_access import data_cache
+from ..data_access import data_cache
 
 logger = logging.getLogger(__name__)
 

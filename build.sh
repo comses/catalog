@@ -7,13 +7,11 @@ set -o nounset
 CONFIG_INI=deploy/conf/config.ini
 CONFIG_TEMPLATE_INI=deploy/conf/config.template.ini
 POSTGRES_PASSWORD_FILE=deploy/conf/postgres_password
-BOKEH_SECRET_FILE=deploy/conf/bokeh_secret_key
 
 export DB_USER=catalog
 export DB_NAME=comses_catalog
 export DB_PASSWORD=$(head /dev/urandom | tr -dc '[:alnum:]' | head -c100)
 export SECRET_KEY=$(head /dev/urandom | tr -dc '[:alnum:]' | head -c100)
-export BOKEH_SECRET_KEY=$(head /dev/urandom | tr -dc '[:alnum:]' | head -c100)
 
 if [ -f "$CONFIG_INI" ]; then
     echo $PWD
@@ -33,7 +31,6 @@ fi
 echo "Creating config.ini"
 cat "$CONFIG_TEMPLATE_INI" | envsubst > "$CONFIG_INI"
 echo $DB_PASSWORD > ${POSTGRES_PASSWORD_FILE}
-echo $BOKEH_SECRET_KEY > ${BOKEH_SECRET_FILE}
 
 docker-compose up -d db
 sleep 10;

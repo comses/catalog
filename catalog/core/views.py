@@ -1,6 +1,5 @@
 import json
 import logging
-import textwrap
 import time
 from collections import Counter
 from datetime import timedelta, datetime
@@ -8,14 +7,10 @@ from hashlib import sha1
 from json import dumps
 
 import markdown
-from bokeh.embed import server
-from bokeh.util import session_id
-from bokeh.util.serialization import make_id
 from dateutil.parser import parse as datetime_parse
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.core import signing
@@ -36,14 +31,14 @@ from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
-from django.views.generic import TemplateView, FormView, DetailView, CreateView, ListView
+from django.views.generic import TemplateView, FormView, DetailView
 from haystack.generic_views import SearchView
 from haystack.query import SearchQuerySet
-from rest_framework import status, renderers, generics, serializers
+from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from catalog.core import plots
+from catalog.core.visualization import plots
 from catalog.core.forms import PublicSearchForm, SuggestedPublicationForm, \
     SubmitterForm
 from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict, \
@@ -745,23 +740,6 @@ def public_search_view(request):
 
 
 def public_visualization_view(request):
-    def build_script_tag():
-        elementid = make_id()
-        relative_urls, url = settings.BOKEH_SERVE_SETTINGS['relative_urls'], settings.BOKEH_SERVE_SETTINGS['url']
-        _session_id = session_id.generate_session_id(secret_key=settings.BOKEH_SECRET_KEY, signed=True)
-        app_path = server._get_app_path(url)
-        src_path = server._src_path(url, elementid)
-        src_path += server._process_app_path(app_path)
-        src_path += server._process_relative_urls(relative_urls, url)
-        src_path += server._process_session_id(_session_id)
-        src_path += server._process_resources('default')
-        src_path += server._process_arguments(arguments)
-        return server.encode_utf8(server.AUTOLOAD_TAG.render(
-            src_path=src_path,
-            app_path=app_path,
-            elementid=elementid
-        ))
-
     content_type = request.GET.get('content_type', 'sponsors')
     search, filters = normalize_search_querydict(request.GET)
     publication_query = PublicationDocSearch().find(q=search, facet_filters=filters)[:0].agg_by_count()
@@ -784,9 +762,8 @@ def public_visualization_view(request):
         {'value': 'sponsors', 'label': 'Sponsors'},
         {'value': 'tags', 'label': 'Tags'}
     ]
-    script = build_script_tag()
     return render(request, 'public/visualization.html',
-                  context={'script': script, 'breadcrumb_trail': breadcrumb_trail,
+                  context={'script': '<script></script>', 'breadcrumb_trail': breadcrumb_trail,
                            'content_type_options': content_type_options,
                            'search': search, 'content_type': content_type,
                            'facets': facets})

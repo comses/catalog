@@ -20,14 +20,11 @@ services:
     image: comses/catalog/dev:latest
     environment:
       DJANGO_SETTINGS_MODULE: 'catalog.settings.dev'
-      BOKEH_DEV: 'true'
-      BOKEH_RESOURCES: 'server-dev'
     ports:
       - "127.0.0.1:8000:8000"
       - "127.0.0.1:5006:5006"
     volumes:
       - ./deploy/conf/config.ini:/run/secrets/catalog_django_config
-      - ./deploy/conf/bokeh_secret_key:/run/secrets/bokeh_secret_key
       - ./docker/shared:/shared
       - .:/code
   kibana:
