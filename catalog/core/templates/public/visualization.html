@@ -1,5 +1,9 @@
 {% extends 'public/base.html' %}
 
+{% block head %}
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+{% endblock %}
+
 {% block content %}
     <div class="container">
         <div class="row">
@@ -56,7 +60,8 @@
                                                 </dd>
 
                                                 <dt>Formal Description Count</dt>
-                                                <dd>Publications with pseudocode or mathematical description (Count)</dd>
+                                                <dd>Publications with pseudocode or mathematical description (Count)
+                                                </dd>
 
                                                 <dt>ODD Documentation Count</dt>
                                                 <dd>Publications with an Overview, Design concepts and Details
@@ -100,24 +105,11 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-7">
+                    <div class="col-md-10">
                         <div class="form-group">
                             <input type="text" class="form-control form-control-lg"
                                    placeholder="Enter search terms here" value="{{ search }}"
                                    aria-label="Search" name="search" id="full_text" form="search">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="sr-only" for="content_type">Content Type</label>
-                            <select class="form-control form-control-lg" name="content_type" form="search">
-                                {% for content_type_option in content_type_options %}
-                                    <option value="{{ content_type_option.value }}"
-                                            {% if content_type == content_type_option.value %} selected{% endif %}>
-                                        {{ content_type_option.label }}
-                                    </option>
-                                {% endfor %}
-                            </select>
                         </div>
                     </div>
                     <div class=" col-md-2">
@@ -125,8 +117,71 @@
                         </button>
                     </div>
                 </div>
-                {{ script|safe }}
+                <div class="row">
+                    <div class="col-12">
+                        <h2>Author Statistics</h2>
+
+                        <p>
+                            Who created and developed the model is recorded in the catalog. Author counts can show how
+                            popular agent and individual based modeling is in the field and who the primary authors are.
+                        </p>
+
+                        <h2>Journal Usage</h2>
+
+                        <p>
+                            Models in the catalog are often published as part of a paper.
+                        </p>
+
+                        <h2>Platform Usage</h2>
+
+                        <p>
+                            Programming platform includes information on programming language and agent based modeling
+                            framework used to construct their model.
+                        </p>
+
+                        <h2>Sponsorship</h2>
+
+                        <p>
+                            Agent based model development is sometimes funded through grants given by sponsor
+                            organizations. The catalog includes sponsor information on a given model where it is
+                            available.
+                        </p>
+
+                        <h2>Documentation Standards</h2>
+
+                        <p>
+                            Model authors adopt different documentation techniques and standards to explain their work.
+                            The CoMSES Catalog tracks some the use of mathematical description, flow charts and
+                            pseudocode as documentation technique and the the use of Overview, Design concepts and
+                            Details (ODD) as a documentation standard.
+                        </p>
+
+                        <h2>Archival Standards</h2>
+
+                        <p>
+                            Some models in the catalog have model code. The storage location of the model code is
+                            categorized into six categories: archives (e.g. CoMSES, FigShare), code repositories
+                            (e.g. GitHub, GitLab), journals (e.g. PLOS), personal or organizational (e.g. Dropbox,
+                            Personal Website), platform (e.g. NetLogo website), other (all URLs not in the above list)
+                            and uncategorized (has not been categorized manually and cannot be categorized automatically).
+                        </p>
+                        <p>
+                            Archived models also have metadata about whether their model code URLs are available. A model
+                            code URL is considered available if a GET request to the endpoint returns a 200 (OK) response.
+                        </p>
+                    </div>
+                </div>
+                <div id="{{ publication_timeseries_plot.id }}"></div>
             </section>
         </div>
     </div>
+    {{ publication_timeseries_plot.data|json_script:publication_timeseries_plot.data_id }}
+    <script>
+        const publication_timeseries_plot_data = JSON.parse(document.getElementById('{{ publication_timeseries_plot.data_id }}').textContent);
+        Plotly.newPlot('{{ publication_timeseries_plot.id }}',
+            publication_timeseries_plot_data.data,
+            publication_timeseries_plot_data.layout,
+            {responsive: true}
+        )
+    </script>
 {% endblock %}

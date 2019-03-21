@@ -7,6 +7,10 @@ from django.db.models.functions import Concat
 from citation.models import Publication, CodeArchiveUrl, Author
 
 
+def get_publication_queryset(pks):
+    return Publication.api.primary().reviewed().filter(pk__in=pks)
+
+
 def count_bar_plot(records, title, **kwargs):
     labels = [r['label'] for r in records]
     values = [r['count'] for r in records]
@@ -29,13 +33,15 @@ def count_bar_plot(records, title, **kwargs):
 
 def archive_url_category_plot():
     archive_url_counts = CodeArchiveUrl.objects \
-            .filter(publication__in=Publication.api.primary().reviewed()) \
-            .annotate(label=
-                models.Case(models.When(category__category__in=['Unknown', 'Other'], then=models.Value('Uncategorized')),
-                            default=models.F('category__category'))) \
-            .values('label') \
-            .annotate(count=models.Count('category'))
-    return count_bar_plot(records=archive_url_counts, title='Archival Location', yaxis=go.layout.YAxis(title='# of URLs'))
+        .filter(publication__in=Publication.api.primary().reviewed()) \
+        .annotate(label=
+    models.Case(
+        models.When(category__category__in=['Unknown', 'Other'], then=models.Value('Uncategorized')),
+        default=models.F('category__category'))) \
+        .values('label') \
+        .annotate(count=models.Count('category'))
+    return count_bar_plot(records=archive_url_counts, title='Archival Location',
+                          yaxis=go.layout.YAxis(title='# of URLs'))
 
 
 def archive_url_status_plot():
@@ -43,7 +49,8 @@ def archive_url_status_plot():
                                      .values('status')
                                      .annotate(label=models.F('status'))
                                      .annotate(count=models.Count('status')))
-    return count_bar_plot(records=archive_url_status_counts, title='Archival Status', yaxis=go.layout.YAxis(title='# of URLs'))
+    return count_bar_plot(records=archive_url_status_counts, title='Archival Status',
+                          yaxis=go.layout.YAxis(title='# of URLs'))
 
 
 def documentation_type_count_graph():
@@ -58,12 +65,12 @@ def documentation_type_count_graph():
 
 def most_prolific_authors_plot():
     top_10_authors = Publication.api.primary().reviewed() \
-        .values('creators') \
-        .annotate(count=models.Count('creators')) \
-        .annotate(label=Concat(models.F('creators__given_name'),
-                               models.Value(' '),
-                               models.F('creators__family_name'))) \
-        .order_by('-count')[:10]
+                         .values('creators') \
+                         .annotate(count=models.Count('creators')) \
+                         .annotate(label=Concat(models.F('creators__given_name'),
+                                                models.Value(' '),
+                                                models.F('creators__family_name'))) \
+                         .order_by('-count')[:10]
     top_10_authors = list(top_10_authors)
     return count_bar_plot(records=top_10_authors, title='Most Prolific Authors')
 
@@ -81,10 +88,10 @@ def programming_platform_count_plot():
 
 def sponsor_count_plot():
     top_10_sponsors = Publication.api.primary().reviewed() \
-        .values('sponsors') \
-        .annotate(count=models.Count('sponsors')) \
-        .annotate(label=models.F('sponsors__name')) \
-        .order_by('-count')[:10]
+                          .values('sponsors') \
+                          .annotate(count=models.Count('sponsors')) \
+                          .annotate(label=models.F('sponsors__name')) \
+                          .order_by('-count')[:10]
     top_10_sponsors = list(top_10_sponsors)
     return count_bar_plot(records=top_10_sponsors, title='Largest Sponsors')
 
@@ -117,7 +124,7 @@ def publication_counts_over_time():
         )
     ]
 
-    layout= go.Layout(
+    layout = go.Layout(
         legend=go.Legend(orientation='h'),
         title='Publications',
         yaxis=go.YAxis(title='Count'),

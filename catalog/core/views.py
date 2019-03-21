@@ -762,8 +762,16 @@ def public_visualization_view(request):
         {'value': 'sponsors', 'label': 'Sponsors'},
         {'value': 'tags', 'label': 'Tags'}
     ]
+
+    publication_timeseries_plot = {
+        'data': plots.publication_counts_over_time().to_plotly_json(),
+        'data_id': 'publication-timeseries-plot-data',
+        'id': 'publication-timeseries-plot'
+    }
+
     return render(request, 'public/visualization.html',
-                  context={'script': '<script></script>', 'breadcrumb_trail': breadcrumb_trail,
+                  context={'publication_timeseries_plot': publication_timeseries_plot,
+                           'breadcrumb_trail': breadcrumb_trail,
                            'content_type_options': content_type_options,
                            'search': search, 'content_type': content_type,
                            'facets': facets})

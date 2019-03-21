@@ -131,12 +131,11 @@ class DataCache:
                 'date_published': p.date_published,
                 'year_published':
                     p.date_published.year if p.date_published is not None else None,
-                'is_archived': p.is_archived,
+                'has_available_code': p.has_available_code,
+                'has_flow_charts': 'Flow Charts' in model_documentation,
+                'has_math_description': 'Mathematical description' in model_documentation,
                 'has_odd': 'ODD' in model_documentation,
-                'has_visual_documentation': any(
-                    d in model_documentation for d in ['UML', 'Flow Charts', 'AORML', 'Ontologies']),
-                'has_formal_description': any(
-                    d in model_documentation for d in ['Source code', 'Pseudocode', 'Mathematical description']),
+                'has_pseudocode': 'Pseudocode' in model_documentation,
                 'status': p.status,
                 'title': p.title}
 
@@ -162,9 +161,10 @@ class DataCache:
     @property
     def publication_queryset(self) -> QuerySet:
         if self._publication_queryset is None:
-            self._publication_queryset = Publication.api.primary().filter(status='REVIEWED') \
+            self._publication_queryset = Publication.api.primary().reviewed() \
                 .select_related('container') \
-                .prefetch_related('model_documentation')
+                .prefetch_related('model_documentation') \
+                .has_available_code()
         return self._publication_queryset
 
     @property
