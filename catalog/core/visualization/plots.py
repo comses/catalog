@@ -1,5 +1,7 @@
 import pandas as pd
 import plotly.graph_objs as go
+import plotly.figure_factory as ff
+
 
 from django.db import models
 from django.db.models.functions import Concat
@@ -96,25 +98,15 @@ def sponsor_count_plot():
     return count_bar_plot(records=top_10_sponsors, title='Largest Sponsors')
 
 
-def publication_counts_over_time():
-    publication_counts = Publication.api.primary().reviewed().annotate_code_availability() \
-        .only('id', 'date_published_text')
-    publication_counts = [
-        {
-            'id': p.id,
-            'year': p.date_published.year if p.date_published else None,
-            'available': p.n_available_code_archive_urls > 0
-        } for p in publication_counts
-    ]
-    df = pd.DataFrame.from_records(publication_counts).groupby('year').agg({
-        'id': 'count',
-        'available': 'sum'
-    })
+def publication_counts_over_time(publication_df: pd.DataFrame):
+    df = publication_df.groupby('year_published') \
+        .agg({'year_published': 'count', 'has_available_code': 'sum'}) \
+        .rename(columns={'year_published': 'count', 'has_available_code': 'available'})
 
     data = [
         go.Scatter(
             x=list(df.index),
-            y=list(df['id']),
+            y=list(df['count']),
             name='All publications'
         ),
         go.Scatter(
@@ -132,3 +124,83 @@ def publication_counts_over_time():
     )
 
     return go.Figure(data=data, layout=layout)
+
+
+def archival_timeseries_plot(publication_df: pd.DataFrame, code_archive_urls_df: pd.DataFrame, publication_pks):
+    matching_publication_df = publication_df.loc[publication_pks].join(code_archive_urls_df)
+    df = matching_publication_df \
+        .groupby(['year_published', 'category'])['category'] \
+        .count() \
+        .unstack('category') \
+        .fillna(0.0)
+
+    year = list(df.index)
+    data = []
+    for var_name, var in df.items():
+        data.append(
+            go.Scatter(
+                x=year,
+                y=list(var),
+                name=var_name
+            )
+        )
+
+    layout = go.Layout(
+        title='Archival Location',
+        xaxis=go.layout.XAxis(title='Year'),
+        yaxis=go.layout.YAxis(title='Count')
+    )
+    return go.Figure(data=data, layout=layout)
+
+
+def documentation_standards_timeseries_plot(publication_df: pd.DataFrame, publication_pks):
+    matching_publication_df = publication_df.loc[publication_pks]
+    df = matching_publication_df \
+        .groupby('year_published') \
+        .agg({'year_published': 'count',
+              'has_flow_charts': 'sum',
+              'has_math_description': 'sum',
+              'has_odd': 'sum',
+              'has_pseudocode': 'sum'}) \
+        .rename(columns={'year_published': 'count'})
+
+
+    year = list(df.index)
+    data = [
+        go.Scatter(
+            x=year,
+            y=list(df['count']),
+            name='All Publications'
+        ),
+        go.Scatter(
+            x=year,
+            y=list(df['has_flow_charts']),
+            name='Flow Charts'
+        ),
+        go.Scatter(
+            x=year,
+            y=list(df['has_math_description']),
+            name='Math Description'
+        ),
+        go.Scatter(
+            x=year,
+            y=list(df['has_odd']),
+            name='ODD'
+        ),
+        go.Scatter(
+            x=year,
+            y=list(df['has_pseudocode']),
+            name='Pseudocode'
+        )
+    ]
+
+    layout = go.Layout(
+        title='Documentation Standards',
+        xaxis=go.layout.XAxis(title='Year'),
+        yaxis=go.layout.YAxis(title='Count')
+    )
+
+    return go.Figure(
+        data=data,
+        layout=layout
+    )

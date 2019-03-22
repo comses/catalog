@@ -23,7 +23,6 @@ services:
       DOMAIN_NAME: 'catalog-dev.comses.net'
     restart: always
     secrets:
-      - bokeh_secret_key
       - catalog_django_config
     volumes:
       - static:/catalog/static

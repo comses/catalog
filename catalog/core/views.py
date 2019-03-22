@@ -38,7 +38,7 @@ from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from catalog.core.visualization import plots
+from catalog.core.visualization import plots, data_access
 from catalog.core.forms import PublicSearchForm, SuggestedPublicationForm, \
     SubmitterForm
 from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict, \
@@ -743,6 +743,7 @@ def public_visualization_view(request):
     content_type = request.GET.get('content_type', 'sponsors')
     search, filters = normalize_search_querydict(request.GET)
     publication_query = PublicationDocSearch().find(q=search, facet_filters=filters)[:0].agg_by_count()
+    publication_pks = data_access.get_publication_pks_matching_search_criteria(query=search, facet_filters=filters)
     publication_query.execute(facet_filters=filters)
     facets = publication_query.cache
     arguments = request.GET.copy()
@@ -763,24 +764,36 @@ def public_visualization_view(request):
         {'value': 'tags', 'label': 'Tags'}
     ]
 
-    publication_timeseries_plot = {
-        'data': plots.publication_counts_over_time().to_plotly_json(),
-        'data_id': 'publication-timeseries-plot-data',
-        'id': 'publication-timeseries-plot'
+    publication_df = cache.get('publications')
+    code_archive_urls_df = cache.get('code_archive_urls')
+
+    plot_items = {
+        'archival_timeseries_plot': {
+            'data': plots.archival_timeseries_plot(publication_df, code_archive_urls_df, publication_pks).to_plotly_json(),
+            'data_id': 'archival-timeseries-plot-data',
+            'id': 'archival-timeseries-plot'
+        },
+        'documentation_timeseries_plot': {
+            'data': plots.documentation_standards_timeseries_plot(publication_df, publication_pks).to_plotly_json(),
+            'data_id': 'documentation-timeseries-plot-data',
+            'id': 'documentation-timeseries-plot'
+        }
     }
 
     return render(request, 'public/visualization.html',
-                  context={'publication_timeseries_plot': publication_timeseries_plot,
-                           'breadcrumb_trail': breadcrumb_trail,
-                           'content_type_options': content_type_options,
-                           'search': search, 'content_type': content_type,
-                           'facets': facets})
+                  context={
+                      'plots': plot_items,
+                      'breadcrumb_trail': breadcrumb_trail,
+                      'content_type_options': content_type_options,
+                      'search': search, 'content_type': content_type,
+                      'facets': facets})
 
 
 def public_home(request):
+    publication_df = cache.get('publications')
     plot = {
         'id': 'agent-based-modeling-tile',
-        'data': plots.publication_counts_over_time().to_plotly_json(),
+        'data': plots.publication_counts_over_time(publication_df).to_plotly_json(),
         'data_id': 'agent-based-modeling-tile-data'
     }
 

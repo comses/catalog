@@ -156,6 +156,8 @@
                             Details (ODD) as a documentation standard.
                         </p>
 
+                        <div id="{{ plots.documentation_timeseries_plot.id }}"></div>
+
                         <h2>Archival Standards</h2>
 
                         <p>
@@ -163,25 +165,33 @@
                             categorized into six categories: archives (e.g. CoMSES, FigShare), code repositories
                             (e.g. GitHub, GitLab), journals (e.g. PLOS), personal or organizational (e.g. Dropbox,
                             Personal Website), platform (e.g. NetLogo website), other (all URLs not in the above list)
-                            and uncategorized (has not been categorized manually and cannot be categorized automatically).
+                            and uncategorized (has not been categorized manually and cannot be categorized
+                            automatically).
                         </p>
                         <p>
-                            Archived models also have metadata about whether their model code URLs are available. A model
-                            code URL is considered available if a GET request to the endpoint returns a 200 (OK) response.
+                            Archived models also have metadata about whether their model code URLs are available. A
+                            model
+                            code URL is considered available if a GET request to the endpoint returns a 200 (OK)
+                            response.
                         </p>
                     </div>
                 </div>
-                <div id="{{ publication_timeseries_plot.id }}"></div>
+                <div id="{{ plots.archival_timeseries_plot.id }}"></div>
             </section>
         </div>
     </div>
-    {{ publication_timeseries_plot.data|json_script:publication_timeseries_plot.data_id }}
+    {% for plot in plots.values %}
+        {{ plot.data|json_script:plot.data_id }}
+    {% endfor %}
     <script>
-        const publication_timeseries_plot_data = JSON.parse(document.getElementById('{{ publication_timeseries_plot.data_id }}').textContent);
-        Plotly.newPlot('{{ publication_timeseries_plot.id }}',
-            publication_timeseries_plot_data.data,
-            publication_timeseries_plot_data.layout,
-            {responsive: true}
-        )
+        {% for plot_name, plot in plots.items %}
+            const {{ plot_name }}_data = JSON.parse(document.getElementById('{{ plot.data_id }}').textContent);
+            Plotly.newPlot('{{ plot.id }}',
+                {{ plot_name }}_data.data,
+                {{ plot_name }}_data.layout,
+                {responsive: true}
+            );
+
+        {% endfor %}
     </script>
 {% endblock %}
