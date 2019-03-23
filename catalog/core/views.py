@@ -764,19 +764,43 @@ def public_visualization_view(request):
         {'value': 'tags', 'label': 'Tags'}
     ]
 
-    publication_df = cache.get('publications')
-    code_archive_urls_df = cache.get('code_archive_urls')
+    cached_dfs = cache.get_many(['publications', 'code_archive_urls', 'authors'])
+    publication_df = cached_dfs['publications']
+    code_archive_urls_df = cached_dfs['code_archive_urls']
+    author_df = cached_dfs['authors']
 
+    archival_timeseries_plots = plots.archival_timeseries_plot(publication_df, code_archive_urls_df, publication_pks)
+    documentation_timeseries_plots = plots.documentation_standards_timeseries_plot(publication_df, publication_pks)
     plot_items = {
-        'archival_timeseries_plot': {
-            'data': plots.archival_timeseries_plot(publication_df, code_archive_urls_df, publication_pks).to_plotly_json(),
-            'data_id': 'archival-timeseries-plot-data',
-            'id': 'archival-timeseries-plot'
+        'top_author_plot': {
+            'data': plots.top_author_plot(author_df, publication_pks).to_plotly_json(),
+            'data_id': 'top-author-plot-data',
+            'id': 'top-author-plot'
         },
-        'documentation_timeseries_plot': {
-            'data': plots.documentation_standards_timeseries_plot(publication_df, publication_pks).to_plotly_json(),
-            'data_id': 'documentation-timeseries-plot-data',
-            'id': 'documentation-timeseries-plot'
+        'archival_timeseries_count_plot': {
+            'data': archival_timeseries_plots['count'].to_plotly_json(),
+            'data_id': 'archival-timeseries-count-plot-data',
+            'id': 'archival-timeseries-count-plot'
+        },
+        'archival_timeseries_percent_plot': {
+            'data': archival_timeseries_plots['percent'].to_plotly_json(),
+            'data_id': 'archival-timeseries-percent-plot-data',
+            'id': 'archival-timeseries-percent-plot'
+        },
+        'code_availability_timeseries_plot': {
+            'data': plots.code_availability_timeseries_plot(publication_df, publication_pks).to_plotly_json(),
+            'data_id': 'code-availability-timeseries-plot-data',
+            'id': 'code-availability-timeseries-plot'
+        },
+        'documentation_timeseries_count_plot': {
+            'data': documentation_timeseries_plots['count'].to_plotly_json(),
+            'data_id': 'documentation-timeseries-count-plot-data',
+            'id': 'documentation-timeseries-count-plot'
+        },
+        'documentation_timeseries_percent_plot': {
+            'data': documentation_timeseries_plots['percent'].to_plotly_json(),
+            'data_id': 'documentation-timeseries-percent-plot-data',
+            'id': 'documentation-timeseries-percent-plot'
         }
     }
 
@@ -793,7 +817,7 @@ def public_home(request):
     publication_df = cache.get('publications')
     plot = {
         'id': 'agent-based-modeling-tile',
-        'data': plots.publication_counts_over_time(publication_df).to_plotly_json(),
+        'data': plots.code_availability_timeseries_plot(publication_df).to_plotly_json(),
         'data_id': 'agent-based-modeling-tile-data'
     }
 

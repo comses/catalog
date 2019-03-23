@@ -126,6 +126,8 @@
                             popular agent and individual based modeling is in the field and who the primary authors are.
                         </p>
 
+                        <div id="{{ plots.top_author_plot.id }}"></div>
+
                         <h2>Journal Usage</h2>
 
                         <p>
@@ -156,9 +158,10 @@
                             Details (ODD) as a documentation standard.
                         </p>
 
-                        <div id="{{ plots.documentation_timeseries_plot.id }}"></div>
+                        <div id="{{ plots.documentation_timeseries_count_plot.id }}"></div>
+                        <div id="{{ plots.documentation_timeseries_percent_plot.id }}"></div>
 
-                        <h2>Archival Standards</h2>
+                        <h2>Code Archival</h2>
 
                         <p>
                             Some models in the catalog have model code. The storage location of the model code is
@@ -174,9 +177,15 @@
                             code URL is considered available if a GET request to the endpoint returns a 200 (OK)
                             response.
                         </p>
+
+                        <div id="{{ plots.archival_timeseries_count_plot.id }}"></div>
+                        <div id="{{ plots.archival_timeseries_percent_plot.id }}"></div>
+
+                        <h2>Code Availability</h2>
+
+                        <div id="{{ plots.code_availability_timeseries_plot.id }}"></div>
                     </div>
                 </div>
-                <div id="{{ plots.archival_timeseries_plot.id }}"></div>
             </section>
         </div>
     </div>

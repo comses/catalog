@@ -2,7 +2,6 @@ import pandas as pd
 import plotly.graph_objs as go
 import plotly.figure_factory as ff
 
-
 from django.db import models
 from django.db.models.functions import Concat
 
@@ -98,7 +97,9 @@ def sponsor_count_plot():
     return count_bar_plot(records=top_10_sponsors, title='Largest Sponsors')
 
 
-def publication_counts_over_time(publication_df: pd.DataFrame):
+def code_availability_timeseries_plot(publication_df: pd.DataFrame, publication_pks=None):
+    if publication_pks is not None:
+        publication_df = publication_df.loc[publication_pks]
     df = publication_df.groupby('year_published') \
         .agg({'year_published': 'count', 'has_available_code': 'sum'}) \
         .rename(columns={'year_published': 'count', 'has_available_code': 'available'})
@@ -107,18 +108,18 @@ def publication_counts_over_time(publication_df: pd.DataFrame):
         go.Scatter(
             x=list(df.index),
             y=list(df['count']),
-            name='All publications'
+            name='All'
         ),
         go.Scatter(
             x=list(df.index),
             y=list(df['available']),
-            name='Publications with available code'
+            name='Available Code'
         )
     ]
 
     layout = go.Layout(
         legend=go.Legend(orientation='h'),
-        title='Publications',
+        title='Publication Code Availability',
         yaxis=go.YAxis(title='Count'),
         xaxis=go.XAxis(title='Year')
     )
@@ -127,80 +128,174 @@ def publication_counts_over_time(publication_df: pd.DataFrame):
 
 
 def archival_timeseries_plot(publication_df: pd.DataFrame, code_archive_urls_df: pd.DataFrame, publication_pks):
-    matching_publication_df = publication_df.loc[publication_pks].join(code_archive_urls_df)
+    matching_publication_df = publication_df.loc[publication_pks]
+    year_published_index = pd.RangeIndex(1990.0, publication_df['year_published'].max() + 1.0)
+    year_counts_df = matching_publication_df \
+        .groupby(['year_published'])[['year_published']] \
+        .count() \
+        .rename(columns={'year_published': ('publications', 'count')}) \
+        .reindex(year_published_index) \
+        .fillna(0.0)
     df = matching_publication_df \
-        .groupby(['year_published', 'category'])['category'] \
+        .join(code_archive_urls_df) \
+        .groupby(['category', 'year_published'])[['category']] \
         .count() \
         .unstack('category') \
-        .fillna(0.0)
+        .reindex(year_published_index) \
+        .fillna(0.0) \
+        .join(year_counts_df)
+
+    df_percent = df.apply(lambda x: x / x[('publications', 'count')], axis=1)['category'].fillna(0.0)
 
     year = list(df.index)
-    data = []
-    for var_name, var in df.items():
-        data.append(
+    count_data = []
+    percent_data = []
+    for var_name in df_percent.keys():
+        count_data.append(
             go.Scatter(
                 x=year,
-                y=list(var),
+                y=list(df[('category', var_name)]),
                 name=var_name
             )
         )
+        percent_data.append(
+            go.Scatter(
+                x=year,
+                y=list(df_percent[var_name]),
+                name=var_name
+            )
+        )
+    count_data.append(go.Scatter(
+        x=year,
+        y=list(df[('publications', 'count')]),
+        name='Matched',
+        visible='legendonly'
+    ))
 
-    layout = go.Layout(
-        title='Archival Location',
-        xaxis=go.layout.XAxis(title='Year'),
-        yaxis=go.layout.YAxis(title='Count')
+    count_timeseries = go.Figure(
+        data=count_data,
+        layout=go.Layout(
+            title='Archival Location (Count)',
+            xaxis=go.layout.XAxis(title='Year'),
+            yaxis=go.layout.YAxis(title='Count')
+        )
     )
-    return go.Figure(data=data, layout=layout)
+
+    percent_timeseries = go.Figure(
+        data=percent_data,
+        layout=go.Layout(
+            title='Archival Location (Proportion)',
+            xaxis=go.layout.XAxis(title='Year'),
+            yaxis=go.layout.YAxis(title='Proportion')
+        )
+    )
+    return {'count': count_timeseries, 'percent': percent_timeseries}
 
 
 def documentation_standards_timeseries_plot(publication_df: pd.DataFrame, publication_pks):
     matching_publication_df = publication_df.loc[publication_pks]
     df = matching_publication_df \
         .groupby('year_published') \
-        .agg({'year_published': 'count',
-              'has_flow_charts': 'sum',
-              'has_math_description': 'sum',
-              'has_odd': 'sum',
-              'has_pseudocode': 'sum'}) \
+        .agg({'year_published': ['count'],
+              'has_flow_charts': ['mean', 'sum'],
+              'has_math_description': ['mean', 'sum'],
+              'has_odd': ['mean', 'sum'],
+              'has_pseudocode': ['mean', 'sum']}) \
         .rename(columns={'year_published': 'count'})
 
-
     year = list(df.index)
+
+    count_timeseries = go.Figure(
+        data=[
+            go.Scatter(
+                x=year,
+                y=list(df[('has_flow_charts', 'sum')]),
+                name='Flow Charts'
+            ),
+            go.Scatter(
+                x=year,
+                y=list(df[('has_math_description', 'sum')]),
+                name='Math Description'
+            ),
+            go.Scatter(
+                x=year,
+                y=list(df[('has_odd', 'sum')]),
+                name='ODD'
+            ),
+            go.Scatter(
+                x=year,
+                y=list(df[('has_pseudocode', 'sum')]),
+                name='Pseudocode'
+            ),
+            go.Scatter(
+                x=year,
+                y=list(df[('count', 'count')]),
+                name='Matched'
+            ),
+        ],
+
+        layout=go.Layout(
+            title='Documentation Techniques and Standards (Count)',
+            xaxis=go.layout.XAxis(title='Year'),
+            yaxis=go.layout.YAxis(title='Count')
+        )
+    )
+
+    percent_timeseries = go.Figure(
+        data=[
+            go.Scatter(
+                x=year,
+                y=list(df[('has_flow_charts', 'mean')]),
+                name='Flow Charts'
+            ),
+            go.Scatter(
+                x=year,
+                y=list(df[('has_math_description', 'mean')]),
+                name='Math Description'
+            ),
+            go.Scatter(
+                x=year,
+                y=list(df[('has_odd', 'mean')]),
+                name='ODD'
+            ),
+            go.Scatter(
+                x=year,
+                y=list(df[('has_pseudocode', 'mean')]),
+                name='Pseudocode'
+            )
+        ],
+
+        layout=go.Layout(
+            title='Documentation Techniques and Standards (Proportion)',
+            xaxis=go.layout.XAxis(title='Year'),
+            yaxis=go.layout.YAxis(title='Proportion')
+        )
+    )
+
+    return {'count': count_timeseries, 'percent': percent_timeseries}
+
+
+def top_author_plot(publication_author_df, publication_pks):
+    matching_authors_df = publication_author_df.loc[publication_pks]
+    df = matching_authors_df.groupby('author_id') \
+             .agg({'name': ['first', 'count']}) \
+             .sort_values(by=('name', 'count'), ascending=False).iloc[:10]
+
     data = [
-        go.Scatter(
-            x=year,
-            y=list(df['count']),
-            name='All Publications'
-        ),
-        go.Scatter(
-            x=year,
-            y=list(df['has_flow_charts']),
-            name='Flow Charts'
-        ),
-        go.Scatter(
-            x=year,
-            y=list(df['has_math_description']),
-            name='Math Description'
-        ),
-        go.Scatter(
-            x=year,
-            y=list(df['has_odd']),
-            name='ODD'
-        ),
-        go.Scatter(
-            x=year,
-            y=list(df['has_pseudocode']),
-            name='Pseudocode'
+        go.Bar(
+            x=df.loc[:, ('name', 'first')].to_list(),
+            y=df.loc[:, ('name', 'count')].to_list(),
         )
     ]
 
     layout = go.Layout(
-        title='Documentation Standards',
-        xaxis=go.layout.XAxis(title='Year'),
-        yaxis=go.layout.YAxis(title='Count')
+        title='Top 10 most published authors',
+        yaxis=go.layout.YAxis(title='# of publications')
     )
 
-    return go.Figure(
-        data=data,
-        layout=layout
-    )
+    return go.Figure(data=data, layout=layout)
+
+
+def top_journal_plot(container_df, publication_pks):
+    matching_container_df = container_df.loc[publication_pks]
+    df = matching_container_df.groupby()

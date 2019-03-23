@@ -24,7 +24,8 @@ def create_publication_df(publication_queryset):
     def _publication_as_dict(p: Publication):
         model_documentation = set(d.name for d in p.model_documentation.all())
         return {'id': p.id,
-                'container': p.container.id,
+                'container_id': p.container.id,
+                'container_name': p.container.name,
                 'date_published': p.date_published,
                 'year_published':
                     p.date_published.year if p.date_published is not None else None,
@@ -42,37 +43,40 @@ def create_publication_df(publication_queryset):
 def create_archive_url_df(publication_queryset):
     def _code_archive_url_as_dict(c: CodeArchiveUrl):
         return {
-            'publication__id': c.publication_id,
-            'id': c.id,
+            'publication_id': c.publication_id,
+            'code_archive_url_id': c.id,
             'category': str(c.category.category),
             'subcategory': str(c.category.subcategory),
             'available': c.status == 'available'
         }
 
-    return pd.DataFrame.from_records(
+    df = pd.DataFrame.from_records(
         (_code_archive_url_as_dict(c) for c in
          CodeArchiveUrl.objects.filter(publication__in=publication_queryset).select_related('category')),
-        index='publication__id',)
+        index='publication_id',)
+    df['category'] = df['category'].astype('category')
+    df['subcategory'] = df['subcategory'].astype('category')
+    return df
 
 
 def create_publication_author_df(publication_queryset):
     def _publication_author_as_dict(pa: PublicationAuthors):
         return {
-            'publication__id': pa.publication_id,
-            'related__id': pa.author_id,
+            'publication_id': pa.publication_id,
+            'author_id': pa.author_id,
             'name': pa.author.name
         }
 
     return pd.DataFrame.from_records(
         (_publication_author_as_dict(pa) for pa in
          PublicationAuthors.objects.filter(publication__in=publication_queryset).select_related('author')),
-        index='publication__id')
+        index='publication_id')
 
 
 def create_publication_container_df(publication_queryset):
     def _container_as_dict(c: Container):
         return {
-            'id': c.id,
+            'container_id': c.id,
             'name': c.name
         }
 
