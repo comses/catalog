@@ -32,50 +32,6 @@ def count_bar_plot(records, title, **kwargs):
     return go.Figure(data=data, layout=layout)
 
 
-def archive_url_category_plot():
-    archive_url_counts = CodeArchiveUrl.objects \
-        .filter(publication__in=Publication.api.primary().reviewed()) \
-        .annotate(label=
-    models.Case(
-        models.When(category__category__in=['Unknown', 'Other'], then=models.Value('Uncategorized')),
-        default=models.F('category__category'))) \
-        .values('label') \
-        .annotate(count=models.Count('category'))
-    return count_bar_plot(records=archive_url_counts, title='Archival Location',
-                          yaxis=go.layout.YAxis(title='# of URLs'))
-
-
-def archive_url_status_plot():
-    archive_url_status_counts = list(CodeArchiveUrl.objects
-                                     .values('status')
-                                     .annotate(label=models.F('status'))
-                                     .annotate(count=models.Count('status')))
-    return count_bar_plot(records=archive_url_status_counts, title='Archival Status',
-                          yaxis=go.layout.YAxis(title='# of URLs'))
-
-
-def documentation_type_count_graph():
-    documentation_counts = list(Publication.api.primary()
-                                .filter(status='REVIEWED')
-                                .values('model_documentation__name')
-                                .annotate(count=models.Count('model_documentation__name'))
-                                .annotate(label=models.F('model_documentation__name'))
-                                .exclude(model_documentation__name__in=['AORML', 'Other Narrative', 'None']))
-    return count_bar_plot(records=documentation_counts, title='Documentation Type Counts')
-
-
-def most_prolific_authors_plot():
-    top_10_authors = Publication.api.primary().reviewed() \
-                         .values('creators') \
-                         .annotate(count=models.Count('creators')) \
-                         .annotate(label=Concat(models.F('creators__given_name'),
-                                                models.Value(' '),
-                                                models.F('creators__family_name'))) \
-                         .order_by('-count')[:10]
-    top_10_authors = list(top_10_authors)
-    return count_bar_plot(records=top_10_authors, title='Most Prolific Authors')
-
-
 def programming_platform_count_plot():
     platform_counts = list(Publication.api.primary()
                            .filter(status='REVIEWED')
@@ -87,44 +43,50 @@ def programming_platform_count_plot():
     return count_bar_plot(records=platform_counts, title='Most Popular Platforms')
 
 
-def sponsor_count_plot():
-    top_10_sponsors = Publication.api.primary().reviewed() \
-                          .values('sponsors') \
-                          .annotate(count=models.Count('sponsors')) \
-                          .annotate(label=models.F('sponsors__name')) \
-                          .order_by('-count')[:10]
-    top_10_sponsors = list(top_10_sponsors)
-    return count_bar_plot(records=top_10_sponsors, title='Largest Sponsors')
-
-
 def code_availability_timeseries_plot(publication_df: pd.DataFrame, publication_pks=None):
     if publication_pks is not None:
         publication_df = publication_df.loc[publication_pks]
     df = publication_df.groupby('year_published') \
-        .agg({'year_published': 'count', 'has_available_code': 'sum'}) \
-        .rename(columns={'year_published': 'count', 'has_available_code': 'available'})
-
-    data = [
+        .agg({'year_published': ['count'], 'has_available_code': ['sum', 'mean']})
+    year = list(df.index)
+    count_data = [
         go.Scatter(
-            x=list(df.index),
-            y=list(df['count']),
-            name='All'
+            x=year,
+            y=df[('has_available_code', 'sum')].to_list(),
+            name='Available Code'
         ),
         go.Scatter(
-            x=list(df.index),
-            y=list(df['available']),
-            name='Available Code'
+            x=year,
+            y=df[('year_published','count')].to_list(),
+            name='Matched'
         )
     ]
-
-    layout = go.Layout(
+    count_layout = go.Layout(
         legend=go.Legend(orientation='h'),
         title='Publication Code Availability',
-        yaxis=go.YAxis(title='Count'),
-        xaxis=go.XAxis(title='Year')
+        yaxis=go.layout.YAxis(title='Count'),
+        xaxis=go.layout.XAxis(title='Year')
     )
+    count_figure = go.Figure(data=count_data, layout=count_layout)
 
-    return go.Figure(data=data, layout=layout)
+    percent_data = [
+        go.Scatter(
+            x=year,
+            y=df[('has_available_code', 'mean')].to_list()
+        )
+    ]
+    percent_layout = go.Layout(
+        legend=go.Legend(orientation='h'),
+        title='Publication Code Availability (Proportion)',
+        yaxis=go.layout.YAxis(title='Proportion'),
+        xaxis=go.layout.XAxis(title='Year')
+    )
+    percent_figure = go.Figure(data=percent_data, layout=percent_layout)
+
+    return {
+        'count': count_figure,
+        'percent': percent_figure
+    }
 
 
 def archival_timeseries_plot(publication_df: pd.DataFrame, code_archive_urls_df: pd.DataFrame, publication_pks):
@@ -298,4 +260,62 @@ def top_author_plot(publication_author_df, publication_pks):
 
 def top_journal_plot(container_df, publication_pks):
     matching_container_df = container_df.loc[publication_pks]
-    df = matching_container_df.groupby()
+    df = matching_container_df.groupby('container_id') \
+             .agg({'container_name': ['first'], 'container_id': ['count']}) \
+             .sort_values(by=('container_id', 'count'), ascending=False).iloc[:10]
+
+    data = [
+        go.Bar(
+            x=df.loc[:, ('container_name', 'first')].to_list(),
+            y=df.loc[:, ('container_id', 'count')].to_list(),
+        )
+    ]
+
+    layout = go.Layout(
+        title='Top 10 most published journals',
+        yaxis=go.layout.YAxis(title='# of publications')
+    )
+
+    return go.Figure(data=data, layout=layout)
+
+
+def top_platform_plot(publication_platform_df, publication_pks):
+    matching_platform_df = publication_platform_df.loc[publication_pks]
+    df = matching_platform_df.groupby('platform_id') \
+        .agg({'platform_id': ['count'], 'platform_name': ['first']}) \
+        .sort_values(by=('platform_id', 'count'), ascending=False).iloc[:10]
+
+    data = [
+        go.Bar(
+            x=df.loc[:, ('platform_name', 'first')].to_list(),
+            y=df.loc[:, ('platform_id', 'count')].to_list()
+        )
+    ]
+
+    layout = go.Layout(
+        title='Top 10 most popular platforms',
+        yaxis=go.layout.YAxis(title='# of publications')
+    )
+
+    return go.Figure(data=data, layout=layout)
+
+
+def top_sponsor_plot(publication_sponsor_df, publication_pks):
+    matching_sponsor_df = publication_sponsor_df.loc[publication_pks]
+    df = matching_sponsor_df.groupby('sponsor_id') \
+        .agg({'sponsor_id': ['count'], 'sponsor_name': ['first']}) \
+        .sort_values(by=('sponsor_id', 'count'), ascending=False).iloc[:10]
+
+    data = [
+        go.Bar(
+            x=df.loc[:, ('sponsor_name', 'first')].to_list(),
+            y=df.loc[:, ('sponsor_id', 'count')].to_list()
+        )
+    ]
+
+    layout = go.Layout(
+        title='Top 10 sponsors',
+        yaxis=go.layout.YAxis(title='# of publications')
+    )
+
+    return go.Figure(data=data, layout=layout)

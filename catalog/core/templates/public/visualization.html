@@ -13,98 +13,7 @@
                 </form>
             </section>
             <section class="col-lg-9">
-                <div class="row" id="help">
-                    <div class="col-12 py-1">
-                        <div class="card">
-                            <div class="card-header py-1" id="helpDescriptionTitle">
-                                <h5 class="my-0">
-                                    <button class="btn btn-link" data-toggle="collapse" aria-expanded="false"
-                                            data-target="#helpDescription" aria-controls="helpDescription">
-                                        Visualization Definitions and Description
-                                    </button>
-                                </h5>
-                            </div>
-                            <div id="helpDescription" class="collapse" aria-labelledby="helpDescriptionTitle"
-                                 data-parent="help">
-                                <div class="card-body">
-                                    <h5>How to search</h5>
-
-                                    <ol>
-                                        <li>
-                                            <p>
-                                                To visualize a search result you can search by keywords (optional) and
-                                                filter by authors, journals, platforms, sponsors and tags from the bar
-                                                on the left.
-                                            </p>
-                                        </li>
-                                        <li>
-                                            Select what content you want to visualize. This could be author, journal,
-                                            platform, sponsor and tag
-                                        </li>
-                                    </ol>
-
-                                    <p>
-                                        The resulting search results will include all results that match the keywords
-                                        entered and at least one of the filter criteria
-                                    </p>
-
-                                    <h5>What to plot</h5>
-
-                                    <ol>
-                                        <li>
-                                            Select statistics you want to plot from the <i>Available Statistics</i>
-                                            section. You can choose from:
-                                            <dl>
-                                                <dt>Code Availability Count</dt>
-                                                <dd>Publications with successfully downloadable model code
-                                                </dd>
-
-                                                <dt>Formal Description Count</dt>
-                                                <dd>Publications with pseudocode or mathematical description (Count)
-                                                </dd>
-
-                                                <dt>ODD Documentation Count</dt>
-                                                <dd>Publications with an Overview, Design concepts and Details
-                                                    document (Count)
-                                                </dd>
-
-                                                <dt>Visual Documentation Count</dt>
-                                                <dd>Publications with UML, flowcharts or ontologies (Count)</dd>
-                                            </dl>
-                                        </li>
-                                        <li>
-                                            Select which authors, journals, platforms, sponsors or tags you want to want
-                                            to plot from the table. To select one just click on the appropriate row. To
-                                            select many <code>Ctnl+Click</code> the rows.
-                                        </li>
-                                    </ol>
-
-                                    <h5>Interpreting the plot</h5>
-
-                                    <p>
-                                        The plot will show the total number of publications published that year for the
-                                        content item selected in the summary table (could be a author, journal,
-                                        platform, sponsor or tag) as well as any other count statistics you selected.
-                                    </p>
-
-                                    <h5>Data Quality</h5>
-
-                                    <p>
-                                        Only publications in the ISI Web of Science matching particular keywords (such
-                                        as agent base modeling) or explicitly requested for inclusion are in the
-                                        database.
-                                    </p>
-
-                                    <p>
-                                        Publication data is loaded in periodically (a few times a year) so count data
-                                        for the last year will be inaccurate.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
+                <div class="row pt-1">
                     <div class="col-md-10">
                         <div class="form-group">
                             <input type="text" class="form-control form-control-lg"
@@ -119,43 +28,16 @@
                 </div>
                 <div class="row">
                     <div class="col-12">
-                        <h2>Author Statistics</h2>
-
-                        <p>
-                            Who created and developed the model is recorded in the catalog. Author counts can show how
-                            popular agent and individual based modeling is in the field and who the primary authors are.
-                        </p>
-
-                        <div id="{{ plots.top_author_plot.id }}"></div>
-
-                        <h2>Journal Usage</h2>
-
-                        <p>
-                            Models in the catalog are often published as part of a paper.
-                        </p>
-
-                        <h2>Platform Usage</h2>
-
-                        <p>
-                            Programming platform includes information on programming language and agent based modeling
-                            framework used to construct their model.
-                        </p>
-
-                        <h2>Sponsorship</h2>
-
-                        <p>
-                            Agent based model development is sometimes funded through grants given by sponsor
-                            organizations. The catalog includes sponsor information on a given model where it is
-                            available.
-                        </p>
+                        <p>Found <b>{{ n_matches }}</b> matching publications</p>
 
                         <h2>Documentation Standards</h2>
 
                         <p>
                             Model authors adopt different documentation techniques and standards to explain their work.
                             The CoMSES Catalog tracks some the use of mathematical description, flow charts and
-                            pseudocode as documentation technique and the the use of Overview, Design concepts and
-                            Details (ODD) as a documentation standard.
+                            pseudocode as documentation techniques and the the use of Overview, Design concepts and
+                            Details (ODD) as a documentation standard. Publications can use more than one documentation
+                            technique and standard.
                         </p>
 
                         <div id="{{ plots.documentation_timeseries_count_plot.id }}"></div>
@@ -168,14 +50,9 @@
                             categorized into six categories: archives (e.g. CoMSES, FigShare), code repositories
                             (e.g. GitHub, GitLab), journals (e.g. PLOS), personal or organizational (e.g. Dropbox,
                             Personal Website), platform (e.g. NetLogo website), other (all URLs not in the above list)
-                            and uncategorized (has not been categorized manually and cannot be categorized
-                            automatically).
-                        </p>
-                        <p>
-                            Archived models also have metadata about whether their model code URLs are available. A
-                            model
-                            code URL is considered available if a GET request to the endpoint returns a 200 (OK)
-                            response.
+                            and uncategorized (has not been categorized manually and could not be categorized
+                            automatically). A publication can have zero or more storage locations (but nearly all have
+                            zero or one).
                         </p>
 
                         <div id="{{ plots.archival_timeseries_count_plot.id }}"></div>
@@ -183,7 +60,56 @@
 
                         <h2>Code Availability</h2>
 
-                        <div id="{{ plots.code_availability_timeseries_plot.id }}"></div>
+                        <p>
+                            Archived models have metadata about whether their model code URLs are available. A model
+                            code URL is considered available if a GET request to the endpoint returns a 200 (OK)
+                            response. A publication is considered available if it has at least one archive url and all
+                            its archive urls are available.
+                        </p>
+
+                        <div id="{{ plots.code_availability_timeseries_count_plot.id }}"></div>
+                        <div id="{{ plots.code_availability_timeseries_percent_plot.id }}"></div>
+
+                        <h2>Author Statistics</h2>
+
+                        <p>
+                            Who created and developed the model is recorded in the catalog. Author counts can show how
+                            popular agent and individual based modeling is in the field and who the primary authors are.
+                        </p>
+
+                        <div id="{{ plots.top_author_plot.id }}"></div>
+
+                        <h2>Journal Usage</h2>
+
+                        <p>
+                            Models in the catalog are often published by a journal. The number of papers published by a
+                            journal in a particular area shows what the popular journals are for publishing agent and
+                            individual based models.
+                        </p>
+
+                        <div id="{{ plots.top_journal_plot.id }}"></div>
+
+                        <h2>Platform Usage</h2>
+
+                        <p>
+                            The programming platform is the framework used to develop the agent or individual based
+                            model. A publication can have zero or more platforms. Platform usage shows what platforms
+                            are most used in a field and should give researchers an idea of the size of a particular
+                            platform's community.
+                        </p>
+
+                        <div id="{{ plots.top_platform_plot.id }}"></div>
+
+                        <h2>Sponsorship</h2>
+
+                        <p>
+                            Agent based model development is sometimes funded through grants given by sponsor
+                            organizations. The catalog includes sponsor information on a given model where it is
+                            available. Sponsor information will help researchers discover new the importance of
+                            different sources in their field.
+                        </p>
+
+                        <div id="{{ plots.top_sponsor_plot.id }}"></div>
                     </div>
                 </div>
             </section>

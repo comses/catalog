@@ -90,18 +90,16 @@ def create_publication_container_df(publication_queryset):
 def create_publication_platform_df(publication_queryset):
     publication_platforms = read_frame(
         PublicationPlatforms.objects.filter(publication__in=publication_queryset),
-        fieldnames=['publication__id', 'platform__id', 'platform__name'], index_col='publication__id')
-    publication_platforms.rename(
-        columns={'platform__name': 'name', 'platform__id': 'related__id'}, inplace=True)
+        fieldnames=['publication__id', 'platform__id', 'platform__name'], index_col='publication__id') \
+        .rename(columns={'platform__id': 'platform_id', 'platform__name': 'platform_name'})
     return publication_platforms
 
 
 def create_publication_sponsor_df(publication_queryset):
     publication_sponsors = read_frame(
         PublicationSponsors.objects.filter(publication__in=publication_queryset),
-        fieldnames=['publication__id', 'sponsor__id', 'sponsor__name'], index_col='publication__id')
-    publication_sponsors.rename(
-        columns={'sponsor__name': 'name', 'sponsor__id': 'related__id'}, inplace=True)
+        fieldnames=['publication__id', 'sponsor__id', 'sponsor__name'], index_col='publication__id') \
+        .rename(columns={'sponsor__id': 'sponsor_id', 'sponsor__name': 'sponsor_name'})
     return publication_sponsors
 
 
