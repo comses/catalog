@@ -764,68 +764,74 @@ def public_visualization_view(request):
         {'value': 'tags', 'label': 'Tags'}
     ]
 
-    cached_dfs = cache.get_many(['publications', 'authors', 'code_archive_urls', 'platforms', 'sponsors'])
-    publication_df = cached_dfs['publications']
-    code_archive_urls_df = cached_dfs['code_archive_urls']
-    author_df = cached_dfs['authors']
-    platform_df = cached_dfs['platforms']
-    sponsor_df = cached_dfs['sponsors']
+    cache_key = '/visualization/{}'.format(request.GET.urlencode())
+    plot_items = cache.get(cache_key)
+    if not plot_items:
+        cached_dfs = cache.get_many(['publications', 'authors', 'code_archive_urls', 'platforms', 'sponsors'])
+        publication_df = cached_dfs['publications']
+        code_archive_urls_df = cached_dfs['code_archive_urls']
+        author_df = cached_dfs['authors']
+        platform_df = cached_dfs['platforms']
+        sponsor_df = cached_dfs['sponsors']
 
-    archival_timeseries_plots = plots.archival_timeseries_plot(publication_df, code_archive_urls_df, publication_pks)
-    code_availability_timeseries_plots = plots.code_availability_timeseries_plot(publication_df, publication_pks)
-    documentation_timeseries_plots = plots.documentation_standards_timeseries_plot(publication_df, publication_pks)
-    plot_items = {
-        'top_author_plot': {
-            'data': plots.top_author_plot(author_df, publication_pks).to_plotly_json(),
-            'data_id': 'top-author-plot-data',
-            'id': 'top-author-plot'
-        },
-        'top_journal_plot': {
-            'data': plots.top_journal_plot(publication_df, publication_pks).to_plotly_json(),
-            'data_id': 'top-journal-plot-data',
-            'id': 'top-journal-plot'
-        },
-        'top_platform_plot': {
-            'data': plots.top_platform_plot(platform_df, publication_pks).to_plotly_json(),
-            'data_id': 'top-platform-plot-data',
-            'id': 'top-platform-plot'
-        },
-        'top_sponsor_plot': {
-            'data': plots.top_sponsor_plot(sponsor_df, publication_pks).to_plotly_json(),
-            'data_id': 'top-sponsor-plot-data',
-            'id': 'top-sponsor-plot'
-        },
-        'archival_timeseries_count_plot': {
-            'data': archival_timeseries_plots['count'].to_plotly_json(),
-            'data_id': 'archival-timeseries-count-plot-data',
-            'id': 'archival-timeseries-count-plot'
-        },
-        'archival_timeseries_percent_plot': {
-            'data': archival_timeseries_plots['percent'].to_plotly_json(),
-            'data_id': 'archival-timeseries-percent-plot-data',
-            'id': 'archival-timeseries-percent-plot'
-        },
-        'code_availability_timeseries_count_plot': {
-            'data': code_availability_timeseries_plots['count'].to_plotly_json(),
-            'data_id': 'code-availability-timeseries-count-plot-data',
-            'id': 'code-availability-timeseries-count-plot'
-        },
-        'code_availability_timeseries_percent_plot': {
-            'data': code_availability_timeseries_plots['percent'].to_plotly_json(),
-            'data_id': 'code-availability-timeseries-percent-plot-data',
-            'id': 'code-availability-timeseries-percent-plot'
-        },
-        'documentation_timeseries_count_plot': {
-            'data': documentation_timeseries_plots['count'].to_plotly_json(),
-            'data_id': 'documentation-timeseries-count-plot-data',
-            'id': 'documentation-timeseries-count-plot'
-        },
-        'documentation_timeseries_percent_plot': {
-            'data': documentation_timeseries_plots['percent'].to_plotly_json(),
-            'data_id': 'documentation-timeseries-percent-plot-data',
-            'id': 'documentation-timeseries-percent-plot'
+        archival_timeseries_plots = plots.archival_timeseries_plot(publication_df, code_archive_urls_df,
+                                                                   publication_pks)
+        code_availability_timeseries_plots = plots.code_availability_timeseries_plot(publication_df, publication_pks)
+        documentation_timeseries_plots = plots.documentation_standards_timeseries_plot(publication_df, publication_pks)
+
+        plot_items = {
+            'top_author_plot': {
+                'data': plots.top_author_plot(author_df, publication_pks).to_plotly_json(),
+                'data_id': 'top-author-plot-data',
+                'id': 'top-author-plot'
+            },
+            'top_journal_plot': {
+                'data': plots.top_journal_plot(publication_df, publication_pks).to_plotly_json(),
+                'data_id': 'top-journal-plot-data',
+                'id': 'top-journal-plot'
+            },
+            'top_platform_plot': {
+                'data': plots.top_platform_plot(platform_df, publication_pks).to_plotly_json(),
+                'data_id': 'top-platform-plot-data',
+                'id': 'top-platform-plot'
+            },
+            'top_sponsor_plot': {
+                'data': plots.top_sponsor_plot(sponsor_df, publication_pks).to_plotly_json(),
+                'data_id': 'top-sponsor-plot-data',
+                'id': 'top-sponsor-plot'
+            },
+            'archival_timeseries_count_plot': {
+                'data': archival_timeseries_plots['count'].to_plotly_json(),
+                'data_id': 'archival-timeseries-count-plot-data',
+                'id': 'archival-timeseries-count-plot'
+            },
+            'archival_timeseries_percent_plot': {
+                'data': archival_timeseries_plots['percent'].to_plotly_json(),
+                'data_id': 'archival-timeseries-percent-plot-data',
+                'id': 'archival-timeseries-percent-plot'
+            },
+            'code_availability_timeseries_count_plot': {
+                'data': code_availability_timeseries_plots['count'].to_plotly_json(),
+                'data_id': 'code-availability-timeseries-count-plot-data',
+                'id': 'code-availability-timeseries-count-plot'
+            },
+            'code_availability_timeseries_percent_plot': {
+                'data': code_availability_timeseries_plots['percent'].to_plotly_json(),
+                'data_id': 'code-availability-timeseries-percent-plot-data',
+                'id': 'code-availability-timeseries-percent-plot'
+            },
+            'documentation_timeseries_count_plot': {
+                'data': documentation_timeseries_plots['count'].to_plotly_json(),
+                'data_id': 'documentation-timeseries-count-plot-data',
+                'id': 'documentation-timeseries-count-plot'
+            },
+            'documentation_timeseries_percent_plot': {
+                'data': documentation_timeseries_plots['percent'].to_plotly_json(),
+                'data_id': 'documentation-timeseries-percent-plot-data',
+                'id': 'documentation-timeseries-percent-plot'
+            }
         }
-    }
+        cache.set(cache_key, plot_items, 300)
 
     return render(request, 'public/visualization.html',
                   context={
