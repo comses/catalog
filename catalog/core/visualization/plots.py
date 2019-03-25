@@ -47,7 +47,8 @@ def code_availability_timeseries_plot(publication_df: pd.DataFrame, publication_
     if publication_pks is not None:
         publication_df = publication_df.loc[publication_pks]
     df = publication_df.groupby('year_published') \
-        .agg({'year_published': ['count'], 'has_available_code': ['sum', 'mean']})
+        .agg({'year_published': ['count'], 'has_available_code': ['sum', 'mean']}) \
+        .reindex(pd.RangeIndex(1990.0, publication_df['year_published'].max() + 1.0), fill_value=0.0)
     year = list(df.index)
     count_data = [
         go.Scatter(
@@ -155,6 +156,7 @@ def archival_timeseries_plot(publication_df: pd.DataFrame, code_archive_urls_df:
 
 
 def documentation_standards_timeseries_plot(publication_df: pd.DataFrame, publication_pks):
+    year_published_index = pd.RangeIndex(1990.0, publication_df['year_published'].max() + 1.0)
     matching_publication_df = publication_df.loc[publication_pks]
     df = matching_publication_df \
         .groupby('year_published') \
@@ -163,7 +165,8 @@ def documentation_standards_timeseries_plot(publication_df: pd.DataFrame, public
               'has_math_description': ['mean', 'sum'],
               'has_odd': ['mean', 'sum'],
               'has_pseudocode': ['mean', 'sum']}) \
-        .rename(columns={'year_published': 'count'})
+        .rename(columns={'year_published': 'count'}) \
+        .reindex(year_published_index, fill_value=0.0)
 
     year = list(df.index)
 
