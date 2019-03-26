@@ -1,6 +1,7 @@
 {% url 'login' as login_url %}
 {% url 'logout' as logout_url %}
 {% url 'core:dashboard' as dashboard_url %}
+{% load raven %}
 {% load tags %}
 
 <!DOCTYPE html>
@@ -68,7 +69,7 @@
 
 <script src="//cdn.ravenjs.com/3.27.0/raven.min.js"></script>
 <script>
-    Raven.config('{% raven_public_dsn %}').install();
+    Raven.config('{% sentry_public_dsn %}').install();
 </script>
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
         integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"

@@ -76,11 +76,6 @@ def message(text, level):
 
 
 @register.simple_tag()
-def raven_public_dsn():
-    return settings.RAVEN_PUBLIC_DSN
-
-
-@register.simple_tag()
 def top_categories_by_content_type(content_type, matches):
     context_list_name = content_type
     if content_type == Author._meta.verbose_name_plural:
