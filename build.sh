@@ -10,7 +10,7 @@ POSTGRES_PASSWORD_FILE=deploy/conf/postgres_password
 
 export DB_USER=catalog
 export DB_NAME=comses_catalog
-export DB_PASSWORD=$(head /dev/urandom | tr -dc '[:alnum:]' | head -c100)
+export DB_PASSWORD=$(head /dev/urandom | tr -dc '[:alnum:]' | head -c60)
 export SECRET_KEY=$(head /dev/urandom | tr -dc '[:alnum:]' | head -c100)
 
 if [ -f "$CONFIG_INI" ]; then
