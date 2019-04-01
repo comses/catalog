@@ -26,4 +26,5 @@ Then the database and search indices need to be loaded and populated with data
 docker-compose exec django bash
 inv rfd -f
 inv ri
+./manage.py populate_visualization_cache
 ```
