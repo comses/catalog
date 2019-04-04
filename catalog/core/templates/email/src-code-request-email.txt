@@ -1,8 +1,8 @@
 {% load i18n %}
-{% blocktrans %}Dear {},{% endblocktrans %}
+{% blocktrans %}Dear {{ author_name }},{% endblocktrans %}
 
 {% blocktrans %}
-I contact you in regard to your publication “ “. I am part of CoMSES Net, a Spoke in the Big Data Network of the US
+I contact you in regard to your publication “ {{ publication_title }}“. I am part of CoMSES Net, a Spoke in the Big Data Network of the US
 National Science Foundation, and we focus on sharing and preserving computational models. As part of this we develop
 a database of publications on computational models (mainly agent-based and individual-based). This database will allow
 scholars to find relevant model code and makes it easier to build on each other’s work. As you may be aware there is
@@ -11,7 +11,7 @@ increasingly attention to transparency and sharing of data and model code used f
 {% endblocktrans %}
 
 {% blocktrans %}
-Your publication was included (link), but we did not find in the article a publicly available location for the source
+Your publication was included {{ publication_link }}, but we did not find in the article a publicly available location for the source
 code of the model that is used for the publication.
 {% endblocktrans %}
 
