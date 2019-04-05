@@ -1,18 +1,17 @@
-Markdown==2.6.11
-cssselect==1.0.1
+cssselect==1.0.3
 Django>=2.1,<2.2
-django-autocomplete-light==3.2.10
+django-autocomplete-light==3.3.2
 django-bootstrap3==11.0.0
 django-contact-form==1.6.0
-django-extensions==2.1.5
+django-extensions==2.1.6
 django-haystack==2.8.1
-django-model-utils==3.1.1
-djangorestframework==3.8.2
+django-model-utils==3.1.2
+djangorestframework==3.9.2
 django-cas-client==1.5.0
-psycopg2-binary==2.7.6
+psycopg2-binary==2.8
 pysolr==3.7.0
 raven==6.5.0
-uWSGI==2.0.15
+uWSGI==2.0.18
 elasticsearch
 elasticsearch_dsl
 -e /code/citation
