@@ -1,9 +1,7 @@
-import enum
 import logging
-from pprint import pformat
 
 import pandas as pd
-from django.db.models import QuerySet
+from django.core.cache import cache
 from django_pandas.io import read_frame
 
 from catalog.core.search_indexes import PublicationDocSearch
@@ -53,7 +51,7 @@ def create_archive_url_df(publication_queryset):
     df = pd.DataFrame.from_records(
         (_code_archive_url_as_dict(c) for c in
          CodeArchiveUrl.objects.filter(publication__in=publication_queryset).select_related('category')),
-        index='publication_id',)
+        index='publication_id')
     df['category'] = df['category'].astype('category')
     df['subcategory'] = df['subcategory'].astype('category')
     return df
@@ -73,20 +71,6 @@ def create_publication_author_df(publication_queryset):
         index='publication_id')
 
 
-def create_publication_container_df(publication_queryset):
-    def _container_as_dict(c: Container):
-        return {
-            'container_id': c.id,
-            'name': c.name
-        }
-
-    return pd.DataFrame.from_records(
-        (_container_as_dict(c) for c in
-         Container.objects.filter(publications__in=publication_queryset).distinct()),
-        index='id'
-    )
-
-
 def create_publication_platform_df(publication_queryset):
     publication_platforms = read_frame(
         PublicationPlatforms.objects.filter(publication__in=publication_queryset),
@@ -103,19 +87,48 @@ def create_publication_sponsor_df(publication_queryset):
     return publication_sponsors
 
 
-def build_cache():
-    publication_queryset = create_publication_queryset()
-    publications = create_publication_df(publication_queryset)
-    return {
-        'authors': create_publication_author_df(publication_queryset),
-        'code_archive_urls': create_archive_url_df(publication_queryset),
-        'containers': create_publication_sponsor_df(publication_queryset),
-        'platforms': create_publication_platform_df(publication_queryset),
-        'publications': publications,
-        'sponsors': create_publication_sponsor_df(publication_queryset)
+class VisualizationCache:
+    CREATE_RELATED_DF = {
+        'authors': create_publication_author_df,
+        'code_archive_urls': create_archive_url_df,
+        'platforms': create_publication_platform_df,
+        'publications': create_publication_df,
+        'sponsors': create_publication_sponsor_df
     }
+
+    def get_related(self, key):
+        related_df = cache.get(key, None)
+        return related_df
+
+    def set_related(self, key, publication_queryset):
+        logger.info('preparing to cache %s', key)
+        create_related_df = self.CREATE_RELATED_DF[key]
+        related_df = create_related_df(publication_queryset)
+        self.set(key, related_df)
+        logger.info('cached %s', key)
+        return related_df
+
+    def set(self, key, related_df):
+        return cache.set(key, related_df)
+
+    def get_publications(self):
+        return self.get_or_create_many({'publications',})['publications']
+
+    def get_or_create_many(self, keys=None):
+        publication_queryset = create_publication_queryset()
+        if keys is None:
+            keys = {'authors', 'code_archive_urls', 'platforms', 'publications', 'sponsors'}
+        results = cache.get_many(keys)
+        missing_keys = keys.difference(results.keys())
+        logger.info("missing_keys: %s", missing_keys)
+        for key in sorted(missing_keys):
+            results[key] = self.set_related(key, publication_queryset)
+        return results
 
 
 def get_publication_pks_matching_search_criteria(query, facet_filters):
     return [p.id for p in
             PublicationDocSearch().find(q=query, facet_filters=facet_filters).source(['id']).scan()]
+
+
+visualization_cache = VisualizationCache()

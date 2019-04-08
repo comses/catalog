@@ -1,5 +1,5 @@
 cssselect==1.0.3
-Django>=2.1,<2.2
+Django>=2.2,<2.3
 django-autocomplete-light==3.3.2
 django-bootstrap3==11.0.0
 django-contact-form==1.6.0

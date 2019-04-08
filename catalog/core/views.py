@@ -43,6 +43,7 @@ from catalog.core.forms import PublicSearchForm, SuggestedPublicationForm, \
     SubmitterForm
 from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict, \
     get_search_index
+from catalog.core.visualization.data_access import visualization_cache
 from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
                                     generate_aggregated_distribution_data, generate_network_graph)
@@ -767,7 +768,7 @@ def public_visualization_view(request):
     cache_key = '/visualization/{}'.format(request.GET.urlencode())
     plot_items = cache.get(cache_key)
     if not plot_items:
-        cached_dfs = cache.get_many(['publications', 'authors', 'code_archive_urls', 'platforms', 'sponsors'])
+        cached_dfs = visualization_cache.get_or_create_many()
         publication_df = cached_dfs['publications']
         code_archive_urls_df = cached_dfs['code_archive_urls']
         author_df = cached_dfs['authors']
@@ -844,7 +845,7 @@ def public_visualization_view(request):
 
 
 def public_home(request):
-    publication_df = cache.get('publications')
+    publication_df = visualization_cache.get_publications()
     plot = {
         'id': 'agent-based-modeling-tile',
         'data': plots.code_availability_timeseries_plot(publication_df)['count'].to_plotly_json(),
