@@ -422,7 +422,7 @@
                     if (matchingCodeArchiveUrls.length > 0) {
                         self.codeArchiveUrls.replace(matchingCodeArchiveUrls[0], ko.mapping.fromJS(ko.mapping.toJS(self.codeArchiveUrlEdit)));
                     } else {
-                        self.codeArchiveUrls.push(self.codeArchiveUrlEdit);
+                        self.codeArchiveUrls.push(ko.mapping.fromJS(ko.mapping.toJS(self.codeArchiveUrlEdit)));
                     }
                     $('#edit_code_archive_url').modal('hide');
                 };
