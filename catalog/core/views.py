@@ -38,12 +38,11 @@ from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from catalog.core.visualization import plots, data_access
-from catalog.core.forms import PublicSearchForm, SuggestedPublicationForm, \
-    SubmitterForm
-from catalog.core.search_indexes import PublicationDoc, PublicationDocSearch, normalize_search_querydict, \
-    get_search_index
-from catalog.core.visualization.data_access import visualization_cache
+from .visualization import plots, data_access
+from .forms import PublicSearchForm, SuggestedPublicationForm, SubmitterForm, ContactAuthorsForm
+from .search_indexes import (PublicationDoc, PublicationDocSearch, normalize_search_querydict,
+    get_search_index)
+from .visualization.data_access import visualization_cache
 from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
                                     generate_aggregated_distribution_data, generate_network_graph)
@@ -95,6 +94,12 @@ def visualization_query_filter(request):
         filter_criteria.update(date_published__lte=dt_obj.isoformat() + "Z")
     request.session['filter_criteria'] = filter_criteria
     return filter_criteria
+
+
+class ContactAuthorsView(LoginRequiredMixin, FormView):
+
+    form_class = ContactAuthorsForm
+    template_name = 'publication/contact-authors.html'
 
 
 class LoginView(FormView):

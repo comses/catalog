@@ -5,14 +5,13 @@ import requests
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
-from django.contrib.postgres.forms import SimpleArrayField
 from django.forms import Form, ModelForm
 from django.utils.translation import ugettext_lazy as _
 from haystack.forms import SearchForm
 from haystack.inputs import Raw
 
 from citation.models import Author, Container, Platform, Publication, Sponsor, Tag, SuggestedPublication, Submitter, \
-    SuggestedMerge
+    AuthorCorrespondenceLog
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +170,25 @@ class SuggestedPublicationForm(ModelForm):
         suggested_publication = SuggestedPublication(**self.cleaned_data, submitter=self.submitter)
         suggested_publication.save()
         return suggested_publication
+
+
+class ContactAuthorsForm(Form):
+
+    publications = forms.ModelMultipleChoiceField(queryset=Publication.objects.no_code_available(),
+                                                  to_field_name='title')
+    custom_invitation_text = forms.CharField(widget=forms.Textarea, help_text=_("Custom invitation text"))
+
+    def send(self):
+        cleaned_data = super().clean()
+        publication_ids = cleaned_data.get('publications')
+        custom_invitation_text = cleaned_data.get('custom_invitation_text')
+        publications = Publication.objects.filter(pk__in=publication_ids)
+        if publications.exists():
+            acls = AuthorCorrespondenceLog.objects.create_from_publications(
+                publications,
+                custom_content=custom_invitation_text)
+            for acl in acls:
+                acl.send_email()
 
 
 class SubmitterForm(ModelForm):
