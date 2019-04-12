@@ -15,7 +15,7 @@ def create_publication_queryset():
     return Publication.api.primary().reviewed() \
         .select_related('container') \
         .prefetch_related('model_documentation') \
-        .has_available_code()
+        .with_code_availability_counts()
 
 
 def create_publication_df(publication_queryset):

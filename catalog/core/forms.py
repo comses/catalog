@@ -174,6 +174,7 @@ class SuggestedPublicationForm(ModelForm):
 
 class ContactAuthorsForm(Form):
 
+
     publications = forms.ModelMultipleChoiceField(queryset=Publication.api.no_code_available(),
                                                   to_field_name='title')
     custom_invitation_text = forms.CharField(widget=forms.Textarea, help_text=_("Custom invitation text"))
