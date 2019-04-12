@@ -1,5 +1,4 @@
 from django.urls import path
-from rest_framework import routers
 from rest_framework.urlpatterns import format_suffix_patterns
 from django.conf.urls import url, include
 from django.views.generic import RedirectView, TemplateView
@@ -26,6 +25,7 @@ curator_urls = [
         name='report_issues'),
     url(r'^github/$', RedirectView.as_view(url='https://github.com/comses/catalog', permanent=False), name='github'),
     url(r'^publication/workflow/$', views.CuratorWorkflowView.as_view(), name='curator_workflow'),
+    url(r'^contact-authors/$', views.ContactAuthorsView.as_view(), name='contact_authors'),
     url(r'^search/$', views.CatalogSearchView.as_view(), name='haystack_search'),
     url(r'^search/platform/$', views.PlatformSearchView.as_view(), name="platform_search"),
     url(r'^search/sponsor/$', views.SponsorSearchView.as_view(), name="sponsor_search"),

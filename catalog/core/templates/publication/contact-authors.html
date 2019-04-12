@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load bootstrap3 %}
+
+{% block content %}
+
+<form class='form-horizontal' method='POST'>
+    {% csrf_token %}
+    {% include "public/includes/form.html" %}
+    <div class="form-group">
+        <div class="col-sm-12">
+            <button type="submit" class="btn btn-default">Submit</button>
+        </div>
+    </div>
+</form>
+
+{% if preview_email %}
+    <div class='well'>
+        <h3>Preview Email</h3>
+        {{ preview_email }}
+    </div>
+{% endif %}
+
+
+{% endblock content %}

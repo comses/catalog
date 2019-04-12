@@ -174,22 +174,15 @@ class SuggestedPublicationForm(ModelForm):
 
 class ContactAuthorsForm(Form):
 
-
-    publications = forms.ModelMultipleChoiceField(queryset=Publication.api.no_code_available(),
-                                                  to_field_name='title')
-    custom_invitation_text = forms.CharField(widget=forms.Textarea, help_text=_("Custom invitation text"))
-
-    def send(self):
-        cleaned_data = super().clean()
-        publication_ids = cleaned_data.get('publications')
-        custom_invitation_text = cleaned_data.get('custom_invitation_text')
-        publications = Publication.objects.filter(pk__in=publication_ids)
-        if publications.exists():
-            acls = AuthorCorrespondenceLog.objects.create_from_publications(
-                publications,
-                custom_content=custom_invitation_text)
-            for acl in acls:
-                acl.send_email()
+    email_filter = forms.EmailField(required=False,
+                                    help_text=_("Author email address to additionally filter by for testing"))
+    status = forms.ChoiceField(choices=AuthorCorrespondenceLog.CODE_ARCHIVE_STATUS)
+    number_of_publications = forms.IntegerField(min_value=1, max_value=100, initial=10,
+                                                help_text=_("Number of publications to include"))
+    custom_invitation_text = forms.CharField(widget=forms.Textarea, help_text=_("Custom invitation text"),
+                                             required=False)
+    ready_to_send = forms.BooleanField(required=False,
+                                       help_text=_("Check this box to send the email out"))
 
 
 class SubmitterForm(ModelForm):
