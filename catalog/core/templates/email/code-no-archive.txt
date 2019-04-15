@@ -1,24 +1,23 @@
 {% load i18n %}
-{% blocktrans %}Dear {{ author_name }},{% endblocktrans %}
+{% blocktrans %}Dear {{ author_name | default: "Author" }},{% endblocktrans %}
 
 {% blocktrans %}
-I contact you in regard to your publication “ {{ publication_title }}“. I am part of CoMSES Net, a Spoke in the Big Data Network of the US
-National Science Foundation, and we focus on sharing and preserving computational models. As part of this we develop
-a database of publications on computational models (mainly agent-based and individual-based). This database will allow
-scholars to find relevant model code and makes it easier to build on each other’s work. As you may be aware there is
-increasingly attention to transparency and sharing of data and model code used for scientific publications
-(https://forum.comses.net/t/why-archive-your-model/7376 ).
+We are contacting you regarding your publication {{ publication_title | default: "" }}. As a part of CoMSES Net, a spoke in
+the Big Data Network of the U.S. National Science Foundation, we focus on sharing and preserving primarily agent- and individual-based
+computational models in our database of publications. This database connects scholars to allow them to find relevant model codes
+and build on each other's work. As you may be aware, there is an increasing demand for the transparency and sharing of data and
+model codes used for scientific publications (https://forum.comses.net/t/why-archive-your-model/7376).
 {% endblocktrans %}
 
 {% blocktrans %}
-Your publication was included {{ publication_link }}, and we did found in the article a publicly available location for the
+Your publication was included in our database, and we found the article in a publicly available location for the
 source code of the model that is used for the publication. However, the data was stored on a website
-that has limited guarantee for permanence of availability. Ideally you would deposit the code in a public
-archive (see {{ comses website link }} for examples). Let us know in case you deposit your code in a public
+that has limited guarantee for permanence of availability. Ideally, you would deposit the code in a public
+archive (see https://www.comses.net/ for examples). Let us know in case you deposit your code in a public
 archive so we could update the database.
 {% endblocktrans %}
 
 
-Thanks!
+Thank you,
 
 The CoMSES Network Editors
