@@ -12,8 +12,8 @@ psycopg2-binary==2.8
 pysolr==3.7.0
 raven==6.5.0
 uWSGI==2.0.18
-elasticsearch
-elasticsearch_dsl
+elasticsearch<7.0.0
+elasticsearch_dsl<7.0.0
 -e /code/citation
 # dev requirements, factor out later
 coverage
