@@ -1,25 +1,13 @@
-{% load i18n %}
-{% blocktrans %}Dear {{ author_name | default: "Author"}},{% endblocktrans %}
+Dear {{ publication.contact_author_name|default:"AUTHOR_NAME" }},
 
-{% blocktrans %}
-We are contacting you regarding your publication {{ publication_title | default: "" }}. As a part of CoMSES Net, a spoke in
-the Big Data Network of the U.S. National Science Foundation, we focus on sharing and preserving primarily agent- and individual-based
-computational models in our database of publications. This database connects scholars to allow them to find relevant model codes
-and build on each other's work. As you may be aware, there is an increasing demand for the transparency and sharing of data and
-model codes used for scientific publications (https://forum.comses.net/t/why-archive-your-model/7376).
-{% endblocktrans %}
+{{ content }}
 
-{% blocktrans %}
-Your publication is included in our database, but we did not find in the article a publicly available location for the source
-code of the model that is used for the publication.
-{% endblocktrans %}
+We are contacting you in regards to your publication {{ publication.title|default:"PUBLICATION_TITLE" }}. As a part of CoMSES Net, a spoke in the U.S. National Science Foundation Big Data Hub, we focus on sharing and preserving primarily agent and individual-based computational models in our database of publications. This database connects scholars to allow them to find relevant model codes and build on each other's work. As you may be aware, there is an increasing demand for the transparency and sharing of data and model codes used for scientific publications (https://forum.comses.net/t/why-archive-your-model/7376).
 
-{% blocktrans %}
-We hope to learn from you whether the model code is currently publicly available. You could also archive your code
-now (see link for recommended public archives). We look forward to your response.
-{% endblocktrans %}
+Your publication was included in our database, but we were not able to find the source code for the model used in your publication in a publicly available location (URL).
 
+We hope to learn from you whether the model code is currently publicly available. You could also archive your code now (see link for recommended public archives). We look forward to your response.
 
 Thank you,
 
-The CoMSES Network Editors
+The CoMSES Net Editors
