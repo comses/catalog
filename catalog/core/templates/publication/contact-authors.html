@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load bootstrap3 %}
+{% load tags %}
 
 {% block content %}
 
@@ -16,7 +17,8 @@
 {% if preview_email %}
     <div class='well'>
         <h3>Preview Email</h3>
-        {{ preview_email }}
+        <hr>
+        {{ preview_email|markdown }}
     </div>
 {% endif %}
 

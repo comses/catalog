@@ -101,34 +101,36 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
     form_class = ContactAuthorsForm
     template_name = 'publication/contact-authors.html'
 
-    def send_email(self):
-        # FIXME: add email filter
-        publications = Publication.api.by_code_archive_url_status(status, contact_email=self.email_filter,
-                                                                  count=self.number_of_publications)
-        acls = AuthorCorrespondenceLog.objects.create_from_publications(publications, custom_content=self.custom_invitation_text,
+    def send_email(self, publication_status, contact_email, number_of_publications, custom_invitation_text):
+        publications = Publication.api.by_code_archive_url_status(publication_status,
+                                                                  contact_email=contact_email,
+                                                                  count=number_of_publications)
+        acls = AuthorCorrespondenceLog.objects.create_from_publications(publications,
+                                                                        custom_content=custom_invitation_text,
                                                                         curator=self.request.user)
         logger.debug("generated acls %s", acls)
         """
         for acl in acls:
             acl.send_email()
         """
+        return acls
 
     def form_valid(self, form):
-        self.email_filter = form.cleaned_data.get('email_filter')
-        self.status = form.cleaned_data.get('status')
-        self.number_of_publications = form.cleaned_data.get('number_of_publications')
-        self.custom_invitation_text = form.cleaned_data.get('custom_invitation_text')
-        self.ready_to_send = form.cleaned_data.get('ready_to_send')
-        if self.ready_to_send:
-            self.send_email()
+        email_filter = form.cleaned_data.get('email_filter')
+        status = form.cleaned_data.get('status')
+        number_of_publications = form.cleaned_data.get('number_of_publications')
+        custom_invitation_text = form.cleaned_data.get('custom_invitation_text')
+        ready_to_send = form.cleaned_data.get('ready_to_send')
+        if ready_to_send:
+            self.send_email(publication_status=status,
+                            contact_email=email_filter,
+                            number_of_publications=number_of_publications,
+                            custom_invitation_text=custom_invitation_text)
             return super().form_valid(form)
         else:
-            acl = AuthorCorrespondenceLog(status=self.status, content=self.custom_invitation_text)
+            acl = AuthorCorrespondenceLog(status=status, content=custom_invitation_text)
             preview_email_text = acl.create_email_text(preview=True)
-            logger.debug("preview email text: %s", preview_email_text)
-            return self.render_to_response(self.get_context_data(form=form, extra_context={
-                'preview_email': preview_email_text
-            }))
+            return self.render_to_response(self.get_context_data(form=form, preview_email=preview_email_text))
 
 
 class LoginView(FormView):

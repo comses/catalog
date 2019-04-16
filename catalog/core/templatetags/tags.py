@@ -1,15 +1,20 @@
 import re
 
 from django import template
-from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.forms import CheckboxInput
 from django.template.loader import get_template
 
 from citation.models import Author, Platform, Sponsor, Tag, Container
+from citation.util import render_sanitized_markdown
 
 register = template.Library()
+
+
+@register.filter(is_safe=True)
+def markdown(markdown_text):
+    return render_sanitized_markdown(markdown_text)
 
 
 @register.filter(is_safe=True)
