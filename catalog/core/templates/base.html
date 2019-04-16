@@ -15,6 +15,7 @@
 {% url 'core:export_data' as export_data_url %}
 {% url 'core:visualization' as visualization %}
 {% url 'core:public-home' as explore_url %}
+{% url 'core:contact_authors' as contact_authors_url %}
 
 <!doctype html>
 <html class="no-js" lang="">
@@ -55,16 +56,12 @@
                     <ul class='nav navbar-nav'>
                         {% if user.is_authenticated %}
                             <li class='{{ request|active_re:dashboard_url }}'><a href='{{ dashboard_url }}'><i class='fa fa-tachometer'></i> Dashboard</a></li>
-                            <li class='{{ request|active_re:curator_workflow_url }}'><a href='{{ curator_workflow_url }}'><i class='fa fa-tasks'></i> Curate</a></li>
+                            <li class='{{ request|active_re:contact_authors_url }}'><a href='{{ contact_authors_url }}'><i class='fa fa-flask'></i> Contact Model Authors</a>
                             {% if user.is_superuser %}
-                            <li class='{{ request|active_re:publications_url }}'><a href='{{ publications_url }}'><i class='fa fa-newspaper-o'></i> All Publications</a></li>
                             <li class='{{ request|active_re:search_url }}'><a href='{{ search_url }}'><i class='fa fa-search'></i> Search</a></li>
-                            <li class='{{ request|active_re:explore_url }}'><a href='{{ explore_url }}'><i class='fa fa-bar-chart'></i> Explore</a></li>
                             {% endif %}
                         {% endif %}
-                        <li class='{{ request|active_re:contact_url }}'><a href='{{ contact_url }}'><i class='fa fa-bell-o'></i> Contact us</a></li>
-                        <li><a target='_blank' href='{{ issues_url }}'><i class='fa fa-bullhorn'></i> Report a bug</a></li>
-                        <li><a href="https://github.com/comses/catalog/wiki/Tagging-Protocol">Data Entry Protocol</a></li>
+                        <li><a href="https://github.com/comses/catalog/wiki/Tagging-Protocol"><i class='fa fa-table'></i> Data Entry Protocol</a></li>
                     </ul>
                     <ul class="nav navbar-nav pull-right">
                         {% if user.is_authenticated %}

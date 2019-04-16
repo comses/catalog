@@ -23,7 +23,7 @@ from django.db.models import Count, Q, F, Value as V, Max
 from django.db.models.functions import Concat
 from django.http import JsonResponse, HttpResponseRedirect, StreamingHttpResponse, QueryDict
 from django.shortcuts import get_object_or_404, resolve_url, render, redirect
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import is_safe_url
@@ -100,6 +100,7 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
 
     form_class = ContactAuthorsForm
     template_name = 'publication/contact-authors.html'
+    success_url = reverse_lazy('core:dashboard')
 
     def send_email(self, publication_status, contact_email, number_of_publications, custom_invitation_text):
         publications = Publication.api.by_code_archive_url_status(publication_status,
