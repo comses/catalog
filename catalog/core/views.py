@@ -103,7 +103,8 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
 
     def send_email(self):
         # FIXME: add email filter
-        publications = Publication.api.by_code_archive_url_status(status, count=self.number_of_publications)
+        publications = Publication.api.by_code_archive_url_status(status, contact_email=self.email_filter,
+                                                                  count=self.number_of_publications)
         acls = AuthorCorrespondenceLog.objects.create_from_publications(publications, custom_content=self.custom_invitation_text,
                                                                         curator=self.request.user)
         logger.debug("generated acls %s", acls)
