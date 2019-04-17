@@ -61,7 +61,7 @@
                             <li class='{{ request|active_re:search_url }}'><a href='{{ search_url }}'><i class='fa fa-search'></i> Search</a></li>
                             {% endif %}
                         {% endif %}
-                        <li><a href="https://github.com/comses/catalog/wiki/Tagging-Protocol"><i class='fa fa-table'></i> Data Entry Protocol</a></li>
+                        <li><a target='_blank' href="https://github.com/comses/catalog/wiki/Tagging-Protocol"><i class='fa fa-table'></i> Data Entry Protocol</a></li>
                     </ul>
                     <ul class="nav navbar-nav pull-right">
                         {% if user.is_authenticated %}
@@ -90,6 +90,11 @@
                     <span class='fa fa-exclamation-triangle'></span> This is a test site. Data entered here will not be preserved and is not guaranteed to be correct.
                 </div>
             {% endif %}
+            {% block notifications %}
+                {% for message in messages %}
+                    <div class='message {% if message.tags %}{{ message.tags }}{% endif %}'>{{ message }}</div>
+                {% endfor %}
+            {% endblock %}
             {% block content %}
             {% endblock content %}
         </div>

@@ -4,25 +4,22 @@ import time
 from collections import Counter
 from datetime import timedelta, datetime
 from hashlib import sha1
-from json import dumps
 
-import markdown
 from dateutil.parser import parse as datetime_parse
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
-from django.core import signing
 from django.core.cache import cache
-from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
+from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models import Count, Q, F, Value as V, Max
 from django.db.models.functions import Concat
 from django.http import JsonResponse, HttpResponseRedirect, StreamingHttpResponse, QueryDict
-from django.shortcuts import get_object_or_404, resolve_url, render, redirect
+from django.shortcuts import resolve_url, render, redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -38,23 +35,23 @@ from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .visualization import plots, data_access
-from .forms import PublicSearchForm, SuggestedPublicationForm, SubmitterForm, ContactAuthorsForm
-from .search_indexes import (PublicationDoc, PublicationDocSearch, normalize_search_querydict,
-                             get_search_index)
-from .visualization.data_access import visualization_cache
 from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
                                     generate_aggregated_distribution_data, generate_network_graph)
 from citation.graphviz.globals import RelationClassifier, CacheNames
-from citation.models import (Publication, InvitationEmail, Platform, Sponsor, ModelDocumentation, Tag, Container,
+from citation.models import (Publication, Platform, Sponsor, ModelDocumentation, Tag, Container,
                              URLStatusLog, SuggestedMerge, Submitter, AuthorCorrespondenceLog)
 from citation.ping_urls import categorize_url
-from citation.serializers import (InvitationSerializer, CatalogPagination, PublicationListSerializer,
-                                  UpdateModelUrlSerializer, ContactFormSerializer, UserProfileSerializer,
+from citation.serializers import (CatalogPagination, PublicationListSerializer,
+                                  ContactFormSerializer, UserProfileSerializer,
                                   PublicationAggregationSerializer, AuthorAggregrationSerializer,
                                   SuggestMergeSerializer)
 from .forms import CatalogAuthenticationForm, CatalogSearchForm
+from .forms import PublicSearchForm, SuggestedPublicationForm, SubmitterForm, ContactAuthorsForm
+from .search_indexes import (PublicationDoc, PublicationDocSearch, normalize_search_querydict,
+                             get_search_index)
+from .visualization import plots, data_access
+from .visualization.data_access import visualization_cache
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +109,7 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
         logger.debug("generated acls %s", acls)
         """
         for acl in acls:
-            acl.send_email()
+            acl.send_email(self.request)
         """
         return acls
 
@@ -229,38 +226,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class EmailPreview(LoginRequiredMixin, generics.GenericAPIView):
-    """
-    Preview the final email content
-    """
-    renderer_classes = (renderers.JSONRenderer,)
-
-    def get(self, request, format=None):
-        serializer = InvitationSerializer(data=request.GET)
-        if serializer.is_valid():
-            message = serializer.validated_data['invitation_text']
-            ie = InvitationEmail(self.request)
-            plaintext_content = ie.get_plaintext_content(message, "valid:token")
-            html_content = markdown.markdown(plaintext_content)
-            return Response({'content': html_content})
-        return Response({'content': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-
-
-class ContactAuthor(LoginRequiredMixin, generics.GenericAPIView):
-    """
-    Emails invitations to authors to archive their work
-    """
-    renderer_classes = (renderers.JSONRenderer,)
-
-    def post(self, request, format=None):
-        serializer = InvitationSerializer(data=request.data)
-        pk_list = CatalogSearchForm(request.GET or None).search().values_list('pk', flat=True)
-        if serializer.is_valid():
-            serializer.save(self.request, pk_list)
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 class ContactFormView(generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
@@ -279,37 +244,13 @@ class ContactFormView(generics.GenericAPIView):
         if user.is_authenticated:
             data.update(name=user.get_full_name(), email=user.email)
         serializer = ContactFormSerializer(data)
-        return Response({'json': dumps(serializer.data)}, template_name='contact_us.html')
+        return Response({'json': json.dumps(serializer.data)}, template_name='contact_us.html')
 
     def post(self, request):
         serializer = ContactFormSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return JsonResponse(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class UpdateModelUrlView(generics.GenericAPIView):
-    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
-    token_expires = 3600 * 168  # Seven days
-
-    def get_object(self, token):
-        try:
-            pk = signing.loads(token, max_age=self.token_expires, salt=settings.SALT)
-        except signing.BadSignature:
-            pk = None
-        return get_object_or_404(Publication, pk=pk)
-
-    def get(self, request, token, format=None):
-        serializer = UpdateModelUrlSerializer(self.get_object(token))
-        return Response({'json': dumps(serializer.data)}, template_name='publication/update_model_url.html')
-
-    def post(self, request, token, format=None):
-        serializer = UpdateModelUrlSerializer(self.get_object(token), data=request.data)
-        if serializer.is_valid():
-            serializer.validated_data['status'] = Publication.STATUS_CHOICES.AUTHOR_UPDATED
-            serializer.save()
-            return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -321,14 +262,14 @@ class UserProfileView(LoginRequiredMixin, generics.GenericAPIView):
 
     def get(self, request):
         serializer = UserProfileSerializer(instance=request.user)
-        return Response({'profile': dumps(serializer.data)}, template_name="accounts/profile.html")
+        return Response({'profile': json.dumps(serializer.data)}, template_name="accounts/profile.html")
 
     def post(self, request):
         serializer = UserProfileSerializer(instance=request.user, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response({'profile': dumps(serializer.data)})
-        return Response({'errors': dumps(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'profile': json.dumps(serializer.data)})
+        return Response({'errors': json.dumps(serializer.errors)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # Other Views
@@ -341,7 +282,7 @@ class AutocompleteView(LoginRequiredMixin, generics.GenericAPIView):
         if query:
             sqs = sqs.autocomplete(name=query)
         data = [{'id': int(result.pk), 'name': result.name} for result in sqs]
-        return Response(dumps(data))
+        return Response(json.dumps(data))
 
 
 class PlatformSearchView(AutocompleteView):
@@ -422,7 +363,7 @@ class VisualizationSearchView(LoginRequiredMixin, generics.GenericAPIView):
                        'Citation Network': reverse('core:network-relation')
                        }]
         request.session['filter_criteria'] = {}
-        return Response({'relation_category': dumps(categories)}, template_name="visualization/visualization.html")
+        return Response({'relation_category': json.dumps(categories)}, template_name="visualization/visualization.html")
 
 
 class AggregatedJournalRelationList(LoginRequiredMixin, generics.GenericAPIView):
@@ -442,7 +383,7 @@ class AggregatedJournalRelationList(LoginRequiredMixin, generics.GenericAPIView)
         serializer = PublicationAggregationSerializer(result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
         response['relation'] = RelationClassifier.JOURNAL.value
-        return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
+        return Response({'json': json.dumps(response)}, template_name="visualization/publication_relationlist.html")
 
 
 class AggregatedSponsorRelationList(LoginRequiredMixin, generics.GenericAPIView):
@@ -462,7 +403,7 @@ class AggregatedSponsorRelationList(LoginRequiredMixin, generics.GenericAPIView)
         serializer = PublicationAggregationSerializer(result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
         response['relation'] = RelationClassifier.SPONSOR.value
-        return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
+        return Response({'json': json.dumps(response)}, template_name="visualization/publication_relationlist.html")
 
 
 class AggregatedPlatformRelationList(LoginRequiredMixin, generics.GenericAPIView):
@@ -482,7 +423,7 @@ class AggregatedPlatformRelationList(LoginRequiredMixin, generics.GenericAPIView
         serializer = PublicationAggregationSerializer(result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
         response['relation'] = RelationClassifier.PLATFORM.value
-        return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
+        return Response({'json': json.dumps(response)}, template_name="visualization/publication_relationlist.html")
 
 
 class AggregatedAuthorRelationList(LoginRequiredMixin, generics.GenericAPIView):
@@ -514,7 +455,7 @@ class AggregatedAuthorRelationList(LoginRequiredMixin, generics.GenericAPIView):
         serializer = AuthorAggregrationSerializer(result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
         response['relation'] = RelationClassifier.AUTHOR.value
-        return Response({'json': dumps(response)}, template_name="visualization/publication_relationlist.html")
+        return Response({'json': json.dumps(response)}, template_name="visualization/publication_relationlist.html")
 
 
 class ModelDocumentationPublicationRelation(LoginRequiredMixin, generics.GenericAPIView):
@@ -536,7 +477,7 @@ class ModelDocumentationPublicationRelation(LoginRequiredMixin, generics.Generic
                     'url': reverse('core:pub-year-distribution', args=['Modeldoc', names['name']])
                 })
             dct[categories['category']] = values
-        return Response({'json': dumps(dct)},
+        return Response({'json': json.dumps(dct)},
                         template_name="visualization/model_documentation_publication_relation.html")
 
 
@@ -663,7 +604,7 @@ class PublicationListDetail(LoginRequiredMixin, generics.GenericAPIView):
         result_page = paginator.paginate_queryset(pubs, request)
         serializer = PublicationListSerializer(result_page, many=True)
         response = paginator.get_paginated_response(serializer.data)
-        return Response({'json': dumps(response)}, template_name="publication/list.html")
+        return Response({'json': json.dumps(response)}, template_name="publication/list.html")
 
 
 class NetworkRelationDetail(LoginRequiredMixin, generics.GenericAPIView):
@@ -688,7 +629,7 @@ class NetworkRelationDetail(LoginRequiredMixin, generics.GenericAPIView):
 
         res = self.generate_tree(pk, data)
         message = Publication.objects.get(pk=pk).get_message()
-        return Response({'result': dumps(res), 'description': dumps(message)},
+        return Response({'result': json.dumps(res), 'description': json.dumps(message)},
                         template_name="visualization/collapsible-tree.html")
 
     def generate_tree(self, root, data):

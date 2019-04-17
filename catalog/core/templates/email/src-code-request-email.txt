@@ -6,7 +6,9 @@ We are contacting you in regards to your publication {{ publication.title|defaul
 
 Your publication was included in our database, but we were not able to find the source code for the model used in your publication in a publicly available location (URL).
 
-We hope to learn from you whether the model code is currently publicly available. You could also archive your code now (see link for recommended public archives). We look forward to your response.
+We hope to learn from you whether the model code is currently publicly available. You could also archive your code now (see link for recommended public archives). We look forward to your response. 
+
+Once you have uploaded your model in the appropriate archive please [let us know]({{correspondence_url}}) so we can update our database.
 
 Thank you,
 
