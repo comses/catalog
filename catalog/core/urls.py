@@ -7,14 +7,6 @@ from . import views
 
 app_name = 'core'
 
-# django rest framework endpoints that can generate JSON / HTML
-urlpatterns = format_suffix_patterns([
-    url(r'^publication/workflow/email-preview/$', views.EmailPreview.as_view(), name='invite_email_preview'),
-    url(r'^publication/workflow/invite/$', views.ContactAuthor.as_view(), name='send_invites'),
-    url(r'^publication/update-model-url/(?P<token>[\w:-]+)/$', views.UpdateModelUrlView.as_view(),
-        name='update_model_url'),
-])
-
 # non django rest framework endpoints for authentication, user dashboard, workflow, and search URLs
 curator_urls = [
     url(r'^contact-us/$', views.ContactFormView.as_view(), name='contact_us'),
@@ -56,7 +48,7 @@ curator_urls = [
         name='networkrelation'),
 ]
 
-urlpatterns += [
+urlpatterns = [
     path('curator/', include(curator_urls)),
     path('visualization/', views.public_visualization_view, name='public-visualization'),
     path('publications/', views.public_search_view, name='public-search'),

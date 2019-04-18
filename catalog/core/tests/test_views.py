@@ -262,12 +262,3 @@ class ContactViewTest(BaseTest):
         data.assert_any_call()
         is_valid.assert_any_call()
         save.assert_any_call()
-
-
-class EmailPreviewTest(BaseTest):
-    def test_email_preview_with_and_without_query_parameters(self):
-        self.login()
-        url = self.reverse(INVITE_EMAIL_PREVIEW_URL,
-                           query_parameters={'invitation_subject': 'foo', 'invitation_text': 'bar'})
-        response = self.get(url)
-        self.assertEqual(200, response.status_code)
