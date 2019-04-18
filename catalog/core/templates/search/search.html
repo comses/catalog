@@ -2,8 +2,6 @@
 {% load bootstrap3 %}
 
 {% url 'citation:publication_detail' as publication_detail_url %}
-{% url 'core:invite_email_preview' as invite_email_preview_url %}
-{% url 'core:send_invites' as send_invites_url %}
 
 {% block content %}
     <div data-bind="template: { name: 'baseTmpl', data: currentStep }"></div>
@@ -69,58 +67,8 @@
         {% endif %}
     </script>
 
-    <script id="inviteFormTmpl" type="text/html">
-        <form id="invite-form" class="form-horizontal col-md-5" role="form" data-bind="submit: previewEmail">
-            <legend class="scheduler-border">Email</legend>
-            <div class="form-group">
-                <label class="col-md-4 control-label" for="id_invitation_subject">Invitation subject</label>
-                <div class="col-md-8">
-                    <input class="form-control" data-bind="value: invitation_subject" id="id_invitation_subject" name="invitation_subject" placeholder="Invitation subject" required="required" title="" type="text">
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="col-md-4 control-label" for="id_invitation_text">Invitation text</label>
-                <div class="col-md-8">
-                    <textarea class="form-control" cols="40" data-bind="value: invitation_text" id="id_invitation_text" name="invitation_text" placeholder="Invitation text" required="required" rows="8" title=""></textarea>
-                </div>
-            </div>
-            <div class="form-group">
-                <div class="col-md-offset-4 col-md-8">
-                    <button type="submit" class="btn btn-warning"><i class="fa fa-eye"></i> Preview Invitation Email</button>
-                </div>
-            </div>
-        </form>
-        <div class="col-md-7" id="email-content">
-            <fieldset class="scheduler-border">
-                <legend class="scheduler-border">Email Preview</legend>
-                <div id="email-text">
-                    <p>Email Preview Section.</p>
-                    <p>Fill out the details in the form provided on the left and press preview invitation email to preview the final email content.</p>
-                </div>
-            </fieldset>
-        </div>
-    </script>
-
     <script type="text/javascript">
         $(function(){
-            var InvitationViewModel = function() {
-                var self = this;
-
-                self.invitation_text = ko.observable();
-                self.invitation_subject =  ko.observable();
-
-                self.previewEmail = function(formElement) {
-                    var formData = $(formElement).serialize();
-                    $.get("{% url 'core:invite_email_preview' %}?" + formData)
-                        .done(function(result) {
-                            $("#email-text").html(result.content);
-                        })
-                        .fail(function(result) {
-                            $("#email-text").html("Please fill in all the fields to preview invitation email.");
-                        });
-                }
-            };
-
             var TagListViewModel = function(){
                 var self= this;
                 self.tags = ko.observableArray();
@@ -162,7 +110,6 @@
                 var self = this;
                 self.stepModels = ko.observableArray([
                     new Step(1, "Select Publications", "choicePubTmpl", new TagListViewModel(), "", "Construct Email "),
-                    new Step(2, "Contruct Email", "inviteFormTmpl", new InvitationViewModel(), " Select Publications", "Submit "),
                     new Step(3, "Done", "basicTmpl", { message: "Completed." }, "", "Done "),
                 ]);
 
@@ -180,30 +127,6 @@
                     return self.currentIndex() < self.stepModels().length - 1;
                 });
  
-                self.goNext = function() {
-                    if(self.currentIndex() == 1) {
-                        var $btn = $("#nextBtn").button('loading');
-                        $.ajax({
-                            type: "POST",
-                            url: "{% url 'core:send_invites' %}" + window.location.search,
-                            contentType: "application/json; charset=utf-8",
-                            data: ko.toJSON(self.currentStep().model()),
-                            dataType:"json",
-                            success: function(result){
-                                self.currentStep(self.stepModels()[self.currentIndex() + 1]);
-                            },
-                            error: function(result) {
-                                humane.log("Something went wrong. Please try again", {timeout: 5000});
-                                console.log(result.responseJSON);
-                            }
-                        }).always(function() {
-                            $btn.button('reset')
-                        });
-                    } else {
-                         self.currentStep(self.stepModels()[self.currentIndex() + 1]);
-                    }
-                };
-
                 self.canGoPrevious = ko.computed(function() {
                     return self.currentIndex() > 0 && (self.currentIndex() < self.stepModels().length - 1);
                 });

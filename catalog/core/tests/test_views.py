@@ -13,12 +13,10 @@ MAX_EXAMPLES = 30
 CONTACT_US_URL = 'core:contact_us'
 DASHBOARD_URL = 'core:dashboard'
 HAYSTACK_SEARCH_URL = 'core:haystack_search'
-INVITE_EMAIL_PREVIEW_URL = 'core:invite_email_preview'
 PUBLICATIONS_URL = 'citation:publications'
 PUBLICATION_DETAIL_URL = 'citation:publication_detail'
 USER_PROFILE_URL = 'core:user_profile'
 WORKFLOW_URL = 'core:curator_workflow'
-SENT_INVITES_URL = 'core:send_invites'
 HOME_URL = 'core:public-home'
 
 
@@ -100,19 +98,6 @@ class ProfileViewTest(BaseTest):
         response = self.post(url, {'first_name': first_name, 'last_name': last_name,
                                    'username': username})
         self.assertTrue(400, response.status_code)
-
-
-class ContactAuthor(BaseTest):
-    def test_contact_author_with_and_without_query_parameters(self):
-        self.login()
-        url = self.reverse(SENT_INVITES_URL, query_parameters={'format': 'json'})
-        response = self.post(url, {'invitation_subject': 'foo',
-                                   'invitation_text': 'bar'
-                                   })
-        self.assertEqual(200, response.status_code)
-
-        response = self.post(SENT_INVITES_URL)
-        self.assertEqual(400, response.status_code)
 
 
 class IndexViewTest(BaseTest):
