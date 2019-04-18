@@ -1,4 +1,5 @@
 import json
+import logging
 from unittest import mock
 from unittest.mock import patch
 
@@ -7,6 +8,8 @@ from haystack.query import SearchQuerySet
 
 from citation.models import Publication, ModelDocumentation
 from .common import BaseTest
+
+logger = logging.getLogger(__name__)
 
 MAX_EXAMPLES = 30
 
@@ -125,9 +128,11 @@ class PublicationDetailViewTest(BaseTest):
     def test_canonical_publication_detail_view(self):
         source_code_documentation = ModelDocumentation(name='Source code')
         source_code_documentation.save()
-        container = self.create_container(name='Econometrica')
+        journal_title = 'Econometrica'
+        container = self.create_container(name=journal_title)
         container.save()
-        p = self.create_publication(title='A', added_by=self.user, container=container)
+        publication_title = 'A very model model'
+        p = self.create_publication(title=publication_title, added_by=self.user, container=container)
         p.save()
 
         self.logout()
@@ -136,7 +141,9 @@ class PublicationDetailViewTest(BaseTest):
 
         url = self.reverse(PUBLICATION_DETAIL_URL, kwargs={'pk': p.pk, 'slug': p.slug})
         response = self.get(url)
-        self.assertEqual(response.url, p.get_absolute_url())
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, journal_title)
+        self.assertContains(response, publication_title)
 
         self.logout()
         url = self.reverse(PUBLICATION_DETAIL_URL,
