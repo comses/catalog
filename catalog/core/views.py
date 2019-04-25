@@ -823,13 +823,13 @@ def public_visualization_view(request):
 
 
 def public_home(request):
-    publication_df = visualization_cache.get_publications()
-    plot = {
-        'id': 'agent-based-modeling-tile',
-        'data': plots.code_availability_timeseries_plot(publication_df)['count'].to_plotly_json(),
-        'data_id': 'agent-based-modeling-tile-data'
-    }
+    if request.content_type == 'application/json':
+        publication_df = visualization_cache.get_publications()
+        return JsonResponse(plots.code_availability_timeseries_plot(publication_df)['count'].to_plotly_json())
 
+    plot = {
+        'id': 'agent-based-modeling-tile'
+    }
     search = request.GET.get('search')
     if search is not None:
         return redirect(PublicationDoc.get_public_list_url(search=search))

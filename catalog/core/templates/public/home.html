@@ -75,6 +75,16 @@
                 </div>
                 <div class="row justify-content-md-center">
                     <div class="col-md-10 bg-white px-0" id="{{ plot.id }}">
+                        <div style="height: 450px">
+                            <div class="d-flex h-100 justify-content-center align-items-center">
+                                <div>
+                                    <h5 class="text-muted">Loading code availability plot...</h5>
+                                    <br>
+                                    <p class="text-center text-muted"><i class="fa-4x fas fa-sync fa-spin"></i></p>
+                                </div>
+
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -125,12 +135,23 @@
             </div>
         </section>
     </main>
-    {{ plot.data|json_script:plot.data_id }}
     <script>
-        const publication_count_plot = JSON.parse(document.getElementById('{{ plot.data_id }}').textContent);
-        Plotly.newPlot('{{ plot.id }}',
-            publication_count_plot.data,
-            publication_count_plot.layout,
-            {responsive: true});
+        fetch('', {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(resp => resp.json())
+            .then(data => {
+                const node = document.getElementById('{{ plot.id }}');
+                while (node.firstChild) {
+                    node.removeChild(node.firstChild);
+                }
+                Plotly.newPlot(
+                    node,
+                    data.data,
+                    data.layout,
+                    {responsive: true})
+            });
     </script>
 {% endblock %}
