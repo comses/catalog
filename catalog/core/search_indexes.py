@@ -120,6 +120,12 @@ class AuthorInnerDoc(InnerDoc):
     name = edsl.Text(copy_to=ALL_DATA_FIELD)
 
 
+class CodeArchiveUrlInnerDoc(InnerDoc):
+    id = edsl.Integer(required=True)
+    url = edsl.Text()
+    status = edsl.Keyword()
+
+
 class ContainerInnerDoc(InnerDoc):
     id = edsl.Integer(required=True)
     name = edsl.Text(copy_to=ALL_DATA_FIELD)
@@ -310,7 +316,7 @@ class PublicationDoc(DocType):
     title = edsl.Text(copy_to=ALL_DATA_FIELD)
     date_published = edsl.Date()
     last_modified = edsl.Date()
-    code_archive_url = edsl.Keyword()
+    code_archive_urls = edsl.Nested(CodeArchiveUrlInnerDoc)
     doi = edsl.Keyword()
     contact_email = edsl.Keyword(copy_to=ALL_DATA_FIELD)
     container = edsl.Object(ContainerInnerDoc)
@@ -328,7 +334,8 @@ class PublicationDoc(DocType):
                   title=publication.title,
                   date_published=publication.date_published,
                   last_modified=publication.date_modified,
-                  code_archive_url=publication.code_archive_url,
+                  code_archive_urls=[CodeArchiveUrlInnerDoc(id=c.id, url=c.url, status=c.status)
+                                     for c in publication.code_archive_urls.all()],
                   contact_email=publication.contact_email,
                   container=ContainerInnerDoc(id=container.id, name=container.name, issn=container.issn),
                   doi=publication.doi,
@@ -500,4 +507,4 @@ def bulk_index_public():
          actions=(TagDoc.from_instance(t) for t in Tag.objects.filter(publications__in=public_publications)))
     bulk(client=client,
          actions=(PublicationDoc.from_instance(p) for p in public_publications.select_related('container') \
-         .prefetch_related('tags', 'sponsors', 'platforms', 'creators', 'model_documentation').iterator()))
+         .prefetch_related('code_archive_urls', 'tags', 'sponsors', 'platforms', 'creators', 'model_documentation').iterator()))

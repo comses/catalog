@@ -95,8 +95,12 @@
                                 <div class="row">
                                    <div class="col-md-6">
                                         <small><b>Related Files:</b>
-                                            {% if publication.code_archive_url %}
-                                                <span class="badge badge-light">Code:  <a href="{{ publication.code_archive_url }}"><span class="fas fa-code"><span></a></span>
+                                            {% if publication.code_archive_urls %}
+                                                <span class="badge badge-light">Code:
+                                                    {% for code_archive_url in publication.code_archive_urls %}
+                                                        <a href="{{ code_archive_url.url }}"><span class="fas fa-code"></span></a>
+                                                    {% endfor %}
+                                                </span>
                                             {% endif %}
                                              {% if publication.doi %}
                                                 <span class="badge badge-light">Paper: <a href="https://doi.org/{{ publication.doi }}"><span class="far fa-file"><span></a></span>

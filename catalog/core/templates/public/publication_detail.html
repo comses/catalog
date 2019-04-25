@@ -35,12 +35,12 @@
                     {% endfor %}
                 </p>
                 <p>
-                    <b>Model Code URL:</b>
-                    {% if publication.code_archive_url %}
-                        <a href="{{ publication.code_archive_url }}">{{ publication.code_archive_url }}</a>
-                    {% else %}
+                    <b>Model Code URLs:</b>
+                    {% for code_archive_url in publication.code_archive_urls.all %}
+                        <a href="{{ code_archive_url.url }}">{{ code_archive_url.url }}</a>
+                        {% empty %}
                         Model code not found
-                    {% endif %}
+                    {% endfor %}
                 </p>
 
 
