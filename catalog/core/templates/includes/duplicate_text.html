@@ -1,0 +1,7 @@
+{% for instance in instances %}
+    <p>{{ instance.get_message }}</p>
+{% endfor %}
+
+{% if missing_pks %}
+    <p>Missing: {{ missing_pks }}</p>
+{% endif %}
