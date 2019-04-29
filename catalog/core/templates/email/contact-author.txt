@@ -1,0 +1,21 @@
+Dear {{ contact_author_name|default:"AUTHOR_NAME" }},
+
+{{ content }}
+
+We are contacting you on behalf of [CoMSES Net](https://comses.net), a spoke in the [U.S. National Science Foundation West Big Data Hub](https://westbigdatahub.org) where one of our primary goals is improving practices around sharing, preserving, and citing agent and individual-based computational models. One of our projects involves cataloguing the state of computational model archival in published findings and our database indicates that you have the following publication(s) that reference an agent based or individual-based computational model:
+
+{% for acl in author_correspondence_logs %}
+- [{{ acl.publication.title }}]({{ request.build_absolute_uri }}{{acl.get_absolute_url}})
+{% endfor %}
+
+Our database connects scholars to allow them to find relevant model code and build on each other's work. As you may be aware, there is an increasing demand for transparency and sharing of data and model codes used for scientific publications (https://forum.comses.net/t/why-archive-your-model/7376).
+
+Your publication was included in our database, but we were not able to find the model source code referenced by your publication in a publicly available location (URL).
+
+We hope to learn from you whether the model code is currently publicly available. You could also archive your code now (FIXME: add link to recommended public archives).
+
+Once you have uploaded your model in the appropriate archive you can let us know by clicking on the publication links above - this will take you to a form that will update our database with the new archival location of your computational model. We look forward to your response.
+
+Thank you,
+
+The CoMSES Net Editors

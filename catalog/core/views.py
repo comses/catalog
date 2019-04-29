@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import timedelta, datetime
 from hashlib import sha1
 
@@ -20,6 +20,7 @@ from django.db.models import Count, Q, F, Value as V, Max
 from django.db.models.functions import Concat
 from django.http import JsonResponse, HttpResponseRedirect, StreamingHttpResponse, QueryDict
 from django.shortcuts import resolve_url, render, redirect
+from django.template.loader import get_template
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -46,6 +47,7 @@ from citation.serializers import (CatalogPagination, PublicationListSerializer,
                                   ContactFormSerializer, UserProfileSerializer,
                                   PublicationAggregationSerializer, AuthorAggregrationSerializer,
                                   SuggestMergeSerializer)
+from citation.util import render_sanitized_markdown
 from .forms import CatalogAuthenticationForm, CatalogSearchForm
 from .forms import PublicSearchForm, SuggestedPublicationForm, SubmitterForm, ContactAuthorsForm
 from .search_indexes import (PublicationDoc, PublicationDocSearch, normalize_search_querydict,
@@ -97,21 +99,34 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
 
     form_class = ContactAuthorsForm
     template_name = 'publication/contact-authors.html'
+    email_template_name = 'email/contact-author.txt'
     success_url = reverse_lazy('core:dashboard')
 
-    def send_email(self, publication_status, contact_email, number_of_publications, custom_invitation_text):
+    def generate_author_correspondence_logs(self, publication_status, contact_email,
+                                            number_of_publications,
+                                            create=True):
         publications = Publication.api.by_code_archive_url_status(publication_status,
                                                                   contact_email=contact_email,
                                                                   count=number_of_publications)
-        acls = AuthorCorrespondenceLog.objects.create_from_publications(publications,
-                                                                        custom_content=custom_invitation_text,
-                                                                        curator=self.request.user)
-        logger.debug("generated acls %s", acls)
-        """
-        for acl in acls:
-            acl.send_email(self.request)
-        """
-        return acls
+        if publications:
+            acls = AuthorCorrespondenceLog.objects.create_from_publications(publications,
+                                                                            curator=self.request.user,
+                                                                            create=create)
+            """ Return a dictionary mapping contact emails -> list of ACLs
+            naive approach
+            """
+            contacts = defaultdict(list)
+            for acl in acls:
+                contacts[acl.contact_author_name].append(acl)
+            logger.debug("generated acls (created? %s): %s", create, acls)
+            return contacts
+        else:
+            return None
+
+    def create_email_text(self, contact_author_name, acls, custom_invitation_text=None):
+        context = dict(contact_author_name=contact_author_name, content=custom_invitation_text, request=self.request, acls=acls)
+        template = get_template(self.email_template_name)
+        return template.render(context)
 
     def form_valid(self, form):
         email_filter = form.cleaned_data.get('email_filter')
@@ -119,16 +134,23 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
         number_of_publications = form.cleaned_data.get('number_of_publications')
         custom_invitation_text = form.cleaned_data.get('custom_invitation_text')
         ready_to_send = form.cleaned_data.get('ready_to_send')
+        contacts = self.generate_author_correspondence_logs(status, contact_email=email_filter,
+                                                            number_of_publications=number_of_publications,
+                                                            create=ready_to_send)
+        if not contacts:
+            return self.render_to_response(self.get_context_data(form=form,
+                                                                 preview_email='No matching publications'))
+
         if ready_to_send:
-            self.send_email(publication_status=status,
-                            contact_email=email_filter,
-                            number_of_publications=number_of_publications,
-                            custom_invitation_text=custom_invitation_text)
+            # FIXME: render an email template for each KV pair in acls and send it
+
             return super().form_valid(form)
         else:
-            acl = AuthorCorrespondenceLog(status=status, content=custom_invitation_text)
-            preview_email_text = acl.create_email_text(preview=True)
-            return self.render_to_response(self.get_context_data(form=form, preview_email=preview_email_text))
+            # provide a preview to the curator with the email filter, number of publications, status, etc., filled in
+            contact_author_name, acls = contacts.popitem()
+            email_text = render_sanitized_markdown(self.create_email_text(contact_author_name, acls, custom_invitation_text))
+            return self.render_to_response(self.get_context_data(form=form,
+                                                                 preview_email=email_text))
 
 
 class LoginView(FormView):
