@@ -40,9 +40,8 @@ from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
                                     generate_aggregated_distribution_data, generate_network_graph)
 from citation.graphviz.globals import RelationClassifier, CacheNames
-from citation.models import (Publication, Platform, Sponsor, ModelDocumentation, Tag, Container,
+from citation.models import (Publication, Platform, Sponsor, ModelDocumentation, Tag, Container, CodeArchiveUrl,
                              URLStatusLog, SuggestedMerge, Submitter, AuthorCorrespondenceLog)
-from citation.ping_urls import categorize_url
 from citation.serializers import (CatalogPagination, PublicationListSerializer,
                                   ContactFormSerializer, UserProfileSerializer,
                                   PublicationAggregationSerializer, AuthorAggregrationSerializer,
@@ -537,7 +536,7 @@ class AggregatedCodeArchivedURLView(LoginRequiredMixin, generics.GenericAPIView)
             for pub in pubs:
                 if pub.code_archive_url is not '' and pub.year_published is not None:
                     years.append(pub.year_published)
-                    all_records[(pub.year_published, categorize_url(pub.code_archive_url))] += 1
+                    all_records[(pub.year_published, CodeArchiveUrl.categorize_url(pub.code_archive_url))] += 1
 
         group = []
         data = [['x']]
