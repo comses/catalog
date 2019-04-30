@@ -282,7 +282,7 @@ class PublicationDocSearch:
         elif q:
             return PublicationDocSearch(self.search.query(full_text))
         else:
-            return PublicationDocSearch(self.search.sort('-id'))
+            return PublicationDocSearch(self.search.sort('-incomplete_date_published'))
 
     def source(self, fields=None, **kwargs):
         return PublicationDocSearch(self.search.source(fields=fields, **kwargs))
