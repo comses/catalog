@@ -7,6 +7,9 @@
             <div class="col-12">
                 <h3>{{ publication.title }}</h3>
                 <p>Authored by {{ publication.creators.all|list_authors }}</p>
+                {% if publication.incomplete_date_published %}
+                    <p>Date Published: {{ publication.incomplete_date_published }}</p>
+                {% endif %}
                 {% if publication.doi %}
                     <p>DOI: <a href="https://doi.org/{{ publication.doi }}">{{ publication.doi }}</a></p>
                 {% endif %}

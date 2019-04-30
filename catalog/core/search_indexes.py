@@ -282,7 +282,7 @@ class PublicationDocSearch:
         elif q:
             return PublicationDocSearch(self.search.query(full_text))
         else:
-            return PublicationDocSearch(self.search.sort('-date_published'))
+            return PublicationDocSearch(self.search.sort('-id'))
 
     def source(self, fields=None, **kwargs):
         return PublicationDocSearch(self.search.source(fields=fields, **kwargs))
@@ -314,7 +314,7 @@ class PublicationDoc(DocType):
     all_data = edsl.Text()
     id = edsl.Integer()
     title = edsl.Text(copy_to=ALL_DATA_FIELD)
-    date_published = edsl.Date()
+    incomplete_date_published = edsl.Keyword()
     last_modified = edsl.Date()
     code_archive_urls = edsl.Nested(CodeArchiveUrlInnerDoc)
     doi = edsl.Keyword()
@@ -332,7 +332,7 @@ class PublicationDoc(DocType):
         doc = cls(meta={'id': publication.id},
                   id=publication.id,
                   title=publication.title,
-                  date_published=publication.date_published,
+                  incomplete_date_published=publication.incomplete_date_published,
                   last_modified=publication.date_modified,
                   code_archive_urls=[CodeArchiveUrlInnerDoc(id=c.id, url=c.url, status=c.status)
                                      for c in publication.code_archive_urls.all()],
