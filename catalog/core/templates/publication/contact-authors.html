@@ -16,9 +16,9 @@
 
 {% if preview_email %}
     <div class='well'>
-        <h3>Preview Email</h3>
+        <h3>Preview Email: {{ number_of_publications }} matching publications</h3>
         <hr>
-        {{ preview_email|markdown }}
+        {{ preview_email|markdown|safe }}
     </div>
 {% endif %}
 

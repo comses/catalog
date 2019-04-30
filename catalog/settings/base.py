@@ -2,10 +2,10 @@
 Django settings for catalog project.
 
 For more information on this file, see
-https://docs.djangoproject.com/en/1.9/topics/settings/
+https://docs.djangoproject.com/en/2.2/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/1.9/ref/settings/
+https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 from __future__ import print_function
 
@@ -24,9 +24,7 @@ config.read('/run/secrets/catalog_django_config')
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
 # email configuration
-DEFAULT_FROM_EMAIL = 'info@comses.net'
-CATALOG_FROM_EMAIL = 'catalog@comses.net'
-AUTHOR_CORRESPONDENCE_LOG_EMAIL = 'catalog@comses.net'
+DEFAULT_FROM_EMAIL = 'catalog@comses.net'
 EMAIL_HOST = 'smtp.asu.edu'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

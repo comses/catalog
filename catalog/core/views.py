@@ -46,7 +46,7 @@ from citation.serializers import (CatalogPagination, PublicationListSerializer,
                                   ContactFormSerializer, UserProfileSerializer,
                                   PublicationAggregationSerializer, AuthorAggregrationSerializer,
                                   SuggestMergeSerializer)
-from citation.util import render_sanitized_markdown
+from citation.util import render_sanitized_markdown, send_markdown_email
 from .forms import CatalogAuthenticationForm, CatalogSearchForm
 from .forms import PublicSearchForm, SuggestedPublicationForm, SubmitterForm, ContactAuthorsForm
 from .search_indexes import (PublicationDoc, PublicationDocSearch, normalize_search_querydict,
@@ -107,25 +107,34 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
         publications = Publication.api.by_code_archive_url_status(publication_status,
                                                                   contact_email=contact_email,
                                                                   count=number_of_publications)
+        """ Return a dictionary mapping contact emails -> list of ACLs
+        naive approach
+        """
+        contacts = defaultdict(list)
         if publications:
             acls = AuthorCorrespondenceLog.objects.create_from_publications(publications,
                                                                             curator=self.request.user,
                                                                             create=create)
-            """ Return a dictionary mapping contact emails -> list of ACLs
-            naive approach
-            """
-            contacts = defaultdict(list)
             for acl in acls:
-                contacts[acl.contact_author_name].append(acl)
+                contacts[acl.contact_email].append(acl)
             logger.debug("generated acls (created? %s): %s", create, acls)
             return contacts
         else:
-            return None
+            acls = AuthorCorrespondenceLog.objects.filter(publication__contact_email=contact_email)
+            for acl in acls:
+                contacts[acl.contact_email].append(acl)
+            return contacts
 
-    def create_email_text(self, contact_author_name, acls, custom_invitation_text=None):
-        context = dict(contact_author_name=contact_author_name, content=custom_invitation_text, request=self.request, acls=acls)
+    def create_email_text(self, acls, custom_invitation_text=None):
+        contact_author_name = acls[0].contact_author_name
+        context = dict(contact_author_name=contact_author_name, content=custom_invitation_text,
+                       site_root=self.request.build_absolute_uri('/').rstrip('/'),
+                       author_correspondence_logs=acls)
         template = get_template(self.email_template_name)
         return template.render(context)
+
+    def get_email_subject(self, author_correspondence_logs):
+       return sorted(author_correspondence_logs, key=lambda acl: acl.get_status())[0].get_email_subject()
 
     def form_valid(self, form):
         email_filter = form.cleaned_data.get('email_filter')
@@ -141,14 +150,23 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
                                                                  preview_email='No matching publications'))
 
         if ready_to_send:
-            # FIXME: render an email template for each KV pair in acls and send it
-
+            for contact_email, associated_acls in contacts.items():
+                email_body = self.create_email_text(associated_acls, custom_invitation_text)
+                email_subject = self.get_email_subject(associated_acls)
+                send_markdown_email(
+                    subject=email_subject,
+                    to=[contact_email],
+                    body=email_body,
+                    bcc=[settings.DEFAULT_FROM_EMAIL]
+                )
+            messages.info(self.request, f"Sent {len(contacts)} email(s) to [ {','.join(contacts.keys())} ]")
             return super().form_valid(form)
         else:
             # provide a preview to the curator with the email filter, number of publications, status, etc., filled in
-            contact_author_name, acls = contacts.popitem()
-            email_text = render_sanitized_markdown(self.create_email_text(contact_author_name, acls, custom_invitation_text))
+            contact_email, acls = contacts.popitem()
+            email_text = render_sanitized_markdown(self.create_email_text(acls, custom_invitation_text))
             return self.render_to_response(self.get_context_data(form=form,
+                                                                 number_of_publications=len(acls),
                                                                  preview_email=email_text))
 
 
