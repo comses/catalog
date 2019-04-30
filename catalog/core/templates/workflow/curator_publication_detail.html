@@ -414,7 +414,7 @@
                 self.keepCodeArchiveUrlChanges = function () {
                     var uniqueId = self.codeArchiveUrlEdit.uniqueId();
                     self.codeArchiveUrlEdit.system_overridable_category(false);
-                    const category_name = self.codeArchiveUrlCategoryOptions().filter(option => option.value === self.codeArchiveUrlEdit.category())[0].label;
+                    const category_name = self.codeArchiveUrlCategoryOptions().filter(function(option) { return option.value === self.codeArchiveUrlEdit.category()})[0].label;
                     self.codeArchiveUrlEdit.category_name(category_name);
                     var matchingCodeArchiveUrls = self.codeArchiveUrls().filter(function (codeArchiveUrl) {
                         return codeArchiveUrl.uniqueId() === uniqueId;
