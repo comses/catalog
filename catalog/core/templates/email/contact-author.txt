@@ -1,20 +1,25 @@
 Dear {{ contact_author_name|default:"AUTHOR_NAME" }},
 
 {{ content }}
-
-We are contacting you on behalf of [CoMSES Net](https://comses.net), a spoke in the [U.S. National Science Foundation West Big Data Hub](https://westbigdatahub.org) where one of our primary goals is improving practices around sharing, preserving, and citing agent and individual-based computational models. One of our projects involves cataloguing the state of computational model archival in published findings and our database indicates that you have the following publication(s) that reference an agent based or individual-based computational model:
+ 
+We are contacting you on behalf of [CoMSES Net](https://comses.net), a Spoke in the [United States National Science Foundation's West Big Data Hub](https://westbigdatahub.org). One of our primary goals is improving practices around sharing, preserving, and citing agent and individual-based computational models and so we have been cataloguing the state of computational model archival in published findings over the past few years. Our database indicates that you have the following publication(s) referencing an agent based or individual-based computational model:
 
 {% for acl in author_correspondence_logs %}
 - [{{ acl.publication.title }}]({{ site_root }}{{acl.get_absolute_url}})
 {% endfor %}
 
-Our database connects scholars to allow them to find relevant model code and build on each other's work. As you may be aware, there is an increasing demand for transparency and sharing of data and model codes used for scientific publications (https://forum.comses.net/t/why-archive-your-model/7376).
+Our bibliometric database connects scholars and is aimed at improving the discoverability and accessibility of model source code so that we can build on each other's work more effectively. As you may be aware, there is an [increasing demand for transparency and sharing of data and model codes used for scientific publications](https://forum.comses.net/t/why-archive-your-model/7376).
 
-Your publication was included in our database, but we were not able to find the model source code referenced by your publication in a publicly available location (URL).
+In the course of curating this bibliometric database we were unable to locate the model source code referenced in the publication(s) listed above at a publicly available URL and hope to learn from you whether the model source code is publicly available. If your model source code has not been archived yet, you may consider archiving it at one of the following list of trusted DOI issuing digital repositories for source code:
 
-We hope to learn from you whether the model code is currently publicly available. You could also archive your code now (FIXME: add link to recommended public archives).
+- CoMSES Net
+- Zenodo
+- Open Science Framework
+- Code Ocean
+- Data Dryad
+- FIXME: others?
 
-Once you have uploaded your model in the appropriate archive you can let us know by clicking on the publication links above - this will take you to a form that will update our database with the new archival location of your computational model. We look forward to your response.
+If you do archive your model we would appreciate it if you would take the time to let us know the new archival URL - clicking on the publication links above will take you to a form where you can update our database with the new archival location of your computational model for each publication and also submit any comments or feedback you may have regarding this project. We look forward to your response!
 
 Thank you,
 
