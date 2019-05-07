@@ -1,15 +1,15 @@
 cssselect==1.0.3
 Django>=2.2,<2.3
-django-autocomplete-light==3.3.2
+django-autocomplete-light==3.3.4
 django-bootstrap3==11.0.0
 django-contact-form==1.6.0
 django-extensions==2.1.6
 django-haystack==2.8.1
 django-model-utils==3.1.2
-djangorestframework==3.9.2
+djangorestframework==3.9.3
 django-cas-client==1.5.0
-psycopg2-binary==2.8
-pysolr==3.7.0
+psycopg2-binary==2.8.2
+pysolr==3.8.0
 raven==6.5.0
 uWSGI==2.0.18
 elasticsearch<7.0.0
@@ -20,7 +20,7 @@ coverage
 django-debug-toolbar
 ipython
 invoke
-python-coveralls
+coveralls
 django_redis
 
 # visualization dependencies
