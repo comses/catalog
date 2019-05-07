@@ -164,16 +164,25 @@ def zotero_import(ctx, group=None, collection=None):
     ctx.run(_command.format(**env))
 
 
-@task(aliases=['ri'])
-def rebuild_index(ctx, noinput=False):
-    import django
-    django.setup()
-    from catalog.core.search_indexes import bulk_index_public
+@task(aliases=['ri:solr'])
+def rebuild_solr_index(ctx, noinput=False):
     cmd = '{python} manage.py rebuild_index'
     if noinput:
         cmd += ' --noinput'
     ctx.run(cmd.format(**env))
+
+
+@task(aliases=['ri:es'])
+def rebuild_elasticsearch_index(ctx):
+    import django
+    django.setup()
+    from catalog.core.search_indexes import bulk_index_public
     bulk_index_public()
+
+
+@task(aliases=['ri'], pre=[call(rebuild_solr_index, noinput=True), rebuild_elasticsearch_index])
+def rebuild_index(ctx):
+    pass
 
 
 @task
