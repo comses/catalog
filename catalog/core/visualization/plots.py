@@ -59,7 +59,7 @@ def code_availability_timeseries_plot(publication_df: pd.DataFrame, publication_
         go.Scatter(
             x=year,
             y=df[('year_published','count')].to_list(),
-            name='Matched'
+            name='Total'
         )
     ]
     count_layout = go.Layout(
@@ -131,7 +131,7 @@ def archival_timeseries_plot(publication_df: pd.DataFrame, code_archive_urls_df:
     count_data.append(go.Scatter(
         x=year,
         y=list(df[('publications', 'count')]),
-        name='Matched',
+        name='Total',
         visible='legendonly'
     ))
 
@@ -195,7 +195,7 @@ def documentation_standards_timeseries_plot(publication_df: pd.DataFrame, public
             go.Scatter(
                 x=year,
                 y=list(df[('count', 'count')]),
-                name='Matched'
+                name='Total'
             ),
         ],
 
