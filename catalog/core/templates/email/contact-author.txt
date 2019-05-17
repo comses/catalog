@@ -10,16 +10,18 @@ We are contacting you on behalf of [CoMSES Net](https://comses.net), a Spoke in 
 
 Our bibliometric database connects scholars and is aimed at improving the discoverability and accessibility of model source code so that we can build on each other's work more effectively. As you may be aware, there is an [increasing demand for transparency and sharing of data and model codes used for scientific publications](https://forum.comses.net/t/why-archive-your-model/7376).
 
-In the course of curating this bibliometric database we were unable to locate the model source code referenced in the publication(s) listed above at a publicly available URL and hope to learn from you whether the model source code is publicly available. If your model source code has not been archived yet, you may consider archiving it at one of the following list of trusted DOI issuing digital repositories for source code:
+In the course of curating this bibliometric database we were unable to locate the model source code referenced in the publication(s) listed above at a publicly available URL and hope to learn from you whether the model source code is publicly available. Clicking on the publication links above will take you to forms where you can update our database with an archival URL for your computational model. We look forward to your response!
 
-- CoMSES Net
-- Zenodo
-- Open Science Framework
-- Code Ocean
-- Data Dryad
-- FIXME: others?
+If your model source code has not been archived yet, you may consider archiving it at one of the following list of trusted DOI issuing digital repositories for source code:
 
-If you do archive your model we would appreciate it if you would take the time to let us know the new archival URL - clicking on the publication links above will take you to a form where you can update our database with the new archival location of your computational model for each publication and also submit any comments or feedback you may have regarding this project. We look forward to your response!
+- [Code Ocean](https://codeocean.com)
+- [Community Surface Dynamics Modeling System (CSDMS) Model Repository](https://csdms.colorado.edu/wiki/Model_download_portal)
+- [CoMSES Net](https://www.comses.net/codebases/)
+- [HydroShare](https://hydroshare.org)
+- [Open Science Framework](https://osf.io)
+- [Zenodo](https://zenodo.org)
+
+For a full list of trusted DOI repositories and additional guidance on archival, please visit https://www.comses.net/resources/trusted-digital-repositories/
 
 Thank you,
 
