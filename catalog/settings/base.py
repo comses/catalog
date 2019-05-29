@@ -25,7 +25,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__
 
 # email configuration
 DEFAULT_FROM_EMAIL = 'catalog@comses.net'
-EMAIL_HOST = 'smtp.asu.edu'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ALLOWED_HOSTS = ('.comses.net', 'catalog.comses.net', 'localhost')
