@@ -1,7 +1,7 @@
 language: "python"
 sudo: required
 python:
-  - "3.7"
+  - "3.6"
 notifications:
   email: comses-dev@googlegroups.com
 services:
