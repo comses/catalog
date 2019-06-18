@@ -4,6 +4,7 @@ from django import template
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.forms import CheckboxInput
+from django.conf import settings
 from django.template.loader import get_template
 
 from citation.models import Author, Platform, Sponsor, Tag, Container
@@ -74,6 +75,7 @@ def render_form(form):
         'form': form
     }
 
+
 @register.inclusion_tag('public/includes/message.html')
 def message(text, level):
     style = messages.DEFAULT_TAGS[level]
@@ -93,3 +95,8 @@ def top_categories_by_content_type(content_type, matches):
     else:
         raise ValidationError('Content Type {} not allowed'.format(content_type))
     return template.render({context_list_name: matches})
+
+
+@register.simple_tag()
+def release_version():
+    return settings.RELEASE_VERSION

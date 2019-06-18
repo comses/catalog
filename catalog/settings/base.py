@@ -335,3 +335,9 @@ RAVEN_PUBLIC_DSN = config.get('django', 'RAVEN_PUBLIC_DSN')
 SECRET_KEY = config.get('django', 'SECRET_KEY')
 
 AUDIT_ACCOUNT_USERNAME = config.get('django', 'AUDIT_ACCOUNT_USERNAME')
+
+def get_release_version():
+    with open('release-version.txt') as f:
+        return f.read()
+
+RELEASE_VERSION = get_release_version()

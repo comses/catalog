@@ -1,6 +1,6 @@
 {% extends 'public/base.html' %}
 
-{% load explanation_tile from tags %}
+{% load explanation_tile release_version from tags %}
 
 {% block head %}
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
@@ -132,6 +132,26 @@
             </div>
         </section>
     </main>
+    <footer class="footer almun py-3 bg-dark">
+            {% block footer %}
+            <div class='container'>
+                {% block footerlinks %}
+                <p class="small text-center text-white">
+                    <a class="text-white" href='http://cbie.asu.edu'>Center for Behavior, Institutions, and the Environment</a>
+                    <br>
+                    <a class="text-white" href='http://www.comses.net'>CoMSES Net</a>
+                    <br>
+                    <a class="text-white" href='http://www.azregents.edu/'>&copy; 2014-{% now "Y" %} Arizona Board of Regents</a>
+                    <br>
+                    <a class="fa-stack" href="https://github.com/comses/catalog">
+                        <i class="fas fa-circle fa-stack-2x"></i>
+                        <i class="fas fa-code-branch fa-stack-1x fa-inverse"></i>
+                    </a> Version: {% release_version %}
+                </p>
+                {% endblock footerlinks %}
+            </div>
+            {% endblock footer %}
+        </footer>
     <script>
         fetch('', {
             headers: {
