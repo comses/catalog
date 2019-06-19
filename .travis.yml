@@ -17,6 +17,7 @@ before_install:
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
   - ./compose
+  - ./deploy.sh tag
   - sudo sysctl -w vm.max_map_count=262144
 install: 
   - docker --version
