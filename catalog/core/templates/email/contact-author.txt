@@ -2,7 +2,7 @@ Dear {{ contact_author_name|default:"AUTHOR_NAME" }},
 
 {{ content }}
  
-We are contacting you on behalf of [CoMSES Net](https://comses.net), a Spoke in the [United States National Science Foundation's West Big Data Hub](https://westbigdatahub.org). One of our primary goals is improving practices around sharing, preserving, and citing agent and individual-based computational models and so we have been cataloguing the state of computational model archival in published findings over the past few years. Our database indicates that you have the following publication(s) referencing an agent based or individual-based computational model:
+We are contacting you on behalf of [CoMSES Net](https://comses.net), a Spoke in the [United States National Science Foundation's West Big Data Hub](https://westbigdatahub.org). One of our primary goals is improving practices around sharing, preserving, and citing agent-based and individual-based computational models and so we have been [cataloguing the state of computational model archival in publications](https://catalog.comses.net) at https://catalog.comses.net. Our database indicates that you have the following publication(s) referencing an agent-based or individual-based computational model:
 
 {% for acl in author_correspondence_logs %}
 - [{{ acl.publication.title }}]({{ site_root }}{{acl.get_absolute_url}})
@@ -10,19 +10,10 @@ We are contacting you on behalf of [CoMSES Net](https://comses.net), a Spoke in 
 
 Our bibliometric database connects scholars and is aimed at improving the discoverability and accessibility of model source code so that we can build on each other's work more effectively. As you may be aware, there is an [increasing demand for transparency and sharing of data and model codes used for scientific publications](https://forum.comses.net/t/why-archive-your-model/7376).
 
-In the course of curating this bibliometric database we were unable to locate the model source code referenced in the publication(s) listed above at a publicly available URL and hope to learn from you whether the model source code is publicly available. Clicking on the publication links above will take you to forms where you can update our database with an archival URL for your computational model. We look forward to your response!
+In the course of curating this bibliometric database we were unable to locate the model source code referenced in the publication(s) listed above at a publicly available URL and hope to learn from you whether the model source code is publicly available. Clicking on the publication links above will take you to forms where you can update our database with an archival URL for your computational model. 
 
-If your model source code has not been archived yet, you may consider archiving it at one of the following list of trusted DOI issuing digital repositories for source code:
+If your model source code has not been archived yet, please consider archiving it at one of the trusted DOI issuing digital repositories for source code listed at https://www.comses.net/resources/trusted-digital-repositories/
 
-- [Code Ocean](https://codeocean.com)
-- [Community Surface Dynamics Modeling System (CSDMS) Model Repository](https://csdms.colorado.edu/wiki/Model_download_portal)
-- [CoMSES Net](https://www.comses.net/codebases/)
-- [HydroShare](https://hydroshare.org)
-- [Open Science Framework](https://osf.io)
-- [Zenodo](https://zenodo.org)
-
-For a full list of trusted DOI repositories and additional guidance on archival, please visit https://www.comses.net/resources/trusted-digital-repositories/
-
-Thank you,
+We look forward to your response!
 
 The CoMSES Net Editors
