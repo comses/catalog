@@ -174,11 +174,13 @@ class SuggestedPublicationForm(ModelForm):
 
 class ContactAuthorsForm(Form):
 
+    ARCHIVE_STATUS_CHOICES = [('', 'Any')] + AuthorCorrespondenceLog.CODE_ARCHIVE_STATUS
+
     email_filter = forms.EmailField(required=False,
                                     help_text=_("Author email address to additionally filter by for testing"))
-    status = forms.ChoiceField(choices=AuthorCorrespondenceLog.CODE_ARCHIVE_STATUS)
-    number_of_publications = forms.IntegerField(min_value=1, max_value=100, initial=10,
-                                                help_text=_("Number of publications to include"))
+    status = forms.ChoiceField(choices=ARCHIVE_STATUS_CHOICES, required=False)
+    number_of_authors = forms.IntegerField(min_value=1, max_value=100, initial=10,
+                                           help_text=_("Number of authors to contact (will be overridden by email_filter)"))
     custom_invitation_text = forms.CharField(widget=forms.Textarea, help_text=_("Custom invitation text"),
                                              required=False)
     ready_to_send = forms.BooleanField(required=False,

@@ -102,11 +102,11 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
     success_url = reverse_lazy('core:dashboard')
 
     def generate_author_correspondence_logs(self, publication_status, contact_email,
-                                            number_of_publications,
+                                            number_of_authors,
                                             create=True):
         publications = Publication.api.by_code_archive_url_status(publication_status,
                                                                   contact_email=contact_email,
-                                                                  count=number_of_publications)
+                                                                  number_of_authors=number_of_authors)
         """ Return a dictionary mapping contact emails -> list of ACLs
         naive approach
         """
@@ -139,11 +139,11 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
     def form_valid(self, form):
         email_filter = form.cleaned_data.get('email_filter')
         status = form.cleaned_data.get('status')
-        number_of_publications = form.cleaned_data.get('number_of_publications')
+        number_of_authors = form.cleaned_data.get('number_of_authors')
         custom_invitation_text = form.cleaned_data.get('custom_invitation_text')
         ready_to_send = form.cleaned_data.get('ready_to_send')
         contacts = self.generate_author_correspondence_logs(status, contact_email=email_filter,
-                                                            number_of_publications=number_of_publications,
+                                                            number_of_authors=number_of_authors,
                                                             create=ready_to_send)
         if not contacts:
             return self.render_to_response(self.get_context_data(form=form,
