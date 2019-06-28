@@ -4,8 +4,14 @@ Dear {{ contact_author_name|default:"AUTHOR_NAME" }},
  
 We are contacting you on behalf of [CoMSES Net](https://comses.net), a Spoke in the [United States National Science Foundation's West Big Data Hub](https://westbigdatahub.org). One of our primary goals is improving practices around sharing, preserving, and citing agent-based and individual-based computational models and so we have been [cataloguing the state of computational model archival in publications](https://catalog.comses.net) at https://catalog.comses.net. Our database indicates that you have the following publication(s) referencing an agent-based or individual-based computational model:
 
-{% for acl in author_correspondence_logs %}
+{% regroup author_correspondence_logs by status as publication_status_list %}
+{% for status in publication_status_list %}
+## {{ status.grouper }}
+
+{% for acl in status.list %}
 - [{{ acl.publication.title }}]({{ site_root }}{{acl.get_absolute_url}})
+{% endfor %}
+
 {% endfor %}
 
 Our bibliometric database connects scholars and is aimed at improving the discoverability and accessibility of model source code so that we can build on each other's work more effectively. As you may be aware, there is an [increasing demand for transparency and sharing of data and model codes used for scientific publications](https://forum.comses.net/t/why-archive-your-model/7376).
