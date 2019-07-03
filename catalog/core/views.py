@@ -127,14 +127,15 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
 
     def create_email_text(self, acls, custom_invitation_text=None):
         contact_author_name = acls[0].contact_author_name
-        context = dict(contact_author_name=contact_author_name, content=custom_invitation_text,
+        context = dict(contact_author_name=contact_author_name,
+                       content=custom_invitation_text,
                        site_root=self.request.build_absolute_uri('/').rstrip('/'),
                        author_correspondence_logs=acls)
         template = get_template(self.email_template_name)
         return template.render(context)
 
     def get_email_subject(self, author_correspondence_logs):
-       return sorted(author_correspondence_logs, key=lambda acl: acl.get_status())[0].get_email_subject()
+        return sorted(author_correspondence_logs, key=lambda acl: acl.get_status())[0].get_email_subject()
 
     def form_valid(self, form):
         email_filter = form.cleaned_data.get('email_filter')
@@ -146,18 +147,21 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
                                                             number_of_authors=number_of_authors,
                                                             create=ready_to_send)
         if not contacts:
-            return self.render_to_response(self.get_context_data(form=form,
-                                                                 preview_email='No matching publications'))
+            return self.render_to_response(
+                self.get_context_data(
+                    form=form,
+                    preview_email='No matching publications')
+            )
 
         if ready_to_send:
-            for contact_email, associated_acls in contacts.items():
-                email_body = self.create_email_text(associated_acls, custom_invitation_text)
-                email_subject = self.get_email_subject(associated_acls)
+            for contact_email, acls in contacts.items():
+                email_body = self.create_email_text(acls, custom_invitation_text)
+                email_subject = self.get_email_subject(acls)
                 send_markdown_email(
                     subject=email_subject,
                     to=[contact_email],
                     body=email_body,
-                    bcc=[settings.DEFAULT_FROM_EMAIL]
+                    bcc=[settings.CATALOG_EMAIL]
                 )
             messages.info(self.request, f"Sent {len(contacts)} email(s) to [ {','.join(contacts.keys())} ]")
             return super().form_valid(form)
@@ -380,9 +384,6 @@ class CuratorWorkflowView(LoginRequiredMixin, SearchView):
     def get_queryset(self):
         sqs = super(CuratorWorkflowView, self).get_queryset()
         return sqs.filter(assigned_curator=self.request.user, is_primary=True).order_by('-last_modified', '-status')
-
-
-############################################  VISUALIZATION   ##########################################################
 
 
 class VisualizationSearchView(LoginRequiredMixin, generics.GenericAPIView):
@@ -907,7 +908,7 @@ def suggest_a_publication(request):
             suggested_publication.doi or suggested_publication.title))
         send_mail(subject='Suggested publication {}'.format(suggested_publication.short_name),
                   message='You suggested adding publication {} to the catalog'.format(suggested_publication.short_name),
-                  from_email=settings.DEFAULT_FROM_EMAIL,
+                  from_email=settings.CATALOG_EMAIL,
                   recipient_list=[submitter.get_email()])
         return HttpResponseRedirect(redirect_to=reverse('core:public-search'))
     else:

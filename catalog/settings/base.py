@@ -24,7 +24,7 @@ config.read('/run/secrets/catalog_django_config')
 BASE_DIR = os.path.dirname(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir)))
 
 # email configuration
-DEFAULT_FROM_EMAIL = 'catalog@comses.net'
+DEFAULT_FROM_EMAIL = CATALOG_EMAIL = 'catalog@comses.net'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ALLOWED_HOSTS = ('.comses.net', 'catalog.comses.net', 'localhost')
@@ -339,5 +339,6 @@ AUDIT_ACCOUNT_USERNAME = config.get('django', 'AUDIT_ACCOUNT_USERNAME')
 def get_release_version():
     with open('release-version.txt') as f:
         return f.read()
+
 
 RELEASE_VERSION = get_release_version()
