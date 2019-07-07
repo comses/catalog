@@ -51,6 +51,7 @@ local environment="$1"
 echo "Deploying catalog"
 ./compose $environment
 docker-compose build --pull
+docker-compose pull db nginx redis
 docker stack deploy -c docker-compose.yml catalog
 }
 
