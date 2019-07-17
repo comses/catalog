@@ -16,7 +16,13 @@
 
 {% if preview_email %}
     <div class='well'>
-        <h3>Preview Email: {{ number_of_publications }} matching publications</h3>
+        <h3>Example Preview Email</h3>
+        <h4>{{ number_of_publications }} matching publications for {{ contact_email }}</h4>
+        <ul>
+        {% for email, acls in remaining_contacts.items %}
+            <li>{{ email }}: {{ acls }}</li>
+        {% endfor %}
+        </ul>
         <hr>
         {{ preview_email|markdown|safe }}
     </div>

@@ -107,23 +107,21 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
         publications = Publication.api.by_code_archive_url_status(publication_status,
                                                                   contact_email=contact_email,
                                                                   number_of_authors=number_of_authors)
-        """ Return a dictionary mapping contact emails -> list of ACLs
+        """
+        Return a dictionary mapping contact emails -> list of ACLs
         naive approach
         """
         contacts = defaultdict(list)
         if publications:
-            acls = AuthorCorrespondenceLog.objects.create_from_publications(publications,
-                                                                            curator=self.request.user,
-                                                                            create=create)
+            acls = AuthorCorrespondenceLog.objects.create_from_publications(
+                publications,
+                curator=self.request.user,
+                create=create
+            )
+            # regroup on contact email
             for acl in acls:
                 contacts[acl.contact_email].append(acl)
-            logger.debug("generated acls (created? %s): %s", create, acls)
-            return contacts
-        else:
-            acls = AuthorCorrespondenceLog.objects.filter(publication__contact_email=contact_email)
-            for acl in acls:
-                contacts[acl.contact_email].append(acl)
-            return contacts
+        return contacts
 
     def create_email_text(self, acls, custom_invitation_text=None):
         contact_author_name = acls[0].contact_author_name
@@ -169,9 +167,13 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
             # provide a preview to the curator with the email filter, number of publications, status, etc., filled in
             contact_email, acls = contacts.popitem()
             email_text = render_sanitized_markdown(self.create_email_text(acls, custom_invitation_text))
-            return self.render_to_response(self.get_context_data(form=form,
-                                                                 number_of_publications=len(acls),
-                                                                 preview_email=email_text))
+            return self.render_to_response(self.get_context_data(
+                form=form,
+                contact_email=contact_email,
+                number_of_publications=len(acls),
+                remaining_contacts=contacts,
+                preview_email=email_text)
+            )
 
 
 class LoginView(FormView):
