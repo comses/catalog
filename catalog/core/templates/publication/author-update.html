@@ -3,15 +3,78 @@
 {% load rest_framework %}
 
 {% block content %}
-<h2>Update code archive URLs for &quot;{{ author_correspondence.publication.title }}&quot;</h2>
-
-<form action="{{ author_correspondence.get_absolute_url }}" method='POST'>
-    {% csrf_token %}
-    {% render_form serializer template_pack='rest_framework/vertical' %}
-    <div class='form-group'>
-        <button type='submit' class='btn btn-default'>
-            Submit
-        </button>
-    </div>
-</form>
+    {% with publication=author_correspondence.publication %}
+        <h2>Update Publication Code Archive URLs</h2>
+        <div class='panel panel-default'>
+            <div class='panel-heading'>
+                <h3 class='panel-title'>{{ publication.title }}</h3>
+            </div>
+            <div class='panel-body'>
+                <h4><mark>Please let us know via the form below if any of the publication metadata listed here is incorrect.</mark></h4>
+                <b>Journal:</b> {{ publication.container.name }}<br>
+                <b>Volume:</b> {{ publication.volume }}<br>
+                <b>Pages:</b> {{ publication.pages }}<br>
+                <b>Year Published:</b> {{ publication.year_published }}<br>
+                <b>Last modified:</b> {{ publication.date_modified }} <br>
+                <b>DOI:</b>
+                {% if publication.doi %}
+                    <a target='_blank' href='https://doi.org/{{publication.doi}}'>{{ publication.doi }}</a>
+                {% else %}
+                    No DOI entered
+                {% endif %}
+                <div><b>Author(s):</b>
+                    <ul class='list-inline'>
+                        {% for creator in publication.creators.all %}
+                            <li><a target='_blank' data-bind='attr: { href: $root.googleScholarAuthorSearch($data) }'>
+                                    {{ creator.given_name }} {{ creator.family_name }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <b>Model Documentation</b>
+                    <ul class='list-inline'>
+                        {% for md in publication.model_documentation.all %}
+                            <li class='badge badge-primary'>{{ md.name }}</li>
+                        {% empty %}
+                            <li>No model documentation listed</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <b>Software Frameworks</b>
+                    <ul class='list-inline'>
+                        {% for platform in publication.platforms.all %}
+                            <li class='badge badge-primary'>{{ platform.name }}</li>
+                        {% empty %}
+                            <li>No software frameworks listed</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <b>Sponsors</b>
+                    <ul class='list-inline'>
+                        {% for sponsor in publication.sponsors.all %}
+                            <li class='badge badge-primary'>{{ sponsor.name }}</li>
+                        {% empty %}
+                            <li>No listed sponsors</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class='citation'>
+                    {{ publication.apa_citation_string }}
+                </div>
+            </div>
+        </div>
+    {% endwith %}
+    <form action="{{ author_correspondence.get_absolute_url }}" method='POST'>
+        {% csrf_token %}
+        {% render_form serializer template_pack='rest_framework/vertical' %}
+        <div class='form-group'>
+            <button type='submit' class='btn btn-default'>
+                Submit
+            </button>
+        </div>
+    </form>
 {% endblock %}
