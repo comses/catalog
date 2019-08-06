@@ -108,8 +108,7 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
                                                                   contact_email=contact_email,
                                                                   number_of_authors=number_of_authors)
         """
-        Return a dictionary mapping contact emails -> list of ACLs
-        naive approach
+        Return a dictionary that maps contact emails to lists of AuthorCorrespondenceLogs
         """
         contacts = defaultdict(list)
         if publications:
@@ -124,11 +123,24 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
         return contacts
 
     def create_email_text(self, acls, custom_invitation_text=None):
+        """
+        Generate a single email for a single corresponding author associated with a number of
+        AuthorCorrespondenceLogs.
+        """
         contact_author_name = acls[0].contact_author_name
-        context = dict(contact_author_name=contact_author_name,
-                       content=custom_invitation_text,
-                       site_root=self.request.build_absolute_uri('/').rstrip('/'),
-                       author_correspondence_logs=acls)
+        has_unarchived_code = False
+        for acl in acls:
+            if acl.get_status().is_unavailable:
+                has_unarchived_code = True
+                continue
+
+        context = dict(
+            author_correspondence_logs=acls,
+            contact_author_name=contact_author_name,
+            content=custom_invitation_text,
+            has_unarchived_code=has_unarchived_code,
+            site_root=self.request.build_absolute_uri('/').rstrip('/')
+        )
         template = get_template(self.email_template_name)
         return template.render(context)
 

@@ -2,7 +2,7 @@ Dear {{ contact_author_name|default:"AUTHOR_NAME" }},
 
 {{ content }}
  
-We are contacting you on behalf of [CoMSES Net](https://comses.net), a Spoke in the [United States National Science Foundation's West Big Data Hub](https://westbigdatahub.org). One of our primary goals is improving practices around sharing, preserving, and citing agent-based and individual-based computational models and so we have been [cataloguing the state of computational model archival in publications](https://catalog.comses.net) at https://catalog.comses.net. Our database indicates that you have the following publication(s) referencing an agent-based or individual-based computational model:
+We are contacting you on behalf of [CoMSES Net](https://comses.net), an open organization dedicated to advancing transparency in scientific computing. Supported in part by the [United States National Science Foundation's Big Data initiatives](https://westbigdatahub.org), our primary goals are improving practices around sharing, preserving, documenting, and citing computational models in the social and ecological sciences. As part of this program, we have been [cataloguing the state of computational model archival in published research](https://catalog.comses.net). Our bibliometric database aims to connect scholars and improve the discoverability and accessibility of modeling science so researchers can build on each other's work more effectively.  Our research indicates that you have the following publication(s) referencing an agent-based or individual-based computational model:
 
 {% regroup author_correspondence_logs by get_status_display as publication_status_list %}
 {% for get_status_display in publication_status_list %}
@@ -12,12 +12,15 @@ We are contacting you on behalf of [CoMSES Net](https://comses.net), a Spoke in 
     {% endfor %}
 {% endfor %}
 
-Our bibliometric database connects scholars and is aimed at improving the discoverability and accessibility of model source code so that we can build on each other's work more effectively. As you may be aware, there is an [increasing demand for transparency and sharing of data and model codes used for scientific publications](https://forum.comses.net/t/why-archive-your-model/7376).
+We commend your success in advancing modeling science and disseminating your results to colleages through publication. As you may be aware, there is an [increasing demand for transparency and sharing of data and model code used to accomplish the research described in scientific publications](https://forum.comses.net/t/why-archive-your-model/7376). The widespread use of computation and digital data across science makes this critical for replicability and scientific advancement.
 
-In the course of curating this bibliometric database we were unable to locate the model source code referenced in the publication(s) listed above at a publicly available URL and hope to learn from you whether the model source code is publicly available. Clicking on the publication links above will take you to forms where you can update our database with an archival URL for your computational model. 
+{% if has_unarchived_code %}
+We were unable to locate the model source code referenced in the publication(s) listed above at a publicly available URL and hope to learn from you whether the model source code is publicly available. Clicking on the publication links above will take you to forms where you can update our database with information about the archival URL for your computational model(s) as well as any other feedback for our team. We look forward to your response!
 
-If your model source code has not been archived yet, please consider archiving it at one of the trusted DOI issuing digital repositories for source code listed at https://www.comses.net/resources/trusted-digital-repositories/
+If your model source code is not yet archived, we encourage you to do so at a trusted DOI issuing digital repository. We maintain a curated list at https://www.comses.net/resources/trusted-digital-repositories/ as a community service. By archiving your code with these repositories you can obtain a bibliographic citation and DOI for your model source code to ensure you receive professional recognition for your model-based research.
+{% endif %}
 
-We look forward to your response!
+If you have any questions about CoMSES Net or model code archival, please feel free to [contact us](https://www.comses.net/about/contact).
 
-The CoMSES Net Editors
+Sincerely,
+The CoMSES Net Editorial Team
