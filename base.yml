@@ -9,8 +9,6 @@ services:
       - solr-precreate
       - catalog_core
       - /catalog-solr-conf
-    environment:
-      - SOLR_JAVA_MEM="-Xms2g -Xmx2g"
     image: comses/catalog/solr:6.6
     volumes:
       - solr:/opt/solr/server/solr/mycores
