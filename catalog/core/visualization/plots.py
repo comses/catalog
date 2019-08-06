@@ -47,6 +47,7 @@ def home_page_plot(publication_df: pd.DataFrame):
     )
     figure.update_yaxes(
         title_text='Proportion of Publications with Code',
+        range=[0,0.20],
         secondary_y=True
     )
     return figure
