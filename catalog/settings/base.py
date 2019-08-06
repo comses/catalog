@@ -9,6 +9,8 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 from __future__ import print_function
 
+from pathlib import Path
+
 import configparser
 import logging
 import os
@@ -337,8 +339,11 @@ SECRET_KEY = config.get('django', 'SECRET_KEY')
 AUDIT_ACCOUNT_USERNAME = config.get('django', 'AUDIT_ACCOUNT_USERNAME')
 
 def get_release_version():
-    with open('release-version.txt') as f:
-        return f.read()
+    release_version_file = Path('release-version.txt')
+    if release_version_file.is_file():
+        with release_version_file.open() as f:
+            return f.read()
+    return 'undefined'
 
 
 RELEASE_VERSION = get_release_version()
