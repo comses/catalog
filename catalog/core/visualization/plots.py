@@ -4,12 +4,52 @@ import plotly.figure_factory as ff
 
 from django.db import models
 from django.db.models.functions import Concat
+from plotly.subplots import make_subplots
 
 from citation.models import Publication, CodeArchiveUrl, Author
 
 
 def get_publication_queryset(pks):
     return Publication.api.primary().reviewed().filter(pk__in=pks)
+
+
+def home_page_plot(publication_df: pd.DataFrame):
+    df = publication_df.groupby('year_published') \
+        .agg({'year_published': ['count'], 'has_available_code': ['sum', 'mean']}) \
+        .reindex(pd.RangeIndex(1990.0, publication_df['year_published'].max() + 1.0), fill_value=0.0)
+    year = list(df.index)
+    figure = make_subplots(specs=[[{'secondary_y': True}]])
+    figure.add_trace(
+        go.Bar(
+            x=year,
+            y=df[('year_published', 'count')].to_list(),
+            name='# of Publications'
+        ),
+        secondary_y=False
+    )
+    figure.add_trace(
+        go.Scatter(
+            x=year,
+            y=df[('has_available_code', 'mean')].to_list(),
+            name='% Code Available'
+        ),
+        secondary_y=True
+    )
+    figure.update_layout(
+        title_text='Publication Code Availability'
+    )
+    figure.update_xaxes(
+        title_text='Year'
+    )
+    figure.update_yaxes(
+        title_text='Publication Count',
+        secondary_y=False
+    )
+    figure.update_yaxes(
+        title_text='Proportion of Publications with Code',
+        secondary_y=True
+    )
+    return figure
 
 
 def count_bar_plot(records, title, **kwargs):

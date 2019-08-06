@@ -879,7 +879,7 @@ def public_visualization_view(request):
 def public_home(request):
     if request.content_type == 'application/json':
         publication_df = visualization_cache.get_publications()
-        return JsonResponse(plots.code_availability_timeseries_plot(publication_df)['count'].to_plotly_json())
+        return JsonResponse(plots.home_page_plot(publication_df).to_plotly_json())
 
     plot = {
         'id': 'agent-based-modeling-tile'
