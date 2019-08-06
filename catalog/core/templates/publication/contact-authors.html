@@ -18,13 +18,22 @@
     <div class='well'>
         <h3>Example Preview Email</h3>
         <h4>{{ number_of_publications }} matching publications for {{ contact_email }}</h4>
-        <ul>
-        {% for email, acls in remaining_contacts.items %}
-            <li>{{ email }}: {{ acls }}</li>
-        {% endfor %}
-        </ul>
-        <hr>
         {{ preview_email|markdown|safe }}
+        {% if remaining_contacts %}
+            <hr>
+            <h3>Other authors to be contacted</h3>
+            <ul>
+            {% for email, acls in remaining_contacts.items %}
+                <li>{{ email }}: {{ acls|length }} publications
+                    <ol>
+                        {% for acl in acls %}
+                            <li><b>{{ acl.publication.title }}</b> <span class='badge badge-primary'>{{ acl.status }}</span></li>
+                        {% endfor %}
+                    </ol>
+                </li>
+            {% endfor %}
+            </ul>
+        {% endif %}
     </div>
 {% endif %}
 

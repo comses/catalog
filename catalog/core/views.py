@@ -183,7 +183,7 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
                 form=form,
                 contact_email=contact_email,
                 number_of_publications=len(acls),
-                remaining_contacts=contacts,
+                remaining_contacts=dict(contacts),
                 preview_email=email_text)
             )
 
