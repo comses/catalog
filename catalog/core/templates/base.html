@@ -3,7 +3,7 @@
 {% load static from staticfiles %}
 {% url 'login' as login_url %}
 {% url 'logout' as logout_url %}
-{% url 'core:index' as index_url %}
+{% url 'core:public-home' as index_url %}
 {% url 'core:dashboard' as dashboard_url %}
 {% url 'core:user_profile' as user_profile_url %}
 {% url 'citation:publications' as publications_url %}
@@ -18,7 +18,7 @@
 {% url 'core:contact_authors' as contact_authors_url %}
 
 <!doctype html>
-<html class="no-js" lang="">
+<html class="no-js" lang="en">
 {% with JQUERY_VER="1.12.4" BOOTSWATCH_THEME="spacelab" JQUERY_VALIDATE_VER="1.15.1" KNOCKOUT_VER="3.4.0" KNOCKOUT_MAPPING_VER="2.4.1" BOOTSTRAP_VER="3.3.7" FONTAWESOME_VER="4.6.3" RAVENJS_VER="3.27.0" HUMANE_VER="3.2.2" SELECTIZE_VER="0.12.2"%}
     <head>
     {% block head %}
@@ -32,6 +32,8 @@
         <link rel='stylesheet' href="//cdnjs.cloudflare.com/ajax/libs/humane-js/{{HUMANE_VER}}/themes/jackedup.min.css">
         <link rel='stylesheet' href="//cdnjs.cloudflare.com/ajax/libs/selectize.js/{{SELECTIZE_VER}}/css/selectize.bootstrap3.min.css">
         <link rel="stylesheet" href="{% static 'css/style.css' %}" media="screen" />
+        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css"
+          integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz" crossorigin="anonymous">
 
         <script src="//ajax.googleapis.com/ajax/libs/jquery/{{JQUERY_VER}}/jquery.min.js"></script>
         <script>window.jQuery || document.write('<script src="js/local/jquery-{{JQUERY_VER}}.min.js"><\/script>')</script>
@@ -51,11 +53,11 @@
                             <span class="icon-bar"></span>
                             <span class="icon-bar"></span>
                         </button>
-                        <a href="{{ index_url }}" class="navbar-brand"><img width="160" height="33" src='{% static "images/comses-logo.png" %}' alt='CoMSES Network'></a>
+                        <a href="{{ index_url }}" class="navbar-brand"><img height="40" src='{% static "images/comses-logo.png" %}' alt='CoMSES Network'></a>
                     </div>
                     <ul class='nav navbar-nav'>
                         {% if user.is_authenticated %}
-                            <li class='{{ request|active_re:dashboard_url }}'><a href='{{ dashboard_url }}'><i class='fa fa-tachometer'></i> Dashboard</a></li>
+                            <li class='{{ request|active_re:dashboard_url }}'><a href='{{ dashboard_url }}'><i class='fas fa-tachometer-alt'></i> Dashboard</a></li>
                             <li class='{{ request|active_re:contact_authors_url }}'><a href='{{ contact_authors_url }}'><i class='fa fa-flask'></i> Contact Model Authors</a>
                             {% if user.is_superuser %}
                             <li class='{{ request|active_re:search_url }}'><a href='{{ search_url }}'><i class='fa fa-search'></i> Search</a></li>
@@ -69,9 +71,9 @@
                                 <a data-toggle="dropdown" class="dropdown-toggle" href="#">{{ user.username }}<b class="caret"></b></a>
                                 <!-- Dropdown menu -->
                                 <ul class="dropdown-menu">
-                                    <li><a href="{{ user_profile_url }}"><i class="fa fa-user"></i> Profile</a></li>
-                                    <li><a target='_blank' href='{{ github_url }}'><i class='fa fa-github'></i> Develop</a></li>
-                                    <li><a href="{{ logout_url }}"><i class="fa fa-sign-out"></i> Logout</a></li>
+                                    <li><a href="{{ user_profile_url }}"><i class="fas fa-user"></i> Profile</a></li>
+                                    <li><a target='_blank' href='{{ github_url }}'><i class='fab fa-github'></i> Develop</a></li>
+                                    <li><a href="{{ logout_url }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                                 </ul>
                             </li>
                         {% else %}
@@ -99,19 +101,7 @@
             {% endblock content %}
         </div>
 
-        <footer class="footer">
-            {% block footer %}
-            <div class='container'>
-                {% block footerlinks %}
-                <ul class='nav-footer list-inline hidden-xs'>
-                    <li><a href='http://cbie.asu.edu'>Center for Behavior, Institutions, and the Environment</a></li>
-                    <li><a href='http://www.comses.net'>CoMSES Net</a></li>
-                    <li><a href='http://www.azregents.edu/'>&copy; 2014-{% now "Y" %} Arizona Board of Regents</a></li>
-                </ul>
-                {% endblock footerlinks %}
-            </div>
-            {% endblock footer %}
-        </footer>
+        {% include "includes/footer.html" %}
 
         {# external CDN JS files #}
         <script src='//cdnjs.cloudflare.com/ajax/libs/knockout/{{KNOCKOUT_VER}}/knockout-debug.js'></script>
