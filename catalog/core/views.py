@@ -4,6 +4,7 @@ import time
 from collections import Counter, defaultdict
 from datetime import timedelta, datetime
 from hashlib import sha1
+from operator import attrgetter
 
 from dateutil.parser import parse as datetime_parse
 from django.conf import settings
@@ -133,9 +134,8 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
             if acl.get_status().is_unavailable:
                 has_unarchived_code = True
                 continue
-
         context = dict(
-            author_correspondence_logs=acls,
+            author_correspondence_logs=sorted(acls, key=attrgetter('status')),
             contact_author_name=contact_author_name,
             content=custom_invitation_text,
             has_unarchived_code=has_unarchived_code,
