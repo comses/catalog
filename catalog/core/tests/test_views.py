@@ -6,7 +6,7 @@ from unittest.mock import patch
 from django.contrib.auth.models import User
 from haystack.query import SearchQuerySet
 
-from citation.models import Publication, ModelDocumentation
+from citation.models import Publication
 from .common import BaseTest
 
 logger = logging.getLogger(__name__)
@@ -126,8 +126,6 @@ class PublicationsViewTest(BaseTest):
 
 class PublicationDetailViewTest(BaseTest):
     def test_canonical_publication_detail_view(self):
-        source_code_documentation = ModelDocumentation(name='Source code')
-        source_code_documentation.save()
         journal_title = 'Econometrica'
         container = self.create_container(name=journal_title)
         container.save()
@@ -171,8 +169,6 @@ class PublicationDetailViewTest(BaseTest):
 
         publication_serializer.return_value = MockPublicationSerializer()
 
-        source_code_documentation = ModelDocumentation(name='Source code')
-        source_code_documentation.save()
         container = self.create_container(name='Econometrica')
         container.save()
         p = self.create_publication(title='Akjhdfjk kjjd', added_by=self.user, container=container)

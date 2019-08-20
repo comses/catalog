@@ -482,17 +482,6 @@
                     data_clone.sponsors(ko.utils.arrayMap(data.selectedSponsors(), function (sponsor) {
                         return {'name': sponsor};
                     }));
-
-                    if (self.validCodeArchiveUrl()) {
-                        if (data.selectedModelDocumentations.indexOf('Source code') < 0) {
-                            data.selectedModelDocumentations.push('Source code');
-                        }
-                    } else {
-                        if (data.selectedModelDocumentations.indexOf('Source code') >= 0) {
-                            data.selectedModelDocumentations.remove('Source code');
-                        }
-                    }
-
                     if (data.selectedModelDocumentations().length > 0) {
                         data_clone.model_documentation(ko.utils.arrayMap(data.selectedModelDocumentations(), function (md) {
                             return {'name': md};

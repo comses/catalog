@@ -5,7 +5,7 @@ from django.utils.http import urlencode
 
 import logging
 
-from citation.models import Publication, Container, ModelDocumentation
+from citation.models import Publication, Container
 
 logger = logging.getLogger(__name__)
 
