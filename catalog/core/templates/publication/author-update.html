@@ -62,6 +62,22 @@
                         {% endfor %}
                     </ul>
                 </div>
+                <div>
+                    <b>Code Archive URLs</b>
+                    <ul class='list-group'>
+                        {% for ca_url in publication.code_archive_urls.all %}
+                            <li class='list-group-item'>
+                                <span class='badge badge-primary'>{{ ca_url.category }}</span>
+                                <span class='badge badge-light'>{{ ca_url.status }}</span>
+                                <a target='_blank' href='{{ ca_url.url }}'>{{ ca_url.url }}</a>
+                                <br>
+                                <small><em>Last modified by {{ ca_url.creator }} on {{ ca_url.last_modified }}</em></small>
+                            </li>
+                        {% empty %}
+                            <li>No listed URLs</li>
+                        {% endfor %}
+                    </ul>
+                </div>
                 <div class='citation'>
                     {{ publication.apa_citation_string }}
                 </div>
