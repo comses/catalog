@@ -160,7 +160,7 @@ class ContactAuthorsView(LoginRequiredMixin, FormView):
             return self.render_to_response(
                 self.get_context_data(
                     form=form,
-                    preview_email='No matching publications')
+                    preview_email='')
             )
 
         if ready_to_send:
