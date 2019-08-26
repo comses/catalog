@@ -38,6 +38,20 @@ def home_page_plot(publication_df: pd.DataFrame):
     figure.update_layout(
         title_text='Publication Code Availability'
     )
+    figure.update_layout(
+        legend=go.layout.Legend(
+            x=0,
+            y=1,
+            traceorder="normal",
+            font=dict(
+                family="sans-serif",
+                size=12,
+                color="black"
+            ),
+            borderwidth=1
+        )
+    )
+
     figure.update_xaxes(
         title_text='Year'
     )
