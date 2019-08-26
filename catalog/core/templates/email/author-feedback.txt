@@ -1,0 +1,7 @@
+The publication *"{{ publication.title }}"* has been updated (presumably by {{ publication.contact_author }}) with the following URL:
+
+- {{ author_correspondence_log.author_submitted_url }}
+
+## Additional feedback
+
+{{ author_correspondence_log.author_feedback }}
