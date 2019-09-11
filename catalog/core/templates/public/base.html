@@ -72,6 +72,7 @@
 
 {% endblock %}
 
+{% block js %}
 <script src="//cdn.ravenjs.com/3.27.0/raven.min.js"></script>
 <script>
     Raven.config('{% sentry_public_dsn %}').install();
@@ -87,5 +88,6 @@
         crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/holderjs@2.9.6/holder.min.js"
         integrity="sha256-yF/YjmNnXHBdym5nuQyBNU62sCUN9Hx5awMkApzhZR0=" crossorigin="anonymous"></script>
+{% endblock %}
 </body>
 </html>

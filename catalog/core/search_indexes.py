@@ -262,7 +262,7 @@ class PublicationDocSearch:
         return PublicationDocSearch(self.search[val])
 
     def _full_text(self, q):
-        return query.Match(**{ALL_DATA_FIELD: q})
+        return query.QueryString(**{'query': q, 'default_field': ALL_DATA_FIELD})
 
     def _filter(self, facet_filters: Dict[str, List[int]]):
         queries = []

@@ -20,6 +20,20 @@
                                 <div class="input-group-append">
                                     <button class="btn btn-outline-primary btn-lg" type="submit" form="search">Search
                                     </button>
+                                    <button class="btn btn-outline-secondary btn-lg"
+                                            type="button"
+                                            data-toggle="popover"
+                                            title="Search Help"
+                                            data-html="true"
+                                            data-content='<p>Search can be done using boolean conditions and exact matches. By default words are searched with OR conditions</p>
+                                            <p><b>Example:</b> the queries "electric cars" and "electric OR cars" find all publications with either of those
+                                            keywords. Publications with both are ranked higher. The query "electric AND cars" only returns and ranks publications
+                                            with both those keywords. Exact phrase search can be made by encasing the search in double quotes. The query "electric cars"
+                                            will only find publications matching that exact phrase.</p>
+                                            <p>More detailed information about search can be found in the
+                                            <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-query-string-query.html#query-string-syntax">Elasticsearch docs</a></p>'>
+                                        ?
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -137,3 +151,12 @@
         </div>
     </div>
 {% endblock content %}
+
+{% block js %}
+    {{ block.super }}
+    <script>
+        jQuery(document).ready(function() {
+            jQuery('[data-toggle="popover"]').popover();
+        })
+    </script>
+{% endblock %}
