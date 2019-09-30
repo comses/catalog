@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 import time
 from collections import Counter, defaultdict
 from datetime import timedelta, datetime
@@ -745,6 +746,18 @@ def create_paginator(current_page: int, query_dict: QueryDict, total_hits, page_
     return paginator
 
 
+def with_vary_header(view):
+    """Adds a vary header to a request. Prevents JSON response from showing up the browsers back button.
+
+    See https://stackoverflow.com/questions/9956255/chrome-displays-ajax-response-when-pressing-back-button
+    """
+    def f(request):
+        response = view(request)
+        response['Vary'] = 'X-Requested-With'
+        return response
+    return f
+
+
 def public_search_view(request):
     search, filters = normalize_search_querydict(request.GET)
     query_dict = request.GET.copy()
@@ -876,6 +889,7 @@ def public_visualization_view(request):
                       'facets': facets})
 
 
+@with_vary_header
 def public_home(request):
     if request.content_type == 'application/json':
         publication_df = visualization_cache.get_publications()
