@@ -753,7 +753,7 @@ def with_vary_header(view):
     """
     def f(request):
         response = view(request)
-        response['Vary'] = 'X-Requested-With'
+        response['Vary'] = 'Accept'
         return response
     return f
 
