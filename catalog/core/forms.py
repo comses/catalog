@@ -156,7 +156,7 @@ class SuggestedPublicationForm(ModelForm):
     def clean_doi(self):
         response = requests.get('https://doi.org/{}'.format(self.cleaned_data['doi']))
         if response.status_code != 200:
-            raise forms.ValidationError('Could not resolve doi. DOI should not include protocol infomation (so 10.1109/access.2019.2896978 is valid and https://doi.org/10.1109/access.2019.2896978 is not)')
+            raise forms.ValidationError('Could not resolve DOI. DOI should not include protocol information (so 10.1109/access.2019.2896978 is valid and https://doi.org/10.1109/access.2019.2896978 is not)')
         return self.cleaned_data['doi']
 
     def clean(self):
