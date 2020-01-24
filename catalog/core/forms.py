@@ -156,11 +156,11 @@ class SuggestedPublicationForm(ModelForm):
     def clean_doi(self):
         response = requests.get('https://doi.org/{}'.format(self.cleaned_data['doi']))
         if response.status_code != 200:
-            raise forms.ValidationError('Could not resolve doi')
+            raise forms.ValidationError('Could not resolve doi. DOI should not include protocol infomation (so 10.1109/access.2019.2896978 is valid and https://doi.org/10.1109/access.2019.2896978 is not)')
         return self.cleaned_data['doi']
 
     def clean(self):
-        has_doi = bool(self.cleaned_data['doi'])
+        has_doi = bool(self.cleaned_data['doi'] if 'doi' in self.cleaned_data else False)
         has_title_and_journal = bool(self.cleaned_data['title'] and self.cleaned_data['journal'])
         if not (has_doi or has_title_and_journal):
             raise forms.ValidationError('Must have either a DOI or a title and journal')
