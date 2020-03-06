@@ -100,7 +100,7 @@ def programming_platform_count_plot():
 
 def code_availability_timeseries_plot(publication_df: pd.DataFrame, publication_pks=None):
     if publication_pks is not None:
-        publication_df = publication_df.reindex(publication_pks)
+        publication_df = publication_df.loc[publication_df.index.intersection(publication_pks)]
     df = publication_df.groupby('year_published') \
         .agg({'year_published': ['count'], 'has_available_code': ['sum', 'mean']}) \
         .reindex(pd.RangeIndex(1990.0, publication_df['year_published'].max() + 1.0), fill_value=0.0)
@@ -146,7 +146,7 @@ def code_availability_timeseries_plot(publication_df: pd.DataFrame, publication_
 
 
 def archival_timeseries_plot(publication_df: pd.DataFrame, code_archive_urls_df: pd.DataFrame, publication_pks):
-    matching_publication_df = publication_df.reindex(publication_pks)
+    matching_publication_df = publication_df.loc[publication_df.index.intersection(publication_pks)]
     year_published_index = pd.RangeIndex(1990.0, publication_df['year_published'].max() + 1.0)
     year_counts_df = matching_publication_df \
         .groupby(['year_published'])[['year_published']] \
