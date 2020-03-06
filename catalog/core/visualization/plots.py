@@ -100,7 +100,7 @@ def programming_platform_count_plot():
 
 def code_availability_timeseries_plot(publication_df: pd.DataFrame, publication_pks=None):
     if publication_pks is not None:
-        publication_df = publication_df.loc[publication_pks]
+        publication_df = publication_df.reindex(publication_pks)
     df = publication_df.groupby('year_published') \
         .agg({'year_published': ['count'], 'has_available_code': ['sum', 'mean']}) \
         .reindex(pd.RangeIndex(1990.0, publication_df['year_published'].max() + 1.0), fill_value=0.0)
@@ -146,7 +146,7 @@ def code_availability_timeseries_plot(publication_df: pd.DataFrame, publication_
 
 
 def archival_timeseries_plot(publication_df: pd.DataFrame, code_archive_urls_df: pd.DataFrame, publication_pks):
-    matching_publication_df = publication_df.loc[publication_pks]
+    matching_publication_df = publication_df.reindex(publication_pks)
     year_published_index = pd.RangeIndex(1990.0, publication_df['year_published'].max() + 1.0)
     year_counts_df = matching_publication_df \
         .groupby(['year_published'])[['year_published']] \
@@ -212,7 +212,7 @@ def archival_timeseries_plot(publication_df: pd.DataFrame, code_archive_urls_df:
 
 def documentation_standards_timeseries_plot(publication_df: pd.DataFrame, publication_pks):
     year_published_index = pd.RangeIndex(1990.0, publication_df['year_published'].max() + 1.0)
-    matching_publication_df = publication_df.loc[publication_pks]
+    matching_publication_df = publication_df.reindex(publication_pks)
     df = matching_publication_df \
         .groupby('year_published') \
         .agg({'year_published': ['count'],
@@ -296,7 +296,7 @@ def documentation_standards_timeseries_plot(publication_df: pd.DataFrame, public
 
 
 def top_author_plot(publication_author_df, publication_pks):
-    matching_authors_df = publication_author_df.loc[publication_pks]
+    matching_authors_df = publication_author_df.loc[publication_author_df.index.intersection(publication_pks)]
     df = matching_authors_df.groupby('author_id') \
              .agg({'name': ['first', 'count']}) \
              .sort_values(by=('name', 'count'), ascending=False).iloc[:10]
@@ -317,7 +317,7 @@ def top_author_plot(publication_author_df, publication_pks):
 
 
 def top_journal_plot(container_df, publication_pks):
-    matching_container_df = container_df.loc[publication_pks]
+    matching_container_df = container_df.loc[container_df.index.intersection(publication_pks)]
     df = matching_container_df.groupby('container_id') \
              .agg({'container_name': ['first'], 'container_id': ['count']}) \
              .sort_values(by=('container_id', 'count'), ascending=False).iloc[:10]
@@ -338,7 +338,7 @@ def top_journal_plot(container_df, publication_pks):
 
 
 def top_platform_plot(publication_platform_df, publication_pks):
-    matching_platform_df = publication_platform_df.loc[publication_pks]
+    matching_platform_df = publication_platform_df.loc[publication_platform_df.index.intersection(publication_pks)]
     df = matching_platform_df.groupby('platform_id') \
         .agg({'platform_id': ['count'], 'platform_name': ['first']}) \
         .sort_values(by=('platform_id', 'count'), ascending=False).iloc[:10]
@@ -359,7 +359,7 @@ def top_platform_plot(publication_platform_df, publication_pks):
 
 
 def top_sponsor_plot(publication_sponsor_df, publication_pks):
-    matching_sponsor_df = publication_sponsor_df.loc[publication_pks]
+    matching_sponsor_df = publication_sponsor_df.loc[publication_sponsor_df.index.intersection(publication_pks)]
     df = matching_sponsor_df.groupby('sponsor_id') \
         .agg({'sponsor_id': ['count'], 'sponsor_name': ['first']}) \
         .sort_values(by=('sponsor_id', 'count'), ascending=False).iloc[:10]
