@@ -1,35 +1,46 @@
 {
-    "name": "@comses/catalog",
-    "version": "v0.5.1",
-    "contributors": [
-        {"name": "Allen Lee", "email": "allen.lee@asu.edu"}
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/comses/catalog"
-    },
-    "license": "GPLv2",
-    "dependencies": {
-        "react": "latest",
-        "reflux": "latest",
-        "superagent": "latest",
-        "react-select": "latest"
-    },
-    "browserify": {
-        "transform": [
-            ["reactify", {"es6": true}]
-        ]
-    },
-    "devDependencies": {
-        "jshint": "latest",
-        "browserify": "latest",
-        "reactify": "latest",
-        "mocha": "latest"
-    },
-    "scripts": {
-        "lint": "jshint catalog/js/**.js",
-        "test": "mocha catalog/js/tests/",
-        "build": "browserify -t reactify js/app.js -o miracle/static/js/catalog.min.js",
-        "prepublish": "npm run build"
+  "name": "@comses/catalog",
+  "version": "v0.5.1",
+  "contributors": [
+    {
+      "name": "Allen Lee",
+      "email": "allen.lee@asu.edu"
     }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/comses/catalog"
+  },
+  "license": "GPLv2",
+  "dependencies": {
+    "react": "latest",
+    "reflux": "latest",
+    "superagent": "latest",
+    "react-select": "latest",
+    "snyk": "^1.316.1"
+  },
+  "browserify": {
+    "transform": [
+      [
+        "reactify",
+        {
+          "es6": true
+        }
+      ]
+    ]
+  },
+  "devDependencies": {
+    "jshint": "latest",
+    "browserify": "latest",
+    "reactify": "latest",
+    "mocha": "latest"
+  },
+  "scripts": {
+    "lint": "jshint catalog/js/**.js",
+    "test": "mocha catalog/js/tests/",
+    "build": "browserify -t reactify js/app.js -o miracle/static/js/catalog.min.js",
+    "prepublish": "npm run snyk-protect && npm run build",
+    "snyk-protect": "snyk protect"
+  },
+  "snyk": true
 }
