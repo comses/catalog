@@ -1,4 +1,4 @@
-FROM comses/base:1.2.0 as base
+FROM comses/base:1.3.0 as base
 
 ARG RUN_SCRIPT=./deploy/docker/dev.sh
 ARG UBUNTU_MIRROR=mirror.enzu.com/ubuntu

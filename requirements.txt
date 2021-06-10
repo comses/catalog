@@ -1,12 +1,12 @@
 cssselect==1.0.3
-Django>=2.2.18,<3.0
+Django>=2.2.24,<3.0
 django-autocomplete-light==3.3.5
 django-bootstrap3==11.1.0
 django-contact-form==1.7.0
 django-extensions==2.2.1
 django-haystack==2.8.1
 django-model-utils==3.2.0
-djangorestframework==3.11.2
+djangorestframework==3.12.4
 django-cas-client==1.5.1
 psycopg2-binary==2.8.3
 pysolr==3.8.0
@@ -18,6 +18,7 @@ elasticsearch_dsl<7.0.0
 # dev requirements, factor out later
 coverage
 django-debug-toolbar
+jedi==0.17.2 # https://github.com/ipython/ipython/issues/12748
 ipython
 invoke
 coveralls
