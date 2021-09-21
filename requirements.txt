@@ -30,4 +30,4 @@ django-pandas==0.5.1
 pandas>1.0.0,<1.1.0
 
 # static visualization dependencies
-plotly
+plotly==5.3.1
