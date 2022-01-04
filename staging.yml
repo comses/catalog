@@ -20,7 +20,7 @@ services:
       - source: uwsgi_config
         target: /code/deploy/uwsgi/catalog.ini
     environment:
-      DOMAIN_NAME: 'staging.catalog.comses.net'
+      DOMAIN_NAME: 'staging-catalog.comses.net'
     restart: always
     secrets:
       - catalog_django_config

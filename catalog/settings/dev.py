@@ -6,7 +6,7 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 INSTALLED_APPS += ('debug_toolbar',)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'django', 'staging.catalog.comses.net']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'django', 'staging-catalog.comses.net']
 
 MIDDLEWARE = ('debug_toolbar.middleware.DebugToolbarMiddleware',) + MIDDLEWARE
 
