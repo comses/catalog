@@ -1,13 +1,14 @@
-FROM comses/base:1.3.0 as base
+FROM comses/base:focal as base
 
 ARG RUN_SCRIPT=./deploy/docker/dev.sh
-ARG UBUNTU_MIRROR=mirror.enzu.com/ubuntu
+ARG UBUNTU_MIRROR=mirror.arizona.edu/ubuntu
 
 RUN sed -i "s|archive.ubuntu.com|${UBUNTU_MIRROR}|" /etc/apt/sources.list \
     && apt-get update && apt-get install --no-install-recommends -q -y \
     autopostgresqlbackup \
     curl \
     git \
+    libpq-dev \
     libxml2-dev \
     postgresql-client \
     python3-dev \
