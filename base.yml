@@ -1,4 +1,4 @@
-version: '3.3'
+version: '3.9'
 services:
   solr:
     build:
@@ -38,9 +38,9 @@ services:
       - ./deploy/elasticsearch.conf.d/elasticsearch-dev.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - esdata:/usr/share/elasticsearch/data
   db:
-    image: postgres:10
+    image: postgres:14
     volumes:
-      - data:/var/lib/postgresql/data
+      - ./docker/shared/pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: catalog
       POSTGRES_PASSWORD_FILE: /run/secrets/catalog_db_password
