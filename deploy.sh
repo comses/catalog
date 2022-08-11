@@ -22,7 +22,7 @@ fi
 }
 
 tag_app() {
-git describe --tags >| release-version.txt
+git describe --tags --always >| release-version.txt
 }
 
 down_app() {
