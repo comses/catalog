@@ -41,6 +41,7 @@ services:
     image: postgres:14
     volumes:
       - ./docker/shared/pgdata:/var/lib/postgresql/data
+    restart: always
     environment:
       POSTGRES_USER: catalog
       POSTGRES_PASSWORD_FILE: /run/secrets/catalog_db_password
