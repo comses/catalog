@@ -1,6 +1,5 @@
 import json
 import logging
-import sys
 import time
 from collections import Counter, defaultdict
 from datetime import timedelta, datetime
@@ -568,7 +567,7 @@ class AggregatedCodeArchivedURLView(LoginRequiredMixin, generics.GenericAPIView)
             filtered_pubs = queryset_gen(sqs)
             pubs = Publication.api.primary(pk__in=filtered_pubs)
             for pub in pubs:
-                if pub.code_archive_url is not '' and pub.year_published is not None:
+                if pub.code_archive_url and pub.year_published is not None:
                     years.append(pub.year_published)
                     all_records[(pub.year_published, CodeArchiveUrl.categorize_url(pub.code_archive_url))] += 1
 
