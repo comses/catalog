@@ -12,7 +12,7 @@ django-cas-client==1.5.1
 psycopg2-binary==2.8.3
 pysolr==3.8.0
 raven==6.5.0
-uWSGI==2.0.20
+uWSGI==2.0.22
 elasticsearch<7.0.0
 elasticsearch_dsl<7.0.0
 -e /code/citation
