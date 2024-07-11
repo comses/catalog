@@ -5,7 +5,7 @@ Provides web tools for annotating and managing bibliographic references for publ
 
 # Community support needed: in search of maintainers
 
-If you find this software useful please consider stepping up to help us support it in the Open Source spirit. We're looking for maintainers, so let us know if you are interested in contributing! The [citation](https://github.com/comses/citation/) is also a key component that would need side maintenance as well.
+If you find this software useful please consider stepping up to help us support it in the Open Source spirit. We're looking for maintainers, so let us know if you are interested in contributing! The [citation](https://github.com/comses/citation/) Python package is also a key component that would need maintenance alongside.
 
 Maintenance would be to keep up with dependency upgrades, migrate fully from Solr to elasticsearch, etc.
 
