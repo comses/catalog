@@ -35,3 +35,4 @@ plotly==5.3.1
 
 requests==2.32.3
 sqlparse>=0.5.0 # not directly required, pinned by Snyk to avoid a vulnerability
+setuptools>=70.0.0 # not directly required, pinned by Snyk to avoid a vulnerability
