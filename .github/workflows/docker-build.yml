@@ -28,4 +28,4 @@ jobs:
         ./build.sh 
     - name: Run Django tests
       run: |
-        docker-compose run --rm django /code/deploy/docker/test.sh
+        docker compose run --rm django /code/deploy/docker/test.sh

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Convenience script for creating local docker-compose
+# Convenience script for creating local docker-compose.yml
 DOCKER_COMPOSE_ENV=${1:-dev}
 
 if [[ "$DOCKER_COMPOSE_ENV" == "prod" ]]; then
-  docker-compose -f base.yml -f staging.yml -f ${DOCKER_COMPOSE_ENV}.yml config > docker-compose.yml
+  docker compose -f base.yml -f staging.yml -f ${DOCKER_COMPOSE_ENV}.yml config > docker-compose.yml
 elif [[ "$DOCKER_COMPOSE_ENV" == "staging" ]]; then
-  docker-compose -f base.yml -f staging.yml config > docker-compose.yml
+  docker compose -f base.yml -f staging.yml config > docker-compose.yml
 else
-  docker-compose -f base.yml -f dev.yml config > docker-compose.yml
+  docker compose -f base.yml -f dev.yml config > docker-compose.yml
 fi
