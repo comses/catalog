@@ -14,7 +14,8 @@ jobs:
 
     steps:
     - name: Checkout repo + submodules
-      uses: actions/checkout@v4
+      # actions/checkout v7.0.1, pinned to a full commit SHA.
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
         submodules: recursive
     - name: Build
