@@ -25,8 +25,8 @@ from django.template.loader import get_template
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
-from django.utils.http import is_safe_url
-from django.utils.translation import ugettext_lazy as _
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
@@ -219,9 +219,9 @@ class LoginView(FormView):
             self.redirect_field_name,
             self.request.GET.get(self.redirect_field_name, '')
         )
-        url_is_safe = is_safe_url(
+        url_is_safe = url_has_allowed_host_and_scheme(
             url=redirect_to,
-            allowed_hosts=set(self.request.get_host()),
+            allowed_hosts=self.request.get_host(),
         )
         if not url_is_safe:
             return resolve_url(settings.LOGIN_REDIRECT_URL)
@@ -976,7 +976,7 @@ def autocomplete(request):
     model = content_type.model_class()
     model_doc = get_search_index(model)
     response = model_doc.search().query('match', name=search).execute()
-    return JsonResponse({'matches': [h.to_dict(include_meta=False, skip_empty=False) for h in response.hits]})
+    return JsonResponse({'matches': [h.to_dict() for h in response.hits]})
 
 
 class SuggestedMergeView(APIView):
