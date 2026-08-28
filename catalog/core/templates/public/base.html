@@ -1,7 +1,6 @@
 {% url 'login' as login_url %}
 {% url 'logout' as logout_url %}
 {% url 'core:dashboard' as dashboard_url %}
-{% load raven %}
 {% load tags %}
 
 <!DOCTYPE html>
@@ -74,10 +73,17 @@
 {% endblock %}
 
 {% block js %}
-<script src="//cdn.ravenjs.com/3.27.0/raven.min.js"></script>
+{% if sentry_public_dsn %}
+<script src="https://browser.sentry-cdn.com/10.71.0/bundle.min.js"
+        integrity="sha384-Z0GeEnLeg0yvo3LU6sdGDESgTZCwpVvZBIgcnddmSR+ovRPe8Esn+19CrZdcxC4Z"
+        crossorigin="anonymous"></script>
 <script>
-    Raven.config('{% sentry_public_dsn %}').install();
+    Sentry.init({
+        dsn: '{{ sentry_public_dsn|escapejs }}',
+        release: 'catalog@{{ release_version|escapejs }}'
+    });
 </script>
+{% endif %}
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
         integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
         crossorigin="anonymous"></script>
