@@ -1,0 +1,9 @@
+# Elasticsearch 8 configuration (single-node mode).
+# discovery.zen.* is removed in ES 7+; discovery.type=single-node disables
+# cluster membership and the transport port, so this service must run as
+# exactly one replica (see staging.yml).
+cluster.name: "docker-cluster8"
+network.host: 0.0.0.0
+discovery.type: single-node
+bootstrap.memory_lock: true
+xpack.security.enabled: false

@@ -37,6 +37,33 @@ services:
       - ./deploy/elasticsearch.conf.d/log4j2.properties:/usr/share/elasticsearch/config/log4j2.properties
       - ./deploy/elasticsearch.conf.d/elasticsearch-dev.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - esdata:/usr/share/elasticsearch/data
+  elasticsearch8:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
+    environment:
+      - cluster.name=docker-cluster8
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - ./deploy/elasticsearch.conf.d/elasticsearch8.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - esdata8:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
   db:
     image: postgres:14
     volumes:
@@ -60,15 +87,19 @@ services:
       SOLR_HOST: solr
       SOLR_PORT: 8983
       SOLR_CORE_NAME: catalog_core
+      ELASTICSEARCH_HOST: elasticsearch8
     depends_on:
       - db
       - redis
       - elasticsearch
+      - elasticsearch8
       - solr
 volumes:
   solr:
     driver: local
   esdata:
+    driver: local
+  esdata8:
     driver: local
   data:
     driver: local
