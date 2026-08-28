@@ -1,37 +1,9 @@
-asgiref==3.5.2
-cssselect==1.0.3
-Django>=4.2.14
-django-autocomplete-light==3.3.5
-django-bootstrap3==11.1.0
-django-contact-form==1.7.0
-django-extensions==2.2.1
-django-haystack==2.8.1
-django-model-utils==3.2.0
-djangorestframework==3.15.2
-django-cas-client==1.5.1
-psycopg2-binary==2.8.3
-pysolr==3.8.0
-raven==6.5.0
-uWSGI==2.0.22
-elasticsearch<7.0.0
-elasticsearch_dsl<7.0.0
--e /code/citation
-# dev requirements, factor out later
-coverage
-django-debug-toolbar
-jedi==0.17.2 # https://github.com/ipython/ipython/issues/12748
-ipython
-invoke
-coveralls
-django_redis
-
-# visualization dependencies
-numpy
-django-pandas==0.5.1
-pandas>1.0.0,<1.1.0
-
-# static visualization dependencies
-plotly==5.3.1
-
-requests==2.32.3
-sqlparse>=0.5.0 # not directly required, pinned by Snyk to avoid a vulnerability
+# DEPRECATED: this file is intentionally empty and must NOT be used as an
+# active dependency source. All dependencies are declared in pyproject.toml
+# and managed with uv (uv.lock).
+#
+#   uv sync     # install dependencies
+#   uv lock     # regenerate the lockfile
+#
+# The deploy image (deploy/images/django.Dockerfile) no longer references
+# this file; it is kept only for tools that still probe for its presence.
