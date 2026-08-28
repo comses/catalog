@@ -1,6 +1,5 @@
 import logging
 import os
-import re
 import sys
 
 from invoke import task
@@ -154,6 +153,25 @@ def initialize_database_schema(ctx):
     ctx.run('yes | {python} manage.py migrate'.format(**env))
 
 
+@task(aliases=['cm'])
+def check_migrations(ctx):
+    """CI/test gate: fail if model changes lack migration files.
+
+    Runs `manage.py makemigrations --check --dry-run`, which exits
+    non-zero when new migrations would be generated. Test validation
+    must never write migration files as a side effect; run
+    `invoke idb` (or manage.py makemigrations) in a development
+    environment to create them, then commit the result.
+    """
+    dj(ctx, 'makemigrations --check --dry-run')
+
+
+@task
+def migrate(ctx):
+    """Apply the committed migrations (never generates new ones)."""
+    ctx.run('yes | {python} manage.py migrate --settings {project_conf}'.format(**env))
+
+
 @task(aliases=['zi'])
 def zotero_import(ctx, group=None, collection=None):
     _command = '{python} manage.py zotero_import'
@@ -207,11 +225,21 @@ def setup(ctx):
 
 @task(aliases=['relu'])
 def reload_uwsgi(ctx):
-    status_line = ctx.run("sudo supervisorctl status | grep {project_name}".format(**env))
-    m = re.search('RUNNING(?:\s+)pid\s(\d+)', status_line)
-    if m:
-        uwsgi_pid = m.group(1)
-        logger.debug("sending HUP to %s", uwsgi_pid)
-        ctx.run("sudo kill -HUP {}".format(uwsgi_pid))
-    else:
-        logger.warning("No pid found: %s", status_line)
+    """Legacy no-op: uWSGI was replaced by Gunicorn.
+
+    The application server is Gunicorn, started as the container's main
+    process by the release script (deploy/docker/prod.sh). There is no
+    supervisor-managed uWSGI process and no HUP-based reload. To reload
+    the application server, restart the django container instead:
+
+        docker compose restart django
+
+    This task intentionally remains a no-op (logging an error, not
+    failing) so legacy playbooks and runbooks that still reference it do
+    not break; the logged message documents the Gunicorn-compatible
+    replacement.
+    """
+    logger.error(
+        "reload_uwsgi is a no-op: uWSGI has been replaced by Gunicorn "
+        "(see deploy/docker/prod.sh). Reload the application server by "
+        "restarting the django container: docker compose restart django")
