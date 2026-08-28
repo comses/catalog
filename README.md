@@ -32,3 +32,27 @@ inv rfd -f
 inv ri
 ./manage.py populate_visualization_cache
 ```
+
+## Deployment (staging / prod)
+
+Staging and prod are deployed to Docker Swarm via `deploy.sh`. The
+deployment **and** rollback unit is an **immutable application image
+reference** (explicit tag or digest); `prod:latest` is rejected by the
+deploy flow. Before every rollout, `deploy.sh` records the currently
+deployed image (service label `comses.catalog.previous-image` plus an
+append-only `docker/deploy-history.log`) — that recorded reference is what
+a rollback redeploys, with the ES6 endpoint.
+
+```
+./deploy.sh build comses/catalog/prod:<immutable-tag>
+docker push comses/catalog/prod:<immutable-tag>     # if the swarm manager cannot see the local build
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> ./deploy.sh deploy staging
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> ./deploy.sh deploy prod
+```
+
+Switching a release to Elasticsearch 8 is a **gated action**: run
+`manage.py rebuild_es_index` against ES8 and validate the rebuilt indices
+*before* deploying any release with `CATALOG_ES_HOST=elasticsearch8`
+(releases run on ES6 by default). The full procedure — including hard
+operational prerequisites (swarm secrets/storage, registry) and the
+rollback steps — is in [docs/deployment-runbook.md](docs/deployment-runbook.md).
