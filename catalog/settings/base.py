@@ -2,10 +2,10 @@
 Django settings for catalog project.
 
 For more information on this file, see
-https://docs.djangoproject.com/en/2.2/topics/settings/
+https://docs.djangoproject.com/en/5.2/topics/settings/
 
 For the full list of settings and their values, see
-https://docs.djangoproject.com/en/2.2/ref/settings/
+https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 from __future__ import print_function
 
@@ -46,24 +46,28 @@ HAYSTACK_CONNECTIONS = {
     },
 }
 
+# Elasticsearch 8 endpoint: a single host:port derived from the
+# environment (deployment injects these from the catalog secret). This
+# endpoint is the inter-cluster cutover and rolls back independently by
+# pointing it at the previous cluster. Sniffing is disabled: deployment
+# owns cluster membership and the app must not reconfigure itself.
 ELASTICSEARCH = {
-    'default': {
-        'hosts': [
-            {
-                'host': 'elasticsearch',
-                'max_retries': 5,
-                'port': '9200',
-                'sniff_on_start': True,
-                'sniff_timeout': 60,
-                'sniff_on_connection_fail': True
-            }
-        ]
-    }
+    # The ES8 client requires a full URL (scheme://host:port). Deployments
+    # may override the whole endpoint with ELASTICSEARCH_URL (e.g. from the
+    # catalog secret) or compose it from ELASTICSEARCH_SCHEME/HOST/PORT.
+    'hosts': [os.environ.get(
+        'ELASTICSEARCH_URL',
+        '{0}://{1}:{2}'.format(os.environ.get('ELASTICSEARCH_SCHEME', 'http'),
+                               os.environ.get('ELASTICSEARCH_HOST', 'elasticsearch8'),
+                               os.environ.get('ELASTICSEARCH_PORT', '9200')))
+    ],
+    'sniff_on_start': False,
+    'sniff_on_node_failure': False,
 }
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'HOST': config.get('db', 'HOST'),
         'NAME': config.get('db', 'NAME'),
         'PASSWORD': config.get('db', 'PASSWORD'),
@@ -71,6 +75,11 @@ DATABASES = {
         'USER': config.get('db', 'USER'),
     }
 }
+
+# Deliberate choice: citation's CitationConfig already opts its models into
+# BigAutoField, and catalog.core defines no models, so this system default
+# does not require any new migrations.
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -133,6 +142,7 @@ TEMPLATES = [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'catalog.context_processors.debug',
+                'catalog.context_processors.sentry_public_dsn',
             ],
         },
     },
@@ -146,7 +156,7 @@ MIDDLEWARE = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'cas.middleware.CASMiddleware',
+    'django_cas_ng.middleware.CASMiddleware',
 )
 
 # FIXME: is Bokeh served in an iframe?
@@ -168,12 +178,11 @@ DJANGO_APPS = (
 )
 
 THIRD_PARTY_APPS = (
-    'raven.contrib.django.raven_compat',
     'bootstrap3',
     'haystack',
     'rest_framework',
     'django_extensions',
-    'cas',
+    'django_cas_ng',
 )
 
 CATALOG_APPS = ('catalog.core.apps.CoreConfig', 'citation.apps.CitationConfig',)
@@ -185,20 +194,29 @@ ACCOUNT_ACTIVATION_DAYS = 30
 
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
-    'cas.backends.CASBackend',
+    'django_cas_ng.backends.CASBackend',
 )
 
-# CAS settings
+# CAS settings (django-cas-ng; replaces the abandoned django-cas-client)
 CAS_SERVER_URL = 'https://weblogin.asu.edu/cas/'
+CAS_VERSION = '2'
 CAS_IGNORE_REFERER = True
 CAS_REDIRECT_URL = '/curator/dashboard/'
 CAS_LOGOUT_COMPLETELY = True
-CAS_PROVIDE_URL_TO_LOGOUT = True
 CAS_FORCE_SSL_SERVICE_URL = True
-CAS_AUTO_CREATE_USER = False
-CAS_RESPONSE_CALLBACKS = (
-    'catalog.core.util.create_cas_user',
-)
+# django-cas-ng equivalent of the old CAS_AUTO_CREATE_USER: only pre-existing
+# local accounts may log in through CAS.
+CAS_CREATE_USER = False
+# Resolve the verified CAS username against the local username field
+# case-insensitively.
+CAS_LOCAL_NAME_FIELD = 'username__iexact'
+# URL names used by django_cas_ng.middleware.CASMiddleware for admin-area
+# redirects; mapped to the catalog's public CAS endpoints.
+CAS_LOGIN_URL_NAME = 'cas_login'
+CAS_LOGOUT_URL_NAME = 'logout'
+# The old CAS_RESPONSE_CALLBACKS entry pointed at
+# catalog.core.util.create_cas_user, a debug-log no-op, so no equivalent
+# post-authentication callback is wired under django-cas-ng.
 
 MESSAGE_TAGS = {
     messages.DEBUG: 'alert alert-light',
@@ -247,9 +265,12 @@ if not is_accessible(LOG_DIRECTORY):
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
+    # Sentry is configured via sentry_sdk.init() (see SENTRY_DSN below); the
+    # sentry-sdk logging integration captures ERROR-level records that reach
+    # the root logger, replacing the old raven SentryHandler.
     'root': {
         'level': 'INFO',
-        'handlers': ['sentry', 'catalog.file', 'console'],
+        'handlers': ['catalog.file', 'console'],
     },
     'formatters': {
         'verbose': {
@@ -260,11 +281,6 @@ LOGGING = {
         },
     },
     'handlers': {
-        'sentry': {
-            'level': 'ERROR',
-            'formatter': 'verbose',
-            'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
-        },
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
@@ -289,25 +305,18 @@ LOGGING = {
             'level': 'WARNING',
             'handlers': ['catalog.file', 'console']
         },
-        'raven': {
-            'level': 'DEBUG',
-            'handlers': ['catalog.file', 'console'],
-            'propagate': False,
-        },
-        'sentry.errors': {
-            'level': 'DEBUG',
-            'handlers': ['catalog.file', 'console'],
-            'propagate': False,
-        },
+        # ERROR records from these loggers propagate to the root logger, where
+        # the sentry-sdk logging integration captures them for Sentry (the
+        # root's file/console handlers produce the same output as before).
         'catalog': {
             'level': 'DEBUG',
-            'handlers': ['catalog.file', 'console', 'sentry'],
-            'propagate': False,
+            'handlers': [],
+            'propagate': True,
         },
         'citation': {
             'level': 'DEBUG',
-            'handlers': ['catalog.file', 'console', 'sentry'],
-            'propagate': False,
+            'handlers': [],
+            'propagate': True,
         },
         'bokeh': {
             'level': 'DEBUG',
@@ -329,10 +338,12 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 15
 }
 
-RAVEN_CONFIG = {
-    'dsn': config.get('django', 'RAVEN_PRIVATE_DSN'),
-}
-RAVEN_PUBLIC_DSN = config.get('django', 'RAVEN_PUBLIC_DSN')
+# Sentry (sentry-sdk replaces the abandoned client). The existing
+# RAVEN_* keys in /run/secrets/catalog_django_config are read as-is so no
+# deployment configuration changes are required; empty values simply leave
+# the client uninitialized (a no-op).
+SENTRY_DSN = config.get('django', 'RAVEN_PRIVATE_DSN', fallback='')
+SENTRY_PUBLIC_DSN = config.get('django', 'RAVEN_PUBLIC_DSN', fallback='')
 
 SECRET_KEY = config.get('django', 'SECRET_KEY')
 
@@ -347,3 +358,10 @@ def get_release_version():
 
 
 RELEASE_VERSION = get_release_version()
+
+# Initialize sentry-sdk at settings import (startup). Only initialize when a
+# DSN is actually configured so local/test environments stay side-effect free.
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(dsn=SENTRY_DSN)

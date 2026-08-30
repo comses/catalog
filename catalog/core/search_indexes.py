@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import QuerySet
 from django.http import QueryDict
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from elasticsearch_dsl import analyzer, tokenizer
 from haystack import indexes
 from typing import Dict, List
@@ -105,11 +105,221 @@ def bulk_index_update():
 #           Public Indices               #
 ##########################################
 
+from datetime import datetime, timezone
+
+from elasticsearch import NotFoundError
 from elasticsearch.helpers import bulk
-from elasticsearch_dsl import DocType, connections, InnerDoc, aggs, query
+from elasticsearch_dsl import Document, InnerDoc, connections, aggs, query
 import elasticsearch_dsl as edsl
 
+from django.conf import settings
+
 ALL_DATA_FIELD = 'all_data'
+
+
+_ES_CLIENT = None
+
+
+def get_es_client():
+    """
+    Lazily build (and cache) the Elasticsearch 8 client from
+    ``settings.ELASTICSEARCH`` and register it as the elasticsearch-dsl
+    ``default`` connection.
+
+    No Elasticsearch configuration happens at Django startup: the client
+    is only constructed on first use, and ``connections.configure`` merely
+    stores options (no network I/O).
+    """
+    global _ES_CLIENT
+    if _ES_CLIENT is None:
+        connections.configure(default=dict(settings.ELASTICSEARCH))
+        _ES_CLIENT = connections.get_connection()
+    return _ES_CLIENT
+
+
+##########################################
+#     Generation-based index rebuilds    #
+##########################################
+#
+# Reads always go through stable aliases (the ``Index.name`` of each doc
+# class: publication, author, container, platform, sponsor, tag).
+# Rebuilds write to a fresh generation index per alias
+# (``<alias>-<utc-stamp>``) and validate each one; only after *every*
+# generation validates are the stable aliases moved onto the new
+# generations in one atomic multi-alias ``update_aliases`` call. The
+# previous generation of each alias is retained for rollback; anything
+# older is pruned.
+
+class SearchRebuildError(Exception):
+    """Raised when a generation index cannot be built or validated."""
+
+
+def _utc_generation_timestamp():
+    return datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+
+
+def generation_index_name(alias):
+    return '{0}-{1}'.format(alias, _utc_generation_timestamp())
+
+
+def _alias_target(client, alias):
+    """Return the physical index currently serving ``alias`` (or None)."""
+    try:
+        return next(iter(client.indices.get_alias(name=alias)))
+    except NotFoundError:
+        return None
+
+
+def _index_doc_count(client, index_name):
+    # The ES8 client returns a mapping-backed response object
+    # (``elastic_transport.ObjectApiResponse``) whose body is a plain
+    # dict, so the count must be read with mapping access. Attribute
+    # access on that object falls through to the raw body dict and
+    # raises ``AttributeError`` for a ``count`` key.
+    response = client.count(index=index_name)
+    return response.get('count')
+
+
+def _delete_index_quietly(client, index_name):
+    # The ES8 client takes ignore_status as a request option, not a kwarg.
+    client.options(ignore_status=[400, 404]).indices.delete(index=index_name)
+
+
+def _create_generation_index(client, doc_class, index_name):
+    # ``clone()`` carries the doc class's mappings, analyzers and index
+    # settings (e.g. number_of_shards) onto the generation name.
+    gen_index = doc_class._index.clone(name=index_name)
+    client.indices.create(index=index_name, body=gen_index.to_dict())
+
+
+def _prune_old_generations(client, alias, keep):
+    """Delete generation indices of ``alias`` that are not in ``keep``."""
+    keep = {name for name in keep if name}
+    try:
+        existing = client.indices.get(index='{0}-*'.format(alias))
+    except NotFoundError:
+        return
+    for name in existing:
+        if name not in keep:
+            _delete_index_quietly(client, name)
+
+
+def _force_actions_to_generation_index(documents):
+    """
+    Return bulk actions with any per-action ``_index`` removed.
+
+    Actions built with ``Document.to_dict(include_meta=True)`` (see the
+    ``from_instance`` classmethods) stamp the stable read *alias* onto
+    ``_index``. If that survives into the bulk request,
+    ``elasticsearch.helpers.bulk`` honors the per-action index and the
+    documents land in whatever the alias currently points at (the
+    *previous* generation) instead of the new one. Stripping the key
+    forces every action onto the ``index=`` argument of the bulk call.
+    """
+    forced = []
+    for action in documents:
+        action = dict(action)
+        action.pop('_index', None)
+        forced.append(action)
+    return forced
+
+
+def build_document_generation(client, doc_class, documents, expected_count):
+    """
+    Build and validate one fresh generation index for ``doc_class``.
+
+    Creates ``<alias>-<utc-stamp>`` carrying the doc class mappings
+    (including the ``InnerDoc`` definitions for the embedded
+    Object/Nested fields) and the single-node index settings, forces
+    every bulk action onto that physical generation index, refreshes
+    it, and validates the document count against the ES8 count
+    response.
+
+    ``documents`` is an iterable of ready-to-bulk action dicts. Any
+    bulk error (``elasticsearch.helpers.bulk`` raises ``BulkIndexError``
+    on partial failure by default) or a document-count mismatch deletes
+    the new generation and re-raises. Stable aliases are never touched
+    here: swapping is done by ``swap_generation_aliases``.
+
+    Returns the new generation index name.
+    """
+    alias = doc_class._index._name
+    index_name = generation_index_name(alias)
+    try:
+        _create_generation_index(client, doc_class, index_name)
+        bulk(client=client,
+             actions=_force_actions_to_generation_index(documents),
+             index=index_name)
+        client.indices.refresh(index=index_name)
+        actual_count = _index_doc_count(client, index_name)
+        if actual_count != expected_count:
+            raise SearchRebuildError(
+                'index {0} validation failed: expected {1} documents, found {2}'.format(
+                    index_name, expected_count, actual_count))
+    except Exception:
+        _delete_index_quietly(client, index_name)
+        raise
+    return index_name
+
+
+def swap_generation_aliases(client, alias_to_index):
+    """
+    Point every stable read alias at its new generation index.
+
+    A single atomic ``update_aliases`` call removes each alias from its
+    current target (if any) and adds it to the new generation, so
+    readers see either the old set of generations or the new set, never
+    a mix. After the swap, generation indices older than the retained
+    previous generation are pruned per alias (pruning failures are
+    logged and do not roll back the completed swap).
+    """
+    actions = []
+    previous = {}
+    for alias, index_name in alias_to_index.items():
+        current = _alias_target(client, alias)
+        if current is not None:
+            previous[alias] = current
+            actions.append({'remove': {'index': current, 'alias': alias}})
+        actions.append({'add': {'index': index_name, 'alias': alias}})
+    client.indices.update_aliases(actions=actions)
+    for alias in alias_to_index:
+        try:
+            _prune_old_generations(client, alias,
+                                   keep=(alias_to_index[alias], previous.get(alias)))
+        except Exception:
+            logger.exception('failed to prune old generations for alias %s', alias)
+    return alias_to_index
+
+
+def rebuild_document_indices(client, builds):
+    """
+    Rebuild every read alias using fresh generation indices.
+
+    ``builds`` is an iterable of ``(doc_class, documents, expected_count)``
+    triples. Every generation is built and validated *before* any alias
+    moves: if any build or validation fails, no alias is touched and
+    only the new generations that were created are deleted. Only once
+    all generations validate are the stable aliases swapped onto them
+    in one atomic multi-alias operation; a failed swap likewise leaves
+    the live aliases untouched and cleans up only the new generations.
+    Previous generations are always retained for rollback.
+
+    Returns a mapping of alias -> new generation index name.
+    """
+    built = {}
+    swapped = False
+    try:
+        for doc_class, documents, expected_count in builds:
+            built[doc_class._index._name] = build_document_generation(
+                client, doc_class, documents, expected_count)
+        swap_generation_aliases(client, built)
+        swapped = True
+    except Exception:
+        if not swapped:
+            for index_name in built.values():
+                _delete_index_quietly(client, index_name)
+        raise
+    return built
 
 
 class AuthorInnerDoc(InnerDoc):
@@ -288,6 +498,8 @@ class PublicationDocSearch:
         return PublicationDocSearch(self.search.source(fields=fields, **kwargs))
 
     def scan(self):
+        # ensure the dsl default connection is configured (no network I/O)
+        get_es_client()
         return self.search.scan()
 
     def agg_by_count(self):
@@ -302,6 +514,8 @@ class PublicationDocSearch:
                 cls.PLATFORM_FIELD_NAME, cls.SPONSOR_FIELD_NAME, cls.TAG_FIELD_NAME]
 
     def execute(self, facet_filters):
+        # ensure the dsl default connection is configured (no network I/O)
+        get_es_client()
         response = self.search.execute()
         for name in self.aggs:
             ids = facet_filters.get(name, [])
@@ -310,7 +524,7 @@ class PublicationDocSearch:
         return response
 
 
-class PublicationDoc(DocType):
+class PublicationDoc(Document):
     all_data = edsl.Text()
     id = edsl.Integer()
     title = edsl.Text(copy_to=ALL_DATA_FIELD)
@@ -369,7 +583,9 @@ class PublicationDoc(DocType):
     class Index:
         name = 'publication'
         settings = {
-            'number_of_shards': 1
+            'number_of_shards': 1,
+            # single-node cluster: replicas only add write overhead
+            'number_of_replicas': 0
         }
 
 
@@ -387,6 +603,9 @@ autocomplete_analyzer = analyzer('autocomplete_analyzer',
 
 
 def get_search_index(model):
+    # ensure the dsl default connection is configured so that
+    # ``Document.search().execute()`` resolves it (no network I/O)
+    get_es_client()
     lookup = {
         Author: AuthorDoc,
         Container: ContainerDoc,
@@ -400,7 +619,7 @@ def get_search_index(model):
         raise ValidationError(_('Invalid model_name'), code='invalid')
 
 
-class AuthorDoc(DocType):
+class AuthorDoc(Document):
     id = edsl.Integer(required=True)
     orcid = edsl.Keyword()
     researcherid = edsl.Keyword()
@@ -421,9 +640,14 @@ class AuthorDoc(DocType):
 
     class Index:
         name = 'author'
+        settings = {
+            'number_of_shards': 1,
+            # single-node cluster: replicas only add write overhead
+            'number_of_replicas': 0
+        }
 
 
-class ContainerDoc(DocType):
+class ContainerDoc(Document):
     id = edsl.Integer(required=True)
     name = edsl.Text(copy_to=ALL_DATA_FIELD,
                      analyzer=autocomplete_analyzer,
@@ -440,9 +664,14 @@ class ContainerDoc(DocType):
 
     class Index:
         name = 'container'
+        settings = {
+            'number_of_shards': 1,
+            # single-node cluster: replicas only add write overhead
+            'number_of_replicas': 0
+        }
 
 
-class PlatformDoc(DocType):
+class PlatformDoc(Document):
     id = edsl.Integer(required=True)
     name = edsl.Text(copy_to=ALL_DATA_FIELD,
                      analyzer=autocomplete_analyzer,
@@ -457,9 +686,14 @@ class PlatformDoc(DocType):
 
     class Index:
         name = 'platform'
+        settings = {
+            'number_of_shards': 1,
+            # single-node cluster: replicas only add write overhead
+            'number_of_replicas': 0
+        }
 
 
-class SponsorDoc(DocType):
+class SponsorDoc(Document):
     id = edsl.Integer(required=True)
     name = edsl.Text(copy_to=ALL_DATA_FIELD,
                      analyzer=autocomplete_analyzer,
@@ -474,9 +708,14 @@ class SponsorDoc(DocType):
 
     class Index:
         name = 'sponsor'
+        settings = {
+            'number_of_shards': 1,
+            # single-node cluster: replicas only add write overhead
+            'number_of_replicas': 0
+        }
 
 
-class TagDoc(DocType):
+class TagDoc(Document):
     id = edsl.Integer(required=True)
     name = edsl.Text(copy_to=ALL_DATA_FIELD)
 
@@ -489,22 +728,45 @@ class TagDoc(DocType):
 
     class Index:
         name = 'tag'
+        settings = {
+            'number_of_shards': 1,
+            # single-node cluster: replicas only add write overhead
+            'number_of_replicas': 0
+        }
 
 
 def bulk_index_public():
-    client = connections.get_connection()
-    for doc_class in (PublicationDoc, AuthorDoc, PlatformDoc, SponsorDoc, TagDoc):
-        client.indices.delete(index=doc_class.Index.name, ignore=[400, 404])
-        doc_class.init()
+    """
+    Rebuild the public search indices from PostgreSQL.
+
+    Every document class (author, container, platform, sponsor, tag and
+    publication) is built into a fresh generation index under its stable
+    read alias and validated; only after *all* generations validate are
+    the stable aliases swapped onto the new generations in one atomic
+    multi-alias operation (see ``rebuild_document_indices``). Any bulk
+    failure, document-count mismatch, or failed swap leaves the live
+    aliases untouched and cleans up only the new generations; previous
+    generations are retained so the swap can be rolled back.
+    """
+    client = get_es_client()
     public_publications = Publication.api.primary().filter(status='REVIEWED')
-    bulk(client=client,
-         actions=(AuthorDoc.from_instance(a) for a in Author.objects.filter(publications__in=public_publications)))
-    bulk(client=client,
-         actions=(PlatformDoc.from_instance(p) for p in Platform.objects.filter(publications__in=public_publications)))
-    bulk(client=client,
-         actions=(SponsorDoc.from_instance(s) for s in Sponsor.objects.filter(publications__in=public_publications)))
-    bulk(client=client,
-         actions=(TagDoc.from_instance(t) for t in Tag.objects.filter(publications__in=public_publications)))
-    bulk(client=client,
-         actions=(PublicationDoc.from_instance(p) for p in public_publications.select_related('container') \
-         .prefetch_related('code_archive_urls', 'tags', 'sponsors', 'platforms', 'creators', 'model_documentation').iterator()))
+    publication_ids = list(public_publications.values_list('id', flat=True))
+
+    related_documents = (
+        (AuthorDoc, Author.objects.filter(publications__id__in=publication_ids).distinct()),
+        (ContainerDoc, Container.objects.filter(publications__id__in=publication_ids).distinct()),
+        (PlatformDoc, Platform.objects.filter(publications__id__in=publication_ids).distinct()),
+        (SponsorDoc, Sponsor.objects.filter(publications__id__in=publication_ids).distinct()),
+        (TagDoc, Tag.objects.filter(publications__id__in=publication_ids).distinct()),
+    )
+    builds = [(doc_class,
+               (doc_class.from_instance(instance) for instance in queryset),
+               queryset.count())
+              for doc_class, queryset in related_documents]
+    builds.append((PublicationDoc,
+                   (PublicationDoc.from_instance(publication) for publication in public_publications
+                    .select_related('container')
+                    .prefetch_related('code_archive_urls', 'tags', 'sponsors', 'platforms',
+                                      'creators', 'model_documentation').iterator()),
+                   len(publication_ids)))
+    rebuild_document_indices(client, builds)

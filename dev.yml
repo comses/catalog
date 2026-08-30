@@ -10,6 +10,11 @@ services:
       - bootstrap.memory_lock=true
     ports:
       - "127.0.0.1:9200:9200"
+  elasticsearch8:
+    # Dev-only publication; staging/prod reach ES8 via the internal
+    # service name only.
+    ports:
+      - "127.0.0.1:9201:9200"
   django:
     build:
       args:

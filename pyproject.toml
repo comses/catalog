@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "catalog"
+version = "1.0.0"
+description = "CoMSES Catalog - model and citation catalog for Django"
+requires-python = ">=3.12,<3.13"
+license = { text = "GPL-3.0-only" }
+classifiers = [
+  "Framework :: Django :: 5.2",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+  # Local path dependency on the citation submodule (pinned via gitlink),
+  # declared as editable in [tool.uv.sources] below.
+  "citation",
+  # Django is pinned to the same constraint citation declares (Django~=5.2.17)
+  # so both projects resolve to a single compatible 5.2.x release.
+  "Django~=5.2.17",
+  "django-bootstrap3~=26.2",
+  # Shared with citation - constraint follows citation/pyproject.toml exactly.
+  "django-extensions~=4.1",
+  "django-haystack~=3.4.0",
+  # Shared with citation - constraint follows citation/pyproject.toml exactly.
+  "django-model-utils~=5.0.0",
+  # Shared with citation - constraint follows citation/pyproject.toml exactly.
+  "djangorestframework~=3.18.0",
+  # Replaces abandoned django-cas-client.
+  "django-cas-ng~=5.1.1",
+  # Shared with citation - constraint follows citation/pyproject.toml exactly.
+  # (Replaces incompatible pin psycopg2-binary==2.8.3: no Python 3.12 wheels.)
+  "psycopg2-binary~=2.9.12",
+  "pysolr~=3.11.0",
+  # Replaces abandoned raven (legacy Sentry SDK).
+  "sentry-sdk",
+  # Elasticsearch 8 client pair. NOTE: runtime service/code migration from
+  # the legacy ES6 backend is still pending - the catalog search code and the
+  # deployed Elasticsearch service must be updated before these clients work
+  # against production.
+  "elasticsearch>=8,<9",
+  "elasticsearch_dsl>=8,<9",
+  "django-redis",
+  "numpy",
+  "django-pandas~=0.6.7",
+  # Shared with citation - constraint follows citation/pyproject.toml exactly.
+  # (Replaces incompatible pin pandas>1.0.0,<1.1.0.)
+  "pandas~=3.0.5",
+  # Minimal Plotly compatible with Python 3.12 and NumPy 2.x (5.22.0 is the
+  # first release with explicit NumPy 2.0 support; Python 3.12 support
+  # landed in 5.19.0). Bounded to 5.x: the catalog visualization code is
+  # written against the 5.x API.
+  "plotly>=5.22.0,<6",
+  # Shared with citation - constraint follows citation/pyproject.toml exactly.
+  # (Replaces incompatible pin requests==2.32.3.)
+  "requests~=2.34.2",
+  # Not a direct requirement; kept as a direct pin (Snyk) to stay ahead of
+  # the transitive Django floor.
+  "sqlparse>=0.5.0",
+  # NOTE: uWSGI is intentionally NOT declared here. The legacy pin
+  # uWSGI==2.0.22 cannot build under Python 3.12 and uWSGI is a deployment
+  # runtime (deploy/uwsgi/catalog.ini), not a library dependency. The deploy
+  # image must install it separately.
+  # Production WSGI runtime (replaces uWSGI in the deploy image).
+  "gunicorn==26.2.0",
+]
+
+[dependency-groups]
+dev = [
+  "coveralls",
+  "coverage",
+  "django-debug-toolbar",
+  "ipython",
+  # Shared with citation - constraint follows citation/pyproject.toml exactly.
+  "invoke~=3.0.3",
+]
+
+[tool.uv.sources]
+citation = { path = "citation", editable = true }
+
+[tool.setuptools.packages.find]
+include = ["catalog*"]

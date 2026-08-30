@@ -220,7 +220,7 @@ class SearchViewTest(BaseTest):
         object_count = response.context['object_list']
         self.assertEqual(200, response.status_code)
         if p < 25 or len(object_count) < 25:
-            self.assertEquals(p, len(object_count))
+            self.assertEqual(p, len(object_count))
 
     def test_search_with_few_query_parameters(self):
         query_parameters = {

@@ -14,18 +14,20 @@ jobs:
 
     steps:
     - name: Checkout repo + submodules
-      uses: actions/checkout@v4
+      # actions/checkout v7.0.1, pinned to a full commit SHA.
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
         submodules: recursive
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    - name: install coverage and build
+    - name: Build
       run: |
-        pip3 install coveralls coverage
-        ./compose 
+        ./compose
         ./deploy.sh tag
-        ./build.sh 
+        ./build.sh
+    - name: Check for unapplied migrations
+      # CI validation gate: fail if model changes lack committed
+      # migration files. Never generates migrations as a side effect.
+      run: |
+        docker compose run --rm django python3 manage.py makemigrations --check --dry-run
     - name: Run Django tests
       run: |
         docker compose run --rm django /code/deploy/docker/test.sh

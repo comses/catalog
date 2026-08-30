@@ -36,6 +36,7 @@ media
 htmlcov
 *.log
 tags
+*.egg-info/
 
 
 ### Node ###
@@ -79,3 +80,4 @@ jspm_packages
 .node_repl_history
 
 *.sql
+.slim/deepwork/
