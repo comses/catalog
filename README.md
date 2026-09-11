@@ -19,15 +19,14 @@ To build a development environment for the project you will need to install:
 ```
 git clone --recurse-submodules git@github.com:comses/catalog.git
 cd catalog
-./compose dev
-./build.sh
-docker-compose up -d
+make bootstrap
+make up
 ```
 
 Then the database and search indices need to be loaded and populated with data
 
 ```
-docker-compose exec django bash
+make shell
 inv rfd -f
 inv ri
 ./manage.py populate_visualization_cache
@@ -35,24 +34,28 @@ inv ri
 
 ## Deployment (staging / prod)
 
-Staging and prod are deployed to Docker Swarm via `deploy.sh`. The
-deployment **and** rollback unit is an **immutable application image
-reference** (explicit tag or digest); `prod:latest` is rejected by the
-deploy flow. Before every rollout, `deploy.sh` records the currently
-deployed image (service label `comses.catalog.previous-image` plus an
-append-only `docker/deploy-history.log`) — that recorded reference is what
-a rollback redeploys, with the ES6 endpoint.
+Staging and prod are deployed to a single Docker host as one Docker Compose
+stack (project `catalog`) via Make targets. The deployment **and** rollback
+unit is an **immutable application image reference** (explicit tag or
+digest); `:latest` is rejected. Every release explicitly selects its
+Elasticsearch endpoint. Before every rollout, the deployment records the
+currently deployed release (environment, image, endpoint) in
+`deploy/state/release.env` plus an append-only `deploy/state/deploy-history.log`;
+a rollback redeploys the recorded previous release. Rollouts are a rolling
+`docker compose up -d` — no teardown, and named volumes are never deleted.
 
 ```
-./deploy.sh build comses/catalog/prod:<immutable-tag>
-docker push comses/catalog/prod:<immutable-tag>     # if the swarm manager cannot see the local build
-CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> ./deploy.sh deploy staging
-CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> ./deploy.sh deploy prod
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> make image-build
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> make image-push
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> CATALOG_ES_HOST=elasticsearch make deploy ENV=staging
+# Smoke-test staging, then:
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> CATALOG_ES_HOST=elasticsearch make deploy ENV=prod
+make status                    # recorded release + container status
+make rollback                  # redeploy the recorded previous release
 ```
 
 Switching a release to Elasticsearch 8 is a **gated action**: run
-`manage.py rebuild_es_index` against ES8 and validate the rebuilt indices
-*before* deploying any release with `CATALOG_ES_HOST=elasticsearch8`
-(releases run on ES6 by default). The full procedure — including hard
-operational prerequisites (swarm secrets/storage, registry) and the
-rollback steps — is in [docs/deployment-runbook.md](docs/deployment-runbook.md).
+`make es8-rebuild` and `make es8-validate` (Compose one-off commands) before
+deploying any release with `CATALOG_ES_HOST=elasticsearch8`. The full
+procedure — including hard operational prerequisites (storage, registry) and
+the rollback steps — is in [docs/deployment-runbook.md](docs/deployment-runbook.md).

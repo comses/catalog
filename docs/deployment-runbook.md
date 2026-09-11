@@ -1,11 +1,15 @@
-# Deployment Runbook (staging / prod, Docker Swarm)
+# Deployment Runbook (staging / prod, single-host Docker Compose)
 
-Applies to the `catalog` stack deployed by `deploy.sh` on the swarm manager.
-Environments: `staging` (base.yml + staging.yml) and `prod`
-(base.yml + staging.yml + prod.yml) — same stack name `catalog`, different
-`DOMAIN_NAME`. Staging is therefore a release state of the same stack, not a
-parallel cluster: the standard sequence is deploy the staging release,
-validate, then deploy the prod release.
+Applies to the `catalog` Compose stack deployed through the root `Makefile`
+on a single Docker host. Environments: `staging` (base.yml + staging.yml)
+and `prod` (base.yml + staging.yml + prod.yml) — same Compose project name
+`catalog`, different `DOMAIN_NAME`. Staging is therefore a release state of
+the same stack, not a parallel cluster: the standard sequence is deploy the
+staging release, validate, then deploy the prod release.
+
+No Docker Swarm is required: the stack is a plain Docker Compose project,
+and rollouts are a rolling `docker compose up -d` (changed containers are
+recreated, everything else — and every named volume — is untouched).
 
 ## Deployment unit: immutable image references only
 
@@ -13,23 +17,22 @@ The deployment **and** rollback unit is the exact application image
 reference (an explicit tag or a digest). `comses/catalog/prod:latest` is no
 longer a valid deployment unit:
 
-- `deploy.sh` **rejects** `:latest`, malformed digests, and bare references
+- `make` release targets **reject** `:latest`, malformed digests, and bare references
   (a bare reference implicitly means `:latest`).
-- The reference is passed per deploy: `./deploy.sh deploy <env> <image-ref>`
-  or `CATALOG_IMAGE=<image-ref> ./deploy.sh deploy <env>`.
-- `staging.yml` pins the django service to `image: ${CATALOG_IMAGE}`; the
-  compose script bakes the exact reference into the generated
-  `docker-compose.yml`.
+- `CATALOG_IMAGE` and `CATALOG_ES_HOST` are required for every deployment.
+- `staging.yml` pins the django service to `image: ${CATALOG_IMAGE}`;
+  `scripts/compose.sh` bakes the exact reference into the rendered
+  `deploy/state/docker-compose.yml`.
 
 ### Producing an immutable reference
 
 ```sh
-# 1. Build locally from a tagged/committed checkout, tagged immutably:
-./deploy.sh build comses/catalog/prod:v2026.08.27
-#    (runs ./compose staging + docker compose build --pull django)
+# 1. Build locally from a tagged/committed checkout, tagged immutably
+#    (scripts/deploy.sh runs `docker build` directly):
+CATALOG_IMAGE=comses/catalog/prod:v2026.08.27 make image-build
 
-# 2. Make the exact reference resolvable from the swarm manager, either by
-#    pushing it to a registry the manager can reach:
+# 2. Make the exact reference resolvable on the deploy host, either by
+#    pushing it to a registry the host can reach:
 docker push comses/catalog/prod:v2026.08.27
 #    or by pinning the immutable digest of what was pushed:
 docker buildx imagetools inspect comses/catalog/prod:v2026.08.27
@@ -40,71 +43,78 @@ Prefer digest references (`name@sha256:...`) when a registry tag could ever
 be re-pushed; an explicit content tag is acceptable only if the tag is
 guaranteed immutable.
 
-### Prior deployed image is recorded before every rollout
+### Release state is recorded before every rollout
 
-Before tearing the stack down, `deploy.sh` captures the currently deployed
-image from `docker service inspect catalog_django` and records it in two
-places:
+`scripts/deploy.sh` keeps the release state in non-secret files under
+`deploy/state/` (git-ignored):
 
-1. As the service label `comses.catalog.previous-image` on the **next**
-   release (also `comses.catalog.image` and `comses.catalog.es-host`):
-
-   ```sh
-   docker service inspect catalog_django --format '{{json .Spec.Labels}}'
-   ```
-
-2. As an append-only, timestamped line in `docker/deploy-history.log`
-   (git-ignored; override the path with `DEPLOY_HISTORY_FILE`):
+1. `deploy/state/release.env` — the current release (environment, image,
+   ES host, timestamp) and the previous one (the rollback unit):
 
    ```
-   2026-08-27T09:15:00Z env=prod previous_image=comses/catalog/prod:v2026.08.20 next_image=comses/catalog/prod:v2026.08.27 es_host=elasticsearch
+   CATALOG_ENV=prod
+   CATALOG_IMAGE=comses/catalog/prod:v2026.08.27
+   CATALOG_ES_HOST=elasticsearch
+   DEPLOYED_AT=2026-08-27T09:15:00Z
+   PREVIOUS_ENV=staging
+   PREVIOUS_IMAGE=comses/catalog/prod:v2026.08.20
+   PREVIOUS_ES_HOST=elasticsearch
    ```
 
-The deploy then verifies the requested reference resolves on the manager
-(local image or `docker pull`) **before** the stack is torn down; if it
-cannot, the deploy aborts and the old release keeps running.
+2. `deploy/state/deploy-history.log` — an append-only, timestamped line per
+   rollout (override the path with `DEPLOY_HISTORY_FILE`):
+
+   ```
+   2026-08-27T09:15:00Z env=prod previous_image=comses/catalog/prod:v2026.08.20 previous_es_host=elasticsearch next_image=comses/catalog/prod:v2026.08.27 next_es_host=elasticsearch
+   ```
+
+Before anything on the running release changes, the deploy verifies the
+requested reference resolves on the host (local image or `docker pull`); if
+it cannot, the deploy aborts and the old release keeps running. The rendered
+compose file itself is also kept in `deploy/state/docker-compose.yml`, so
+`make start` / `make stop` always operate on the last rendered release.
 
 ## Hard operational prerequisites
 
 The steps below **do not assert** that these prerequisites are in place.
-Verify each one before any deploy; `deploy.sh` cannot check them for you.
+Verify each one before any deploy; `scripts/deploy.sh` cannot check them for
+you.
 
-1. **Swarm**: a swarm the manager node can `docker stack deploy` to.
-   `elasticsearch8` must run as **exactly one replica**
-   (`discovery.type: single-node`; extra swarm replicas form independent
-   clusters — see `staging.yml`).
-2. **Swarm secrets**: the swarm secrets `catalog_django_config` (config.ini)
-   and `catalog_db_password` must already exist on the swarm, and the
-   corresponding files under `deploy/conf/` must exist on the deploy host
-   (the compose `secrets:` blocks reference them).
-3. **Swarm storage**:
-   - Postgres data: bind mount `./docker/shared/pgdata` on the manager must
-     already hold the database (or be restored via `./deploy.sh restore`).
+1. **Docker**: a single Docker host with Docker Compose v2. No Swarm is
+   required. The host's `vm.max_map_count` must satisfy Elasticsearch
+   (>= 262144).
+2. **Credentials**: the files under `deploy/conf/` (`config.ini`,
+   `postgres_password`) must exist on the deploy host — `make config-validate`
+   checks this, and `scripts/deploy.sh` preflight enforces it. The compose
+   file mounts them into the django and db services.
+3. **Storage**:
+   - Postgres data: bind mount `./docker/shared/pgdata` must already hold
+     the database (or be restored through the database maintenance workflow,
+     `make restore`).
    - Named volumes `esdata` (ES6 data), `esdata8` (ES8 data), `solr`,
-     `static`, `uwsgisocket` must persist across rollouts on the nodes that
-     run those services. An **empty `esdata8` is not a problem** for an ES8
-     cutover: `rebuild_es_index` recreates the indices from PostgreSQL.
-   - `docker/shared/catalog/logs` and `docker/shared/nginx/logs` on the
-     manager (created automatically by `deploy.sh`).
-4. **Image resolvability**: the immutable reference must be resolvable from
-   the nodes that schedule tasks (registry reachability, or the image
-   pre-loaded on those nodes).
+     `static`, `gunicornsocket` persist across rollouts. An **empty
+     `esdata8` is not a problem** for an ES8 cutover: `rebuild_es_index`
+     recreates the indices from PostgreSQL.
+   - `docker/shared/catalog/logs` and `docker/shared/nginx/logs` (created
+     automatically by the deploy target).
+4. **Image resolvability**: the immutable reference must be resolvable on
+   the host (registry reachability, or the image pre-loaded/built there).
 5. **Endpoint/DNS**: `DOMAIN_NAME` (`staging-catalog.comses.net` /
-   `catalog.comses.net`) resolves to the manager and ports 80 is published
-   by the nginx (global) service.
+   `catalog.comses.net`) resolves to the host and port 80 is published by
+   nginx.
 
-## Standard release (ES6 endpoint, default)
+## Standard release (ES6 endpoint)
 
 ```sh
-./deploy.sh build comses/catalog/prod:<immutable-tag>
-docker push comses/catalog/prod:<immutable-tag>        # if the manager cannot see the local build
-CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> ./deploy.sh deploy staging
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> make image-build
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> make image-push
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> CATALOG_ES_HOST=elasticsearch make deploy ENV=staging
 # smoke-test the staging domain, then:
-CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> ./deploy.sh deploy prod
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> CATALOG_ES_HOST=elasticsearch make deploy ENV=prod
+make status   # recorded current + previous release, container status
 ```
 
-`CATALOG_ES_HOST` is not set, so the release runs with
-`ELASTICSEARCH_HOST=elasticsearch` (ES 6.6.2).
+`CATALOG_ES_HOST=elasticsearch` explicitly selects Elasticsearch 6.6.2.
 
 ## ES8 cutover (gated): rebuild + validate BEFORE switching any release to ES8
 
@@ -115,115 +125,111 @@ A release only runs against ES8 when it is deployed with
 changing only that endpoint (see Rollback).
 
 Precondition: a release is already deployed on the `catalog` stack (any
-endpoint) and the ES8 service is healthy:
+endpoint) and the ES8 container is healthy. `make es8-rebuild` health-checks
+ES8 first and fails early if it is down; for a manual check:
 
 ```sh
-docker service ls --filter name=catalog_elasticsearch8        # 1 replica, Running
-ES8_TASK=$(docker service ps catalog_elasticsearch8 --filter desired-state=running -q | head -n1)
-docker exec "${ES8_TASK}" curl -fsS 'http://localhost:9200/_cluster/health?pretty'
+docker compose --project-directory . -p catalog -f deploy/state/docker-compose.yml \
+    exec -T elasticsearch8 curl -fsS 'http://localhost:9200/_cluster/health?pretty'
 # expect: cluster status green or yellow, no unassigned shards
 ```
 
-### 1. Rebuild the public indices against ES8
-
-Run the management command from the **same immutable image** in a one-off
-service on the stack network, pointed at ES8 (the command reads
-`ELASTICSEARCH_HOST`/`ELASTICSEARCH_PORT`; the running release may still be
-on ES6 — that does not matter, this only talks to ES8 and Postgres):
+### 1. Rebuild the public indices against ES8 (one-off Compose command)
 
 ```sh
-docker service create \
-  --name catalog_es8_rebuild --rm \
-  --network catalog_default \
-  --secret catalog_django_config \
-  -e DJANGO_SETTINGS_MODULE=catalog.settings.prod \
-  -e LANG=C.UTF-8 \
-  -e DB_USER=catalog -e DB_HOST=db -e DB_NAME=comses_catalog -e DB_PORT=5432 \
-  -e SOLR_HOST=solr -e SOLR_PORT=8983 -e SOLR_CORE_NAME=catalog_core \
-  -e ELASTICSEARCH_HOST=elasticsearch8 -e ELASTICSEARCH_PORT=9200 \
-  "<CATALOG_IMAGE>" python3 manage.py rebuild_es_index
+make es8-rebuild
 ```
+
+This runs `rebuild_es_index` from the **deployed django image** in a one-off
+Compose container pointed at ES8 (`docker compose run --rm --no-deps
+-e ELASTICSEARCH_HOST=elasticsearch8 django python3 manage.py
+rebuild_es_index`). The running release may still be on ES6 — that does not
+matter, this only talks to ES8 and Postgres.
+
+The command runs in the foreground and is removed on exit (`--rm`): a clean
+exit means success; a nonzero exit means failure — do **not** continue the
+cutover. Its output is streamed to the terminal while it runs; capture that
+output (e.g. `make es8-rebuild 2>&1 | tee es8-rebuild.log`) if you need it
+after the fact.
 
 `manage.py rebuild_es_index` rebuilds every public read alias
 (`publication`, `author`, `container`, `platform`, `sponsor`, `tag`) into
 fresh generation indices (`<alias>-<utc-stamp>`), validates each document
 count, and swaps the aliases atomically. It **exits nonzero** on any bulk
 failure, count mismatch, or alias-swap failure, and on failure leaves the
-live read aliases untouched. A nonzero exit here means: do **not** continue
-the cutover.
+live read aliases untouched.
 
 ### 2. Validate ES8 before switching any application release to it
 
 ```sh
-# a) the rebuild reported success:
-docker service logs catalog_es8_rebuild
-#    expect: "Public search indices rebuilt successfully." and a clean exit
-
-# b) every read alias points at a fresh generation index:
-docker exec "${ES8_TASK}" curl -fsS 'http://localhost:9200/_alias?pretty'
-#    expect: publication, author, container, platform, sponsor, tag
-#    each mapped to a <alias>-<utc-stamp> index
-
-# c) document counts match the database:
-docker exec "${ES8_TASK}" curl -fsS 'http://localhost:9200/publication/_count'
-DJANGO_TASK=$(docker service ps catalog_django --filter desired-state=running -q | head -n1)
-docker exec "${DJANGO_TASK}" python3 manage.py shell -c \
-  "from citation.models import Publication; print(Publication.api.primary().filter(status='REVIEWED').count())"
-#    the two numbers must be equal
-
-# d) a live query against ES8 works:
-docker exec "${ES8_TASK}" curl -fsS 'http://localhost:9200/publication/_search' \
-  -H 'Content-Type: application/json' -d '{"size":1,"query":{"match_all":{}}}'
+make es8-validate
 ```
 
-Only after (a)–(d) pass may a release be switched to ES8.
+This checks, via one-off Compose execs into the running containers:
+
+- (a) every read alias (`publication`, `author`, `container`, `platform`,
+  `sponsor`, `tag`) exists on ES8 and points at a generation index,
+- (b) the ES8 publication count equals the database count
+  (`Publication.api.primary().filter(status='REVIEWED')`),
+- (c) a live `match_all` query against `publication/_search` works.
+
+Manual equivalent (after `make es8-rebuild` succeeded):
+
+```sh
+COMPOSE=(docker compose --project-directory . -p catalog -f deploy/state/docker-compose.yml)
+"${COMPOSE[@]}" exec -T elasticsearch8 curl -fsS 'http://localhost:9200/_alias?pretty'
+"${COMPOSE[@]}" exec -T elasticsearch8 curl -fsS 'http://localhost:9200/publication/_count'
+"${COMPOSE[@]}" exec -T django python3 manage.py shell -c \
+    "from citation.models import Publication; print(Publication.api.primary().filter(status='REVIEWED').count())"
+"${COMPOSE[@]}" exec -T elasticsearch8 curl -fsS -H 'Content-Type: application/json' \
+    -d '{"size":1,"query":{"match_all":{}}}' 'http://localhost:9200/publication/_search'
+```
+
+Only after the rebuild succeeded and validation passes may a release be
+switched to ES8.
 
 ### 3. Switch the release to ES8 (a release change, not a config tweak)
 
-Redeploy with the ES8 endpoint:
+Either the gated one-shot (rebuild + validate + deploy):
 
 ```sh
-CATALOG_IMAGE="<CATALOG_IMAGE>" CATALOG_ES_HOST=elasticsearch8 ./deploy.sh deploy staging
+CATALOG_IMAGE="<CATALOG_IMAGE>" CONFIRM_ES8_CUTOVER=1 make es8-cutover ENV=staging
+```
+
+or the manual sequence:
+
+```sh
+CATALOG_IMAGE="<CATALOG_IMAGE>" CATALOG_ES_HOST=elasticsearch8 make deploy ENV=staging
 # smoke-test: search on the staging domain, autocomplete, facet counts;
 # check for ES errors:
-docker service logs catalog_django --since 10m
+docker logs --since 10m catalog-django-1
 # then the same for prod:
-CATALOG_IMAGE="<CATALOG_IMAGE>" CATALOG_ES_HOST=elasticsearch8 ./deploy.sh deploy prod
+CATALOG_IMAGE="<CATALOG_IMAGE>" CATALOG_ES_HOST=elasticsearch8 make deploy ENV=prod
 ```
 
 ## Rollback
 
-**Rollback is redeploying the recorded prior application image with ES6. It
-is not an endpoint-only change** (pointing a running release at
-`elasticsearch` without redeploying is not a rollback: the prior release is
-the unit that was validated against the prior index state).
+**Rollback is redeploying the recorded prior release (environment +
+immutable image + ES host). It is not an endpoint-only change** (pointing a
+running release at a different endpoint without redeploying is not a
+rollback: the prior release is the unit that was validated against the prior
+index state).
 
-1. Retrieve the recorded prior image reference:
+```sh
+make status    # shows the recorded current and previous release
+make rollback  # redeploys the recorded previous release, as recorded
+```
 
-   ```sh
-   docker service inspect catalog_django --format '{{index .Spec.Labels "comses.catalog.previous-image"}}'
-   # and/or:
-   tail -n 5 docker/deploy-history.log
-   ```
-
-2. Redeploy it with the ES6 endpoint (the default when `CATALOG_ES_HOST` is
-   unset):
-
-   ```sh
-   CATALOG_IMAGE="<recorded previous image reference>" ./deploy.sh deploy prod
-   ```
-
-   (Use `deploy staging` first if you want to validate the rollback on the
-   staging release before prod.)
-
-3. Verify: the django tasks are Running, search works, and the label on the
-   rolled-back service shows `comses.catalog.es-host=elasticsearch`.
+Verify: `make status` shows the django container running with the previous
+image, and search works on the domain.
 
 Notes:
 
-- The recorded reference is the exact image that was running before the
+- The recorded reference is the exact release that was running before the
   rollout, so rollback is deterministic and does not depend on any mutable
-  tag.
+  tag. Because the rollout is a rolling `docker compose up -d`, rollback
+  redeploys that release the same safe way — no teardown, no volume
+  deletion.
 - The ES6 service (`elasticsearch`, data in `esdata`) stays deployed by
   `base.yml` for the lifetime of the rollback window; do not remove it while
   ES6 rollbacks are possible.
@@ -235,7 +241,18 @@ Notes:
 ## Day-2 commands
 
 ```sh
-./deploy.sh down                # tear down the catalog stack
-./deploy.sh restore             # restore Postgres from catalog.sql + reindex
-./deploy.sh tag                 # write release-version.txt (git describe)
+make status                    # recorded release + container status
+make stop                      # stop containers (networks + volumes kept)
+make start                     # restart the last rendered release
+make restore                   # restore Postgres from catalog.sql + reindex
+make release-version           # write release-version.txt (git describe)
 ```
+
+Notes:
+
+- `make stop`/`make start` never delete volumes or networks; `make stop`
+  is the only "down" on the deployment surface.
+- `make restore` copies `catalog.sql` into the running django container and
+  runs `invoke restore-from-dump`. That task **refuses to run when the
+  database already contains publications** (use `invoke rfd -f` inside the
+  container to override) and reinitializes the schema + search indices.
