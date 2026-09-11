@@ -1,98 +1,60 @@
-version: '3.9'
 services:
-  db:
-    secrets:
-      - catalog_db_password
-  elasticsearch:
-    environment:
-      - network.host=_eth0:ipv4_
-      - discovery.type=zen
-      - discovery.zen.ping.unicast.hosts=tasks.elasticsearch
-  elasticsearch8:
-    # discovery.type=single-node (see elasticsearch8.yml) and the
-    # node-local esdata8 volume require exactly one replica; swarm
-    # would otherwise treat extra replicas as independent clusters.
-    deploy:
-      replicas: 1
   django:
-    build:
-      args:
-        RUN_SCRIPT: "./deploy/docker/prod.sh"
-      context: ./
-      dockerfile: ./deploy/images/django.Dockerfile
     # Deployment/rollback unit: an immutable tag or digest injected by
     # deploy.sh as CATALOG_IMAGE. Mutable references (:latest, bare) are
     # rejected by the deploy flow; :latest is not a valid deployment unit.
     # See docs/deployment-runbook.md.
     image: ${CATALOG_IMAGE}
-    configs:
-      - source: uwsgi_config
-        target: /code/deploy/uwsgi/catalog.ini
     environment:
       DOMAIN_NAME: 'staging-catalog.comses.net'
-      # Per-release ES endpoint gate (swarm service names from base.yml):
-      # elasticsearch = ES 6.6.2 (default release state),
+      # Per-release ES endpoint gate (service names from base.yml):
+      # elasticsearch = ES 6.6.2,
       # elasticsearch8 = ES 8.15.5. Switching a release to ES8 is gated:
       # rebuild_es_index against ES8 + validation FIRST (runbook). Rollback
-      # is a redeploy of the recorded prior image with ES6, never an
+      # is a redeploy of the recorded prior image with its recorded host, never an
       # endpoint-only change.
-      ELASTICSEARCH_HOST: ${CATALOG_ES_HOST:-elasticsearch}
+      ELASTICSEARCH_HOST: ${CATALOG_ES_HOST:?CATALOG_ES_HOST must be set}
+      # Startup ordering: Compose cannot name a depends_on service from a
+      # variable, so the release does not gate on Elasticsearch here.
+      # deploy/docker/prod.sh blocks (wait-for-it -t 0) on exactly this
+      # endpoint before Gunicorn starts, and the endpoint the release does
+      # not use is never waited on.
+    # Container labels record the deployment/rollback state:
+    # which immutable image is deployed, which image was deployed before
+    # this rollout (the rollback unit), and which ES endpoint the release
+    # uses. Inspect with:
+    #   docker inspect --format '{{json .Config.Labels}}' <django container>
+    labels:
+      - comses.catalog.image=${CATALOG_IMAGE}
+      - comses.catalog.previous-image=${CATALOG_PREVIOUS_IMAGE:-none}
+      - comses.catalog.previous-es-host=${CATALOG_PREVIOUS_ES_HOST:-none}
+      - comses.catalog.es-host=${CATALOG_ES_HOST:?CATALOG_ES_HOST must be set}
     restart: always
-    secrets:
-      - catalog_django_config
     volumes:
       - static:/catalog/static
-      - uwsgisocket:/catalog/socket
-    deploy:
-      # Service-level labels record the deployment/rollback state:
-      # which immutable image is deployed, which image was deployed before
-      # this rollout (the rollback unit), and which ES endpoint the release
-      # uses. Inspect with:
-      #   docker service inspect catalog_django --format '{{json .Spec.Labels}}'
-      labels:
-        - comses.catalog.image=${CATALOG_IMAGE}
-        - comses.catalog.previous-image=${CATALOG_PREVIOUS_IMAGE:-none}
-        - comses.catalog.es-host=${CATALOG_ES_HOST:-elasticsearch}
+      # The Gunicorn unix socket is a filesystem object; nginx (a separate
+      # container in the same stack) can only reach it through this shared
+      # volume. See deploy/docker/prod.sh (bind) and the nginx upstream.
+      - gunicornsocket:/catalog/socket
   nginx:
-    configs:
-      - source: nginx_conf
-        target: /etc/nginx/nginx.conf
-      - source: uwsgi_params
-        target: /catalog/uwsgi_params
-    image: nginx:latest
+    image: nginx:1.28.3
     restart: always
     volumes:
-    - uwsgisocket:/catalog/socket
-    - static:/catalog/static
-    - ./docker/shared/nginx/logs:/var/log/nginx
+      - ./deploy/nginx/catalog-haproxy.conf:/etc/nginx/nginx.conf
+      - gunicornsocket:/catalog/socket
+      - static:/catalog/static
+      - ./docker/shared/nginx/logs:/var/log/nginx
     command: ["nginx", "-g", "daemon off;"]
-    deploy:
-      mode: global
     ports:
       - "80:80"
     depends_on:
       - django
-  solr:
-    configs:
-      - source: solr_in_sh
-        target: /opt/solr/bin/solr.in.sh
-
-configs:
-  nginx_conf:
-    file: ./deploy/nginx/catalog-haproxy.conf
-  solr_in_sh:
-    file: ./deploy/solr/init.d/solr.in.sh
-  uwsgi_params:
-    file: ./deploy/nginx/uwsgi_params
-  uwsgi_config:
-    file: ./deploy/uwsgi/catalog.ini
 
 volumes:
-  uwsgisocket:
+  # Renamed from uwsgisocket when the app server moved from uWSGI to
+  # Gunicorn: after the first deploy of this change the old volume
+  # (catalog_uwsgisocket) is orphaned and can be removed with
+  # `docker volume rm catalog_uwsgisocket`. It holds only the socket
+  # file, so no data is lost.
+  gunicornsocket:
     driver: local
-
-secrets:
-  catalog_django_config:
-    file: ./deploy/conf/config.ini
-  catalog_db_password:
-    file: ./deploy/conf/postgres_password

@@ -1,39 +1,35 @@
 #!/usr/bin/env bash
+# Deprecated: forwarding shim for scripts/config.sh.
+#
+# ./build.sh generated deploy/conf/config.ini and
+# deploy/conf/postgres_password from deploy/conf/config.template.ini.
+# That logic now lives in scripts/config.sh (make config-generate).
+# Legacy behavior is preserved:
+#   - no configuration yet: generate it
+#   - configuration already exists: the old interactive "replace?" prompt
+#     is replaced by the FORCE=1 migration path (back up + rotate)
+#
+# Prefer: make config-generate   (FORCE=1 make config-generate to rotate)
 
 set -o errexit
-set -o pipefail
 set -o nounset
+set -o pipefail
 
-CONFIG_INI=deploy/conf/config.ini
-CONFIG_TEMPLATE_INI=deploy/conf/config.template.ini
-POSTGRES_PASSWORD_FILE=deploy/conf/postgres_password
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-export DB_USER=catalog
-export DB_NAME=comses_catalog
-export DB_PASSWORD=$(head /dev/urandom | tr -dc '[:alnum:]' | head -c60)
-export SECRET_KEY=$(head /dev/urandom | tr -dc '[:alnum:]' | head -c100)
+config_ini="deploy/conf/config.ini"
+postgres_password_file="deploy/conf/postgres_password"
 
-if [ -f "$CONFIG_INI" ]; then
-    echo $PWD
-    echo "Config file config.ini already exists"
-    echo "Replacing $CONFIG_INI will change the db password. Continue?"
-    select response in "Yes" "No"; do
-        case "${response}" in
-            Yes) break;;
-            No) echo "Aborting build"; exit;;
-        esac
-    done
-    backup_name=config-backup-$(date '+%Y-%m-%d.%H-%M-%S').ini
-    mv ${CONFIG_INI} ./deploy/conf/${backup_name}
-    echo "Backed up old config file to $backup_name"
+echo "NOTE: ./build.sh is deprecated; use 'make config-generate' (scripts/config.sh)" >&2
+
+if [[ -e "${config_ini}" || -e "${postgres_password_file}" ]]; then
+    if [[ "${FORCE:-0}" != "1" ]]; then
+        echo "ERROR: ${config_ini} already exists; replacing it rotates the db password" >&2
+        echo "       Re-run with FORCE=1 to back up the existing configuration and rotate credentials:" >&2
+        echo "         FORCE=1 ./build.sh     (or: FORCE=1 make config-generate)" >&2
+        exit 1
+    fi
 fi
 
-echo "Creating config.ini"
-cat "$CONFIG_TEMPLATE_INI" | envsubst > "$CONFIG_INI"
-echo $DB_PASSWORD > ${POSTGRES_PASSWORD_FILE}
-
-# docker-compose up -d db
-# sleep 10;
-# docker-compose exec db bash -c "psql -U ${DB_USER} -d ${DB_NAME} -c \"ALTER USER ${DB_USER} WITH PASSWORD '${DB_PASSWORD}'\""
-echo "Change password by running % docker-compose exec db bash -c \"psql -U ${DB_USER} -d ${DB_NAME} -c \"ALTER USER ${DB_USER} WITH PASSWORD \'${DB_PASSWORD}\'\""
-
+# FORCE, when set, is passed through to scripts/config.sh via the environment
+exec bash "${script_dir}/scripts/config.sh" generate

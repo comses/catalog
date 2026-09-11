@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
-# Convenience script for creating local docker-compose.yml
-DOCKER_COMPOSE_ENV=${1:-dev}
+# Deprecated: forwarding shim for scripts/compose.sh.
+#
+# Preserves the legacy invocation forms:
+#   ./compose            # dev: base.yml + dev.yml
+#   ./compose staging    # staging: base.yml + staging.yml
+#   ./compose prod       # prod: base.yml + staging.yml + prod.yml
+#
+# Prefer the Make targets: make compose-dev | make compose-staging | make compose-prod
 
-if [[ "$DOCKER_COMPOSE_ENV" == "prod" ]]; then
-  docker compose -f base.yml -f staging.yml -f ${DOCKER_COMPOSE_ENV}.yml config > docker-compose.yml
-elif [[ "$DOCKER_COMPOSE_ENV" == "staging" ]]; then
-  docker compose -f base.yml -f staging.yml config > docker-compose.yml
-else
-  docker compose -f base.yml -f dev.yml config > docker-compose.yml
-fi
+set -o errexit
+set -o nounset
+set -o pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "NOTE: ./compose is deprecated; use 'make compose-<env>' (scripts/compose.sh)" >&2
+exec bash "${script_dir}/scripts/compose.sh" "${1:-dev}"

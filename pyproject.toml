@@ -59,11 +59,7 @@ dependencies = [
   # Not a direct requirement; kept as a direct pin (Snyk) to stay ahead of
   # the transitive Django floor.
   "sqlparse>=0.5.0",
-  # NOTE: uWSGI is intentionally NOT declared here. The legacy pin
-  # uWSGI==2.0.22 cannot build under Python 3.12 and uWSGI is a deployment
-  # runtime (deploy/uwsgi/catalog.ini), not a library dependency. The deploy
-  # image must install it separately.
-  # Production WSGI runtime (replaces uWSGI in the deploy image).
+  # Production WSGI runtime (replaces the legacy uWSGI runtime).
   "gunicorn==26.2.0",
 ]
 

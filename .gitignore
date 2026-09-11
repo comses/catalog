@@ -4,6 +4,7 @@
 bokeh_secret_key
 config.ini
 postgres_password
+release-version.txt
 
 # Temporary Files
 *~
@@ -22,6 +23,7 @@ catalog.sql
 ### Docker
 docker-compose.yml
 docker
+deploy/state/
 
 ### Django ###
 catalog/settings/local.py

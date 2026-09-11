@@ -1,10 +1,7 @@
-version: '3.9'
 services:
   db:
     ports:
       - "127.0.0.1:5437:5432"
-    volumes:
-      - ./deploy/conf/postgres_password:/run/secrets/catalog_db_password
   elasticsearch:
     environment:
       - bootstrap.memory_lock=true
@@ -28,9 +25,14 @@ services:
       - "127.0.0.1:8000:8000"
       - "127.0.0.1:5006:5006"
     volumes:
-      - ./deploy/conf/config.ini:/run/secrets/catalog_django_config
-      - ./docker/shared:/shared
       - .:/code
+    # Dev's selected ES endpoint (base.yml already gates db/redis/solr);
+    # keeping this dependency is what makes `docker compose run django`
+    # (make test / check / migrations-check) start it on demand and wait
+    # for it to be healthy.
+    depends_on:
+      elasticsearch8:
+        condition: service_healthy
   kibana:
     depends_on:
       - elasticsearch
@@ -41,5 +43,6 @@ services:
     ports:
       - "127.0.0.1:8983:8983"
     volumes:
+      # Live-edit the core schema in development; the same conf is baked
+      # into the solr image (solr.Dockerfile) for staging/prod.
       - ./deploy/solr/conf:/catalog-solr-conf
-      - ./deploy/solr/init.d/solr.in.sh:/opt/solr/bin/solr.in.sh

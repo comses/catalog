@@ -5,17 +5,24 @@ cd /code
 python3 manage.py collectstatic --noinput --clear
 chmod a+x /etc/cron.daily/*
 chmod a+x /etc/cron.monthly/*
-/code/deploy/docker/wait-for-it.sh solr:8983 -- echo "Solr is ready."
-/code/deploy/docker/wait-for-it.sh elasticsearch:9200 -- echo "ElasticSearch is ready."
-# The application's Elasticsearch endpoint is ES8 (ELASTICSEARCH_HOST
-# defaults to elasticsearch8, see catalog/settings/base.py). Block until
-# ES8 is reachable before the application or any reindex action runs.
-/code/deploy/docker/wait-for-it.sh -t 0 elasticsearch8:9200 -- echo "ElasticSearch 8 is ready."
+# Solr is a required dependency: block until it is reachable (the Compose
+# stack already gates startup on its healthcheck; this is the same TCP
+# check the application will perform).
+/code/deploy/docker/wait-for-it.sh -t 0 solr:8983 -- echo "Solr is ready."
+# Block until the release's configured Elasticsearch endpoint is
+# reachable before the application or any reindex action runs. The
+# endpoint is the per-release ELASTICSEARCH_HOST (set from
+# CATALOG_ES_HOST at deploy time: elasticsearch = ES 6.6.2,
+# elasticsearch8 = ES 8.15.5); with no value, fall back to the same
+# default the application uses (see catalog/settings/base.py).
+ES_HOST="${ELASTICSEARCH_HOST:-elasticsearch8}"
+ES_PORT="${ELASTICSEARCH_PORT:-9200}"
+/code/deploy/docker/wait-for-it.sh -t 0 "${ES_HOST}:${ES_PORT}" -- echo "ElasticSearch is ready (${ES_HOST})."
 #echo "Indexing elasticsearch and solr"
 #python3 manage.py rebuild_index --noinput
 echo "Starting Gunicorn"
 # Gunicorn 26.2.0 over the shared unix socket (replaces the legacy
-# uWSGI config in deploy/uwsgi/catalog.ini, which is retired):
+# uWSGI, which has been removed from the deployment):
 #   - workers 4 / threads 2  == uwsgi processes/threads
 #   - umask 002              == uwsgi chmod-socket 664
 #   - timeout 0              == uwsgi had no harakiri (no request timeout)

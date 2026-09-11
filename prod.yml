@@ -1,14 +1,13 @@
 # Prod releases inherit the deployment contract from staging.yml (merged
-# by ./compose for env=prod):
+# by scripts/compose.sh for env=prod):
 #   - image: ${CATALOG_IMAGE} — immutable tag/digest, enforced by
-#     deploy.sh (:latest and bare references are rejected)
-#   - ELASTICSEARCH_HOST: ${CATALOG_ES_HOST:-elasticsearch} — releases run
-#     on ES6 by default; elasticsearch8 is a gated cutover
+#     scripts/deploy.sh (:latest and bare references are rejected)
+#   - ELASTICSEARCH_HOST: ${CATALOG_ES_HOST} — explicit endpoint;
+#     elasticsearch8 is a gated cutover
 #   - service labels comses.catalog.image / comses.catalog.previous-image /
 #     comses.catalog.es-host record the deployment and rollback state
 # Full procedure (build, ES8 staging/validation, cutover, rollback):
 #   docs/deployment-runbook.md
-version: '3.9'
 services:
   django:
     environment:

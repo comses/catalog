@@ -18,16 +18,47 @@ jobs:
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       with:
         submodules: recursive
-    - name: Build
+    - name: Prepare development stack
+      # Renders the dev Compose config (validating base.yml + dev.yml)
+      # and generates the local credentials the staging/prod renderings
+      # reference as file-based secrets.
+      run: make bootstrap
+    - name: Validate staging/prod Compose rendering
+      # The deploy contract requires an immutable CATALOG_IMAGE and an
+      # explicit CATALOG_ES_HOST for every staging/prod rendering
+      # (staging.yml uses ${CATALOG_ES_HOST:?...}); provide both, assert
+      # the rendered stack, and assert that rendering fails without the
+      # required ES host (there must be no silent default).
+      env:
+        CATALOG_IMAGE: comses/catalog/ci:ci-${{ github.sha }}
+        CATALOG_ES_HOST: elasticsearch8
       run: |
-        ./compose
-        ./deploy.sh tag
-        ./build.sh
-    - name: Check for unapplied migrations
-      # CI validation gate: fail if model changes lack committed
-      # migration files. Never generates migrations as a side effect.
+        bash scripts/compose.sh staging
+        grep -q "image: ${CATALOG_IMAGE}" docker-compose.yml
+        grep -q "ELASTICSEARCH_HOST: ${CATALOG_ES_HOST}" docker-compose.yml
+        grep -q "DOMAIN_NAME: staging-catalog.comses.net" docker-compose.yml
+        bash scripts/compose.sh prod
+        grep -q "image: ${CATALOG_IMAGE}" docker-compose.yml
+        grep -q "ELASTICSEARCH_HOST: ${CATALOG_ES_HOST}" docker-compose.yml
+        grep -q "DOMAIN_NAME: catalog.comses.net" docker-compose.yml
+        if env -u CATALOG_ES_HOST bash scripts/compose.sh staging; then
+          echo "ERROR: staging rendering must fail without CATALOG_ES_HOST" >&2
+          exit 1
+        fi
+    - name: Build production image
+      # Exercises the release build path end to end: immutable reference
+      # validation, release-version metadata generation, and a direct
+      # docker build of the django image with the production RUN_SCRIPT
+      # (Gunicorn runtime) — independent of any Compose rendering — then
+      # verifies the Gunicorn runtime is in the built image. Building
+      # needs only a plain Docker daemon.
+      env:
+        CATALOG_IMAGE: comses/catalog/ci:ci-${{ github.sha }}
+        CATALOG_ES_HOST: elasticsearch8
       run: |
-        docker compose run --rm django python3 manage.py makemigrations --check --dry-run
+        bash scripts/deploy.sh build
+        docker run --rm "${CATALOG_IMAGE}" gunicorn --version
     - name: Run Django tests
-      run: |
-        docker compose run --rm django /code/deploy/docker/test.sh
+      # test.sh runs the migration gate (invoke check-migrations) before
+      # the suite, so there is no separate makemigrations --check step.
+      run: make test
