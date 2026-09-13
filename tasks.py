@@ -1,3 +1,5 @@
+import datetime
+import glob
 import logging
 import os
 import sys
@@ -142,9 +144,29 @@ def create_pgpass_file(ctx, force=False):
 
 
 @task
-def backup(ctx, path='/backups/postgres'):
+def backup(ctx, destination='/shared/backups/postgres', keep=14):
+    """Create a compressed database dump using pg_dump and prune old backups."""
+    os.makedirs(destination, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
+    dump_filename = '{db_name}_{timestamp}.sql.gz'.format(timestamp=timestamp, **env)
+    dump_path = os.path.join(destination, dump_filename)
+
     create_pgpass_file(ctx)
-    ctx.run('autopostgresqlbackup -c /code/deploy/db/autopgsqlbackup.conf')
+    print('Backing up {db_name} from {db_host} to {dump_path}...'.format(dump_path=dump_path, **env))
+    ctx.run('pg_dump -h {db_host} -U {db_user} {db_name} | gzip > {dump_path}'.format(
+        dump_path=dump_path, **env))
+    print('Backup completed: {dump_path}'.format(dump_path=dump_path))
+
+    if keep and keep > 0:
+        pattern = os.path.join(destination, '{db_name}_*.sql.gz'.format(**env))
+        backups = sorted(glob.glob(pattern))
+        if len(backups) > keep:
+            for old_backup in backups[:-keep]:
+                try:
+                    os.remove(old_backup)
+                    print('Pruned old backup: {0}'.format(old_backup))
+                except OSError as e:
+                    logger.warning('Failed to remove old backup %s: %s', old_backup, e)
 
 
 @task(aliases=['idb', 'init_db'])

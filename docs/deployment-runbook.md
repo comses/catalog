@@ -244,6 +244,7 @@ Notes:
 make status                    # recorded release + container status
 make stop                      # stop containers (networks + volumes kept)
 make start                     # restart the last rendered release
+make backup                    # create compressed database backup in /shared/backups/postgres
 make restore                   # restore Postgres from catalog.sql + reindex
 make release-version           # write release-version.txt (git describe)
 ```
@@ -252,6 +253,10 @@ Notes:
 
 - `make stop`/`make start` never delete volumes or networks; `make stop`
   is the only "down" on the deployment surface.
+- `make backup` runs `invoke backup` inside the running django container,
+  which generates a timestamped, gzip-compressed dump in
+  `/shared/backups/postgres/` using `pg_dump` and prunes old backups to retain
+  the last 14 copies.
 - `make restore` copies `catalog.sql` into the running django container and
   runs `invoke restore-from-dump`. That task **refuses to run when the
   database already contains publications** (use `invoke rfd -f` inside the

@@ -27,13 +27,13 @@ usage() {
 usage:
   ./deploy.sh deploy [staging|prod] [image-ref]
   ./deploy.sh build [image-ref]
-  ./deploy.sh down | restore | tag
+  ./deploy.sh down | backup | restore | tag
 
 (deprecated) This script forwards to scripts/deploy.sh. Prefer the Make targets:
   make deploy ENV=staging|prod    CATALOG_IMAGE + CATALOG_ES_HOST required
   make rollback | make status | make start | make stop
   make image-build | make image-push        CATALOG_IMAGE required
-  make restore | make release-version
+  make backup | make restore | make release-version
 
 './deploy.sh down' maps to 'stop': containers stop, but networks and named
 volumes are kept (the legacy stack teardown is gone).
@@ -68,7 +68,7 @@ case "${command}" in
         echo "NOTE: 'down' is deprecated and maps to 'stop' (containers stop; networks and named volumes are kept)" >&2
         exec bash "${script_dir}/scripts/deploy.sh" stop
         ;;
-    restore | tag)
+    backup | restore | tag)
         exec bash "${script_dir}/scripts/deploy.sh" "${command}"
         ;;
     *)

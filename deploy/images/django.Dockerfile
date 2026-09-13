@@ -3,13 +3,12 @@ FROM python:3.12-slim AS base
 ARG RUN_SCRIPT=./deploy/docker/dev.sh
 
 # OS-level operational tooling preserved from the legacy Focal image:
-# Postgres backup client + pre-backup hook, mail relay, Postgres client
-# tools, and git/curl for ops. The legacy build toolchain (libpq-dev,
-# libxml2-dev, python3-dev, python3-pip, python3-setuptools) is no longer
-# needed: the locked uv environment installs prebuilt wheels only.
+# Mail relay, Postgres client tools, and git/curl for ops. The legacy
+# build toolchain (libpq-dev, libxml2-dev, python3-dev, python3-pip,
+# python3-setuptools) is no longer needed: the locked uv environment
+# installs prebuilt wheels only.
 RUN apt-get update \
     && apt-get install --no-install-recommends -q -y \
-        autopostgresqlbackup \
         curl \
         git \
         postgresql-client \
@@ -45,10 +44,6 @@ RUN chmod +x /etc/cron.daily/daily_catalog_tasks \
     && mkdir -p /catalog/socket /etc/service/django
 
 COPY . /code
-
-COPY deploy/db/autopostgresqlbackup.conf /etc/default/autopostgresqlbackup
-COPY deploy/db/postgresql-backup-pre /etc/
-RUN chmod a+x /etc/postgresql-backup-pre
 
 COPY ${RUN_SCRIPT} /etc/service/django/run
 RUN chmod a+x /etc/service/django/run

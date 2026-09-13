@@ -5,7 +5,7 @@ FORCE ?= 0
 
 .DEFAULT_GOAL := help
 
-.PHONY: help compose-dev compose-staging compose-prod config-generate config-validate bootstrap up down logs shell clean migrations-check test check test-all cite-config cite-build cite-up cite-down cite-test cite-check cite-migrations-check cite-format cite-lock cite-publish image-build image-push release-version deploy rollback status start stop restore es8-rebuild es8-validate es8-cutover
+.PHONY: help compose-dev compose-staging compose-prod config-generate config-validate bootstrap up down logs shell clean migrations-check test check test-all cite-config cite-build cite-up cite-down cite-test cite-check cite-migrations-check cite-format cite-lock cite-publish image-build image-push release-version deploy rollback status start stop backup restore es8-rebuild es8-validate es8-cutover
 
 help:
 	@printf '%s\n' \
@@ -26,7 +26,7 @@ help:
 		'  CATALOG_ES_HOST required for deploy/es8-cutover):' \
 		'  image-build | image-push' \
 		'  deploy | rollback | status | start | stop' \
-		'  restore | release-version' \
+		'  backup | restore | release-version' \
 		'  es8-rebuild | es8-validate | es8-cutover'
 
 compose-dev:
@@ -104,6 +104,9 @@ stop:
 
 start:
 	bash scripts/deploy.sh start
+
+backup:
+	bash scripts/deploy.sh backup
 
 restore:
 	bash scripts/deploy.sh restore

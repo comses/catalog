@@ -244,6 +244,17 @@ start_stack() {
     compose up -d --no-build --wait
 }
 
+backup_database() {
+    require_docker
+    require_compose_file
+    local container_id
+    container_id="$(compose ps -q django | head -n 1)"
+    [[ -n "${container_id}" ]] \
+        || die "no running django container; start the stack first (make start or make deploy)"
+    echo "Creating database backup via invoke backup"
+    compose exec -T django invoke backup
+}
+
 restore_database() {
     require_docker
     require_compose_file
@@ -343,9 +354,10 @@ case "${1:-}" in
     status) status ;;
     stop) stop_stack ;;
     start) start_stack ;;
+    backup) backup_database ;;
     restore) restore_database ;;
     es8-rebuild) es8_rebuild ;;
     es8-validate) es8_validate ;;
     es8-cutover) es8_cutover "${2:?environment required (staging or prod)}" ;;
-    *) die "usage: $0 <build|push|tag|preflight|deploy|rollback|status|stop|start|restore|es8-rebuild|es8-validate|es8-cutover>" ;;
+    *) die "usage: $0 <build|push|tag|preflight|deploy|rollback|status|stop|start|backup|restore|es8-rebuild|es8-validate|es8-cutover>" ;;
 esac
