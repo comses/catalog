@@ -204,6 +204,13 @@ deploy_release() {
 
     mkdir -p docker/shared/catalog/logs docker/shared/nginx/logs
 
+    # solr is the only service still defined with a `build:` section
+    # (comses/catalog/solr:6.6 is not published to any registry); build it
+    # locally if it's missing or stale so `up --no-build` below never tries
+    # to pull it. This never touches the django image, which is pinned via
+    # `image: ${CATALOG_IMAGE}` with no build section.
+    compose build solr
+
     # Rolling update of the single-host stack: recreate only what changed
     # (django with the new image); platform services and all named volumes
     # stay untouched.

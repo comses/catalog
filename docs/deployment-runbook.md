@@ -103,6 +103,36 @@ you.
    `catalog.comses.net`) resolves to the host and port 80 is published by
    nginx.
 
+**Solr 6 has not been removed as a dependency.** `base.yml` still defines a
+required `solr` service (`comses/catalog/solr:6.6`, built from
+`deploy/images/solr.Dockerfile`) alongside `elasticsearch` (6.6.2) and
+`elasticsearch8` — all three are started by every deploy today. That image
+is not published to any registry, so `make deploy` now runs
+`docker compose build solr` before `up --no-build` to build it locally
+on the deploy host if it's missing or stale (a fresh host previously hit
+`pull access denied for comses/catalog/solr` because `--no-build` tried to
+pull it instead of building it).
+
+### Why three search backends run at once
+
+None of Solr, ES6, or ES8 has been retired; each is kept running until its
+replacement is proven safe to cut over to (see [README.md](../README.md)'s
+"migrate fully from Solr to elasticsearch" maintenance note):
+
+- **Solr 6** is the original, still-authoritative backend for some search
+  paths — Django's `SOLR_HOST`/`SOLR_PORT`/`SOLR_CORE_NAME` settings and the
+  citation admin/model sync code still depend on it, so it cannot be
+  dropped from the stack yet.
+- **Elasticsearch 6.6.2** (`elasticsearch`) is the current default
+  application ES endpoint (`CATALOG_ES_HOST=elasticsearch`), a step already
+  taken away from Solr for the read paths it serves.
+- **Elasticsearch 8** (`elasticsearch8`) is the migration target. It runs
+  from the first deploy so it can be rebuilt and validated (`make
+  es8-rebuild` / `make es8-validate`) against live data before any release
+  is cut over to it (see ES8 cutover below), and it stays up afterward so a
+  rollback to an ES6-backed release remains possible.
+
+
 ## Standard release (ES6 endpoint)
 
 ```sh
