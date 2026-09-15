@@ -109,12 +109,33 @@ you.
 CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> make image-build
 CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> make image-push
 CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> CATALOG_ES_HOST=elasticsearch make deploy ENV=staging
-# smoke-test the staging domain, then:
-CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> CATALOG_ES_HOST=elasticsearch make deploy ENV=prod
+# smoke-test the staging domain, then promote that exact release to prod:
+make deploy ENV=prod
 make status   # recorded current + previous release, container status
 ```
 
 `CATALOG_ES_HOST=elasticsearch` explicitly selects Elasticsearch 6.6.2.
+
+### Promotion: `make deploy ENV=prod` with no other variables
+
+`scripts/deploy.sh` records the image and ES host of the last deploy in
+`deploy/state/release.env` regardless of environment. When `CATALOG_IMAGE`
+and/or `CATALOG_ES_HOST` are omitted, `deploy` fills them in from that
+recorded release instead of failing, so once a release has been deployed
+and smoke-tested on staging, promoting it to prod is exactly:
+
+```sh
+make deploy ENV=prod
+```
+
+This redeploys the **identical** image/ES host that was just validated on
+staging — no re-typing the tag, no risk of prod drifting to a different
+build. It is still a normal, recorded rollout: `deploy/state/release.env`
+and `deploy/state/deploy-history.log` are updated, and `make rollback`
+reverts it the same way as any other deploy. Pass `CATALOG_IMAGE=` and/or
+`CATALOG_ES_HOST=` explicitly whenever prod should run something other than
+the last-deployed release (e.g. redeploying an older tag directly to prod
+without going through staging first).
 
 ## ES8 cutover (gated): rebuild + validate BEFORE switching any release to ES8
 

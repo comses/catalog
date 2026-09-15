@@ -9,7 +9,10 @@
 # whose implicit tag is :latest) are rejected so a rollback can never drift
 # to a different image than the one that was recorded before the rollout.
 # There is NO ES endpoint default: every release declares the endpoint it
-# runs against, and a rollback restores the recorded release.
+# runs against, and a rollback restores the recorded release. If a deploy
+# omits CATALOG_IMAGE/CATALOG_ES_HOST, they default to the last recorded
+# release (deploy/state/release.env): this is how a validated staging
+# release is promoted to prod with a plain `make deploy ENV=prod`.
 #
 # The selected release is recorded in non-secret state under deploy/state
 # (git-ignored, created on first use):
@@ -168,11 +171,29 @@ preflight() {
 deploy_release() {
     local environment="$1"
     validate_environment "${environment}"
-    preflight
 
     # The currently recorded release becomes the rollback unit for this
-    # rollout.
+    # rollout. Load it before validating requested values so a deploy
+    # invoked with no CATALOG_IMAGE/CATALOG_ES_HOST promotes that release
+    # as-is: after `make deploy ENV=staging` with explicit values and a
+    # staging smoke test, `make deploy ENV=prod` alone redeploys that same
+    # validated image/ES host to prod.
     load_release_state
+    if [[ -z "${CATALOG_IMAGE:-}" ]]; then
+        [[ "${release_image}" != "none" ]] \
+            || die "CATALOG_IMAGE is required (no prior release recorded to promote)"
+        CATALOG_IMAGE="${release_image}"
+        echo "CATALOG_IMAGE not set; promoting recorded release image ${CATALOG_IMAGE}"
+    fi
+    if [[ -z "${CATALOG_ES_HOST:-}" ]]; then
+        [[ "${release_es_host}" != "none" ]] \
+            || die "CATALOG_ES_HOST is required (no prior release recorded to promote)"
+        CATALOG_ES_HOST="${release_es_host}"
+        echo "CATALOG_ES_HOST not set; promoting recorded release ES host ${CATALOG_ES_HOST}"
+    fi
+
+    preflight
+
     # Passed through for the YAML lane's release labels; harmless once the
     # labels are gone.
     export CATALOG_PREVIOUS_IMAGE="${release_image}"
