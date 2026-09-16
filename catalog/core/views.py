@@ -769,6 +769,7 @@ def public_search_view(request):
     facets = publication_query.cache
 
     total_hits = publications.hits.total
+    total_hits = getattr(total_hits, 'value', total_hits)
     paginator = create_paginator(current_page=current_page, query_dict=query_dict, total_hits=total_hits)
     form = PublicSearchForm(initial={'search': search})
 

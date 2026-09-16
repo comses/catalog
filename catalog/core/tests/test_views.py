@@ -1,5 +1,6 @@
 import json
 import logging
+from types import SimpleNamespace
 from unittest import mock
 from unittest.mock import patch
 
@@ -116,6 +117,33 @@ class DashboardViewTest(BaseTest):
 class PublicationsViewTest(BaseTest):
     def test_publications_view(self):
         self.without_login_and_with_login_test(PUBLICATIONS_URL)
+
+    @patch('catalog.core.views.PublicationDocSearch')
+    def test_public_search_handles_elasticsearch_total_hits(self, publication_doc_search):
+        class SearchResponse(list):
+            hits = SimpleNamespace(total=SimpleNamespace(value=1, relation='eq'))
+
+        publication_query = mock.MagicMock()
+        publication_query.find.return_value = publication_query
+        publication_query.__getitem__.return_value = publication_query
+        publication_query.agg_by_count.return_value = publication_query
+        publication_query.execute.return_value = SearchResponse()
+        publication_query.cache = {}
+        publication_doc_search.return_value = publication_query
+
+        response = self.client.get('/publications/?search=social+force')
+
+        self.assertEqual(200, response.status_code)
+        publication_query.find.assert_called_once_with(
+            q='social force',
+            facet_filters={
+                'authors': set(),
+                'container': set(),
+                'platforms': set(),
+                'sponsors': set(),
+                'tags': set(),
+            },
+        )
 
     def test_publication_view_with_query_parameter(self):
         self.login()
