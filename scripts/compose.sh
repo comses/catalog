@@ -5,8 +5,8 @@ set -o nounset
 set -o pipefail
 
 environment="${1:-dev}"
-# Default output is the repo-root docker-compose.yml (dev flow and CI).
-# The deploy flow renders into the ignored deploy/state directory instead.
+# Default output is the repo-root docker-compose.yml for every environment.
+# This is the operational file used by both development and deployment.
 output="${2:-docker-compose.yml}"
 
 case "${environment}" in

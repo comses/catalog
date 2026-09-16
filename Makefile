@@ -89,7 +89,8 @@ release-version:
 
 # deploy requires ENV=staging|prod plus CATALOG_IMAGE and CATALOG_ES_HOST;
 # it runs the preflight checks and performs a rolling `docker compose up -d`
-# (no down, no volume deletion). State lives in deploy/state/.
+# (no down, no volume deletion). The rendered operational file is
+# docker-compose.yml; release metadata lives in deploy/state/.
 deploy:
 	CATALOG_IMAGE="$(CATALOG_IMAGE)" CATALOG_ES_HOST="$(CATALOG_ES_HOST)" bash scripts/deploy.sh deploy "$(ENV)"
 

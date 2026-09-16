@@ -21,8 +21,8 @@ longer a valid deployment unit:
   (a bare reference implicitly means `:latest`).
 - `CATALOG_IMAGE` and `CATALOG_ES_HOST` are required for every deployment.
 - `staging.yml` pins the django service to `image: ${CATALOG_IMAGE}`;
-  `scripts/compose.sh` bakes the exact reference into the rendered
-  `deploy/state/docker-compose.yml`.
+  `scripts/compose.sh` bakes the exact reference into the rendered root
+  `docker-compose.yml`.
 
 ### Producing an immutable reference
 
@@ -71,8 +71,11 @@ guaranteed immutable.
 Before anything on the running release changes, the deploy verifies the
 requested reference resolves on the host (local image or `docker pull`); if
 it cannot, the deploy aborts and the old release keeps running. The rendered
-compose file itself is also kept in `deploy/state/docker-compose.yml`, so
-`make start` / `make stop` always operate on the last rendered release.
+compose file is kept at the repository root as `docker-compose.yml`, so
+ordinary `docker compose` commands and `make start` / `make stop` always
+operate on the last rendered release. On the first lifecycle command after
+upgrading from the old layout, a legacy `deploy/state/docker-compose.yml` is
+moved to the root automatically.
 
 ## Hard operational prerequisites
 
@@ -180,7 +183,7 @@ endpoint) and the ES8 container is healthy. `make es8-rebuild` health-checks
 ES8 first and fails early if it is down; for a manual check:
 
 ```sh
-docker compose --project-directory . -p catalog -f deploy/state/docker-compose.yml \
+docker compose --project-directory . -p catalog \
     exec -T elasticsearch8 curl -fsS 'http://localhost:9200/_cluster/health?pretty'
 # expect: cluster status green or yellow, no unassigned shards
 ```
@@ -227,7 +230,7 @@ This checks, via one-off Compose execs into the running containers:
 Manual equivalent (after `make es8-rebuild` succeeded):
 
 ```sh
-COMPOSE=(docker compose --project-directory . -p catalog -f deploy/state/docker-compose.yml)
+COMPOSE=(docker compose --project-directory . -p catalog)
 "${COMPOSE[@]}" exec -T elasticsearch8 curl -fsS 'http://localhost:9200/_alias?pretty'
 "${COMPOSE[@]}" exec -T elasticsearch8 curl -fsS 'http://localhost:9200/publication/_count'
 "${COMPOSE[@]}" exec -T django python3 manage.py shell -c \

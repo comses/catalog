@@ -16,7 +16,7 @@
 #
 # The selected release is recorded in non-secret state under deploy/state
 # (git-ignored, created on first use):
-#   deploy/state/docker-compose.yml  rendered Compose file of the release
+#   docker-compose.yml               rendered Compose file of the release
 #   deploy/state/release.env         current + previous release
 #                                    (env, image, ES host, timestamp)
 #   deploy/state/deploy-history.log  append-only, timestamped rollouts
@@ -32,7 +32,8 @@ set -o pipefail
 
 project_name=catalog
 state_dir=deploy/state
-compose_file="${state_dir}/docker-compose.yml"
+compose_file=docker-compose.yml
+legacy_compose_file="${state_dir}/docker-compose.yml"
 release_state_file="${state_dir}/release.env"
 # Override the history log location with DEPLOY_HISTORY_FILE.
 deploy_history_file="${DEPLOY_HISTORY_FILE:-${state_dir}/deploy-history.log}"
@@ -48,15 +49,24 @@ die() {
 }
 
 # All commands operate on the stable project name and resolve relative
-# paths (./deploy/..., ./docker/shared/...) from the repository root -
-# the CWD these scripts assume - not from the directory that holds the
-# rendered file (deploy/state/).
+# paths (./deploy/..., ./docker/shared/...) from the repository root, where
+# the rendered operational Compose file lives.
 compose() {
     docker compose --project-directory . -p "${project_name}" -f "${compose_file}" "$@"
 }
 
+migrate_legacy_compose_file() {
+    # Preserve restartability for hosts upgraded from the old layout. There
+    # is only one operational Compose file after this move.
+    if [[ ! -s "${compose_file}" && -s "${legacy_compose_file}" ]]; then
+        mv "${legacy_compose_file}" "${compose_file}"
+        echo "Migrated rendered Compose file to ${compose_file}"
+    fi
+}
+
 require_compose_file() {
     [[ -s "${compose_file}" ]] \
+        || { migrate_legacy_compose_file; [[ -s "${compose_file}" ]]; } \
         || die "no rendered compose file at ${compose_file}; run a deploy (make deploy ENV=staging|prod) first"
 }
 
@@ -199,8 +209,10 @@ deploy_release() {
     export CATALOG_PREVIOUS_IMAGE="${release_image}"
     export CATALOG_PREVIOUS_ES_HOST="${release_es_host}"
 
-    # Bake CATALOG_IMAGE and CATALOG_ES_HOST into the rendered Compose file.
+    # Bake CATALOG_IMAGE and CATALOG_ES_HOST into the root operational Compose file.
     bash scripts/compose.sh "${environment}" "${compose_file}"
+    # Do not leave the former generated artifact in the metadata directory.
+    rm -f "${legacy_compose_file}"
 
     mkdir -p docker/shared/catalog/logs docker/shared/nginx/logs
 

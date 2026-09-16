@@ -43,6 +43,9 @@ currently deployed release (environment, image, endpoint) in
 `deploy/state/release.env` plus an append-only `deploy/state/deploy-history.log`;
 a rollback redeploys the recorded previous release. Rollouts are a rolling
 `docker compose up -d` — no teardown, and named volumes are never deleted.
+Every environment renders its operational Compose file at the repository root
+(`docker-compose.yml`), so ordinary `docker compose` commands work without
+`-f`; `deploy/state/` contains release metadata only.
 
 ```
 CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> make image-build
