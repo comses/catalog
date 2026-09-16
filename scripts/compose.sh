@@ -9,6 +9,15 @@ environment="${1:-dev}"
 # This is the operational file used by both development and deployment.
 output="${2:-docker-compose.yml}"
 
+# A direct render to the canonical root is a development convenience, not a
+# way to rewrite a tracked deployment checkout. Deployment renders use a
+# temporary candidate path and therefore do not trip this guard.
+if [[ "${output}" == "docker-compose.yml" && -s deploy/state/release.env && "${COMPOSE_ALLOW_DEPLOY_RENDER:-0}" != 1 ]]; then
+    echo "ERROR: deployment state is present; refusing to overwrite root docker-compose.yml" >&2
+    echo "       use make deploy/rollback/start/stop, or set DEV_OVERRIDE=1 deliberately" >&2
+    exit 1
+fi
+
 case "${environment}" in
     dev)
         files=(-f base.yml -f dev.yml)

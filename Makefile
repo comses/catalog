@@ -2,10 +2,12 @@ SHELL := /bin/bash
 
 COMPOSE ?= docker compose
 FORCE ?= 0
+DEV_OVERRIDE ?= 0
+CATALOG_COMPOSE = $(COMPOSE) --project-directory . -p catalog -f docker-compose.yml
 
 .DEFAULT_GOAL := help
 
-.PHONY: help compose-dev compose-staging compose-prod config-generate config-validate bootstrap up down logs shell clean migrations-check test check test-all cite-config cite-build cite-up cite-down cite-test cite-check cite-migrations-check cite-format cite-lock cite-publish image-build image-push release-version deploy rollback status start stop backup restore es8-rebuild es8-validate es8-cutover
+.PHONY: help compose-dev compose-staging compose-prod config-generate config-validate bootstrap up down logs shell clean migrations-check test check test-all cite-config cite-build cite-up cite-down cite-test cite-check cite-migrations-check cite-format cite-lock cite-publish image-build image-push release-version deploy schema-migrate rollback status start stop backup restore es8-rebuild es8-validate es8-cutover
 
 help:
 	@printf '%s\n' \
@@ -22,15 +24,17 @@ help:
 		'  cite-<target>          Delegate config, build, up, down, test, check, migrations-check, format, lock, or publish to citation/' \
 		'' \
 		'Release commands (single-host Docker Compose, project "catalog";' \
-		'  ENV=staging|prod for deploy/es8-cutover; CATALOG_IMAGE required;' \
-		'  CATALOG_ES_HOST required for deploy/es8-cutover):' \
+		'  ENV=staging|prod for deploy/es8-cutover; new deploys require image + ES host;' \
+		'  existing release state supplies omitted deploy values for promotion):' \
 		'  image-build | image-push' \
 		'  deploy | rollback | status | start | stop' \
+		'  schema-migrate        Explicit confirmed database migration (no automatic migrations)' \
+		'                         requires image, ES host, and CONFIRM_PRODUCTION_MIGRATION=1' \
 		'  backup | restore | release-version' \
 		'  es8-rebuild | es8-validate | es8-cutover'
 
 compose-dev:
-	bash scripts/compose.sh dev
+	DEV_OVERRIDE=$(DEV_OVERRIDE) bash scripts/deploy.sh dev-compose
 
 compose-staging:
 	bash scripts/compose.sh staging
@@ -47,19 +51,19 @@ config-validate:
 bootstrap: compose-dev config-generate
 
 up: compose-dev config-validate
-	$(COMPOSE) up -d
+	$(CATALOG_COMPOSE) up -d
 
 down: compose-dev
-	$(COMPOSE) down --remove-orphans
+	$(CATALOG_COMPOSE) down --remove-orphans
 
-logs: compose-dev
-	$(COMPOSE) logs -f
+logs:
+	bash scripts/deploy.sh logs
 
 shell: compose-dev
-	$(COMPOSE) exec django bash
+	$(CATALOG_COMPOSE) exec django bash
 
 clean: compose-dev
-	$(COMPOSE) down --volumes --remove-orphans
+	$(CATALOG_COMPOSE) down --volumes --remove-orphans
 
 migrations-check: compose-dev config-validate
 	$(COMPOSE) run --rm django python3 manage.py makemigrations --check --dry-run
@@ -87,12 +91,14 @@ image-push:
 release-version:
 	bash scripts/deploy.sh tag
 
-# deploy requires ENV=staging|prod plus CATALOG_IMAGE and CATALOG_ES_HOST;
-# it runs the preflight checks and performs a rolling `docker compose up -d`
-# (no down, no volume deletion). The rendered operational file is
-# docker-compose.yml; release metadata lives in deploy/state/.
+# deploy renders a temporary candidate and publishes docker-compose.yml only
+# after `docker compose up -d --wait` succeeds; release metadata lives in
+# deploy/state/ and supplies omitted values when promoting a recorded release.
 deploy:
 	CATALOG_IMAGE="$(CATALOG_IMAGE)" CATALOG_ES_HOST="$(CATALOG_ES_HOST)" bash scripts/deploy.sh deploy "$(ENV)"
+
+schema-migrate:
+	CATALOG_IMAGE="$(CATALOG_IMAGE)" CATALOG_ES_HOST="$(CATALOG_ES_HOST)" CONFIRM_PRODUCTION_MIGRATION="$(CONFIRM_PRODUCTION_MIGRATION)" bash scripts/deploy.sh schema-migrate "$(ENV)"
 
 rollback:
 	bash scripts/deploy.sh rollback

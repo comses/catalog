@@ -34,31 +34,56 @@ inv ri
 
 ## Deployment (staging / prod)
 
-Staging and prod are deployed to a single Docker host as one Docker Compose
-stack (project `catalog`) via Make targets. The deployment **and** rollback
-unit is an **immutable application image reference** (explicit tag or
-digest); `:latest` is rejected. Every release explicitly selects its
-Elasticsearch endpoint. Before every rollout, the deployment records the
-currently deployed release (environment, image, endpoint) in
-`deploy/state/release.env` plus an append-only `deploy/state/deploy-history.log`;
-a rollback redeploys the recorded previous release. Rollouts are a rolling
-`docker compose up -d` — no teardown, and named volumes are never deleted.
-Every environment renders its operational Compose file at the repository root
-(`docker-compose.yml`), so ordinary `docker compose` commands work without
-`-f`; `deploy/state/` contains release metadata only.
+Use the root `Makefile` as the supported deployment interface. Staging and
+prod share the single Compose project `catalog`. A release is an immutable
+application image reference (explicit tag or digest; `:latest`, bare
+references, and malformed digests are rejected) together with an explicit
+`CATALOG_ES_HOST` (`elasticsearch` or `elasticsearch8`).
+
+The root `docker-compose.yml` is the last-known-good generated release
+configuration. A deploy renders a temporary candidate and runs Compose from
+that candidate; only after `docker compose up -d --wait` succeeds is the
+candidate atomically published at the root. If rendering, image resolution,
+build, or startup fails, the previous root file and any legacy fallback remain
+untouched. `deploy/state/release.env` and `deploy/state/deploy-history.log`
+hold non-secret release metadata; they are not Compose files.
 
 ```
 CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> make image-build
 CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> make image-push
+# Fresh host: schema-migrate starts only the candidate database.
+CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> CATALOG_ES_HOST=elasticsearch \
+CONFIRM_PRODUCTION_MIGRATION=1 make schema-migrate ENV=staging
 CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> CATALOG_ES_HOST=elasticsearch make deploy ENV=staging
-# Smoke-test staging, then:
-CATALOG_IMAGE=comses/catalog/prod:<immutable-tag> CATALOG_ES_HOST=elasticsearch make deploy ENV=prod
-make status                    # recorded release + container status
-make rollback                  # redeploy the recorded previous release
+# Smoke-test staging, then promote the recorded image and endpoint:
+make deploy ENV=prod
+make status
 ```
 
-Switching a release to Elasticsearch 8 is a **gated action**: run
-`make es8-rebuild` and `make es8-validate` (Compose one-off commands) before
-deploying any release with `CATALOG_ES_HOST=elasticsearch8`. The full
-procedure — including hard operational prerequisites (storage, registry) and
-the rollback steps — is in [docs/deployment-runbook.md](docs/deployment-runbook.md).
+For a new release, `ENV`, `CATALOG_IMAGE`, and `CATALOG_ES_HOST` are required.
+When deploying with an existing release state, either missing image or
+endpoint variable is filled from the current recorded release; this makes
+`make deploy ENV=prod` the promotion form. Supplying values explicitly starts
+a different release. A direct successful prod-to-prod deploy replaces the
+anchor with the immediately prior prod tuple. A staging deploy replacing a
+tracked prod release likewise records that immediately prior prod tuple before
+generic release state changes; staging-to-prod promotion then preserves it.
+Staging can never become the rollback target.
+
+Schema changes are never automatic. Run the explicit, confirmed
+`schema-migrate` once before the staging deploy; on a subsequent release,
+run `make backup` first. Staging and prod share a database, so do not run the
+migration again during promotion. Migrations should use an
+expand/contract-compatible application rollout. There is no automatic schema
+rollback; investigate failed or partly applied migrations manually.
+
+For inspection only, root Compose commands such as `docker compose ps`,
+`docker compose logs`, and `docker compose config` may be used. Do not use
+ordinary root `docker compose up` or `down` as a deployment procedure; use
+`make deploy`, `make start`, or `make stop`.
+
+Switching a release to Elasticsearch 8 is a **gated action**: use
+`CATALOG_IMAGE=<current-image> CONFIRM_ES8_CUTOVER=1 make es8-cutover ENV=staging`.
+This performs the rebuild, validation, and deployment as one path; the image
+must be the already deployed candidate. See [docs/deployment-runbook.md](docs/deployment-runbook.md)
+for operational prerequisites, lifecycle, rollback, and migration details.
