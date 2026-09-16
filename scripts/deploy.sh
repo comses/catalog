@@ -114,7 +114,14 @@ require_dev_override_or_clean() {
         die "both root and legacy Compose files exist; refusing development mutation"
     fi
     if [[ -s "${compose_file}" ]] && grep -Fq 'comses.catalog.image' "${compose_file}"; then
-        die "root Compose file looks like a deployment but release metadata is missing; refusing development mutation"
+        # An ignored rendered file is common in clean CI/worktrees. It is
+        # safe to replace when no catalog containers exist; a host with an
+        # actual deployment (including stopped containers) still fails closed
+        # even if its metadata was accidentally removed.
+        local container_ids
+        container_ids="$(docker ps -aq --filter "label=com.docker.compose.project=${project_name}" 2>/dev/null || true)"
+        [[ -z "${container_ids}" ]] \
+            || die "root Compose file looks like a deployment with catalog containers present; refusing development mutation"
     fi
 }
 
