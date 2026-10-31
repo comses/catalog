@@ -2,63 +2,142 @@ name: CoMSES Docker CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+# Never publish the same commit twice at once, so its image digest stays stable.
+concurrency:
+  group: docker-build-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
 
 jobs:
-
-  build:
-
+  build-test-publish:
     runs-on: ubuntu-latest
+    env:
+      CATALOG_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+      CATALOG_BUILD_RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     steps:
-    - name: Checkout repo + submodules
-      # actions/checkout v7.0.1, pinned to a full commit SHA.
-      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      with:
-        submodules: recursive
-    - name: Prepare development stack
-      # Renders the dev Compose config (validating base.yml + dev.yml)
-      # and generates the local credentials the staging/prod renderings
-      # reference as file-based secrets.
-      run: make bootstrap
-    - name: Validate staging/prod Compose rendering
-      # The deploy contract requires an immutable CATALOG_IMAGE and an
-      # explicit CATALOG_ES_HOST for every staging/prod rendering
-      # (staging.yml uses ${CATALOG_ES_HOST:?...}); provide both, assert
-      # the rendered stack, and assert that rendering fails without the
-      # required ES host (there must be no silent default).
-      env:
-        CATALOG_IMAGE: comses/catalog/ci:ci-${{ github.sha }}
-        CATALOG_ES_HOST: elasticsearch8
-      run: |
-        bash scripts/compose.sh staging /tmp/catalog-ci-staging.yml
-        grep -q "image: ${CATALOG_IMAGE}" /tmp/catalog-ci-staging.yml
-        grep -q "ELASTICSEARCH_HOST: ${CATALOG_ES_HOST}" /tmp/catalog-ci-staging.yml
-        grep -q "DOMAIN_NAME: staging-catalog.comses.net" /tmp/catalog-ci-staging.yml
-        bash scripts/compose.sh prod /tmp/catalog-ci-prod.yml
-        grep -q "image: ${CATALOG_IMAGE}" /tmp/catalog-ci-prod.yml
-        grep -q "ELASTICSEARCH_HOST: ${CATALOG_ES_HOST}" /tmp/catalog-ci-prod.yml
-        grep -q "DOMAIN_NAME: catalog.comses.net" /tmp/catalog-ci-prod.yml
-        if env -u CATALOG_ES_HOST bash scripts/compose.sh staging; then
-          echo "ERROR: staging rendering must fail without CATALOG_ES_HOST" >&2
-          exit 1
-        fi
-    - name: Build production image
-      # Exercises the release build path end to end: immutable reference
-      # validation, release-version metadata generation, and a direct
-      # docker build of the django image with the production RUN_SCRIPT
-      # (Gunicorn runtime) — independent of any Compose rendering — then
-      # verifies the Gunicorn runtime is in the built image. Building
-      # needs only a plain Docker daemon.
-      env:
-        CATALOG_IMAGE: comses/catalog/ci:ci-${{ github.sha }}
-        CATALOG_ES_HOST: elasticsearch8
-      run: |
-        bash scripts/deploy.sh build
-        docker run --rm "${CATALOG_IMAGE}" gunicorn --version
-    - name: Run Django tests
-      # test.sh runs the migration gate (invoke check-migrations) before
-      # the suite, so there is no separate makemigrations --check step.
-      run: make test
+      - name: Resolve the image name
+        # image references must be lowercase, GitHub logins need not be
+        run: echo "CATALOG_IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}:sha-${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Checkout Catalog
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Checkout pinned Citation revision
+        env:
+          CITATION_OWNER: ${{ github.event.pull_request.head.repo.owner.login || github.repository_owner }}
+        run: bash scripts/checkout-citation.sh "${CITATION_OWNER}"
+
+      - name: Prepare development stack
+        run: make bootstrap cite-config
+
+      - name: Validate scripts and deployment controller
+        run: |
+          scripts=(
+            scripts/compose.sh
+            scripts/deploy.sh
+            scripts/dev-restore.sh
+            scripts/checkout-citation.sh
+            deploy/docker/prod.sh
+            deploy/docker/scheduler.sh
+            deploy/cron/daily_catalog_tasks
+            deploy/cron/monthly_catalog_tasks
+            deploy/cron/backup_database
+          )
+          bash -n "${scripts[@]}"
+          shellcheck "${scripts[@]}"
+          python3 -m py_compile scripts/catalogctl/*.py scripts/release_manifest.py scripts/tests/*.py
+          make deploy-controller-test
+
+      - name: Validate deployment Compose files
+        env:
+          CATALOG_BUNDLE_REVISION: ${{ github.sha }}
+          CATALOG_CONFIG_DIR: ${{ github.workspace }}/deploy/conf
+          CATALOG_SHARED_DIR: /srv/apps/comses-catalog/docker/deploy/shared
+          CATALOG_BUNDLE_DIR: ${{ github.workspace }}
+          CATALOG_HTTP_BIND: 127.0.0.1:80
+        run: |
+          CATALOG_ENV=staging CATALOG_DOMAIN=staging-catalog.comses.net \
+            bash scripts/compose.sh staging /tmp/catalog-staging.yml
+          CATALOG_ENV=prod CATALOG_DOMAIN=catalog.comses.net \
+            bash scripts/compose.sh prod /tmp/catalog-prod.yml
+          docker compose -f /tmp/catalog-staging.yml config --quiet
+          docker compose -f /tmp/catalog-prod.yml config --quiet
+          grep -q 'catalog.settings.staging' /tmp/catalog-staging.yml
+          grep -q 'catalog.settings.prod' /tmp/catalog-prod.yml
+
+      - name: Run application checks and tests
+        run: make check migrations-check cite-check cite-migrations-check test-all
+
+      - name: Build and inspect production image
+        run: |
+          make image-build
+          docker run --rm "${CATALOG_IMAGE}" gunicorn --version
+          test "$(docker image inspect "${CATALOG_IMAGE}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "${GITHUB_SHA}"
+          test "$(docker image inspect "${CATALOG_IMAGE}" --format '{{index .Config.Labels "org.comses.catalog.citation-revision"}}')" = "$(git rev-parse HEAD:citation)"
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "${GHCR_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
+
+      - name: Publish the image once and write its release manifest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          image_name="${CATALOG_IMAGE%:*}"
+          owner="${GITHUB_REPOSITORY_OWNER}"
+          if [ "$(gh api "users/${owner}" --jq .type)" = Organization ]; then
+            scope="orgs/${owner}"
+          else
+            scope="users/${owner}"
+          fi
+          # A commit's image is published once; GHCR answers a missing package with 403, the API with 404.
+          if tags="$(gh api --paginate "${scope}/packages/container/${image_name##*/}/versions" \
+              --jq '.[].metadata.container.tags[]' 2>/tmp/packages.err)"; then
+            published="$(grep -Fxc "sha-${GITHUB_SHA}" <<<"${tags}" || true)"
+          elif grep -q 'HTTP 404' /tmp/packages.err; then
+            published=0
+          else
+            cat /tmp/packages.err >&2
+            exit 1
+          fi
+          if [ "${published}" -gt 0 ]; then
+            echo "sha-${GITHUB_SHA} is already published; reusing its digest"
+            docker pull "${CATALOG_IMAGE}"
+            digest="$(docker image inspect "${CATALOG_IMAGE}" --format '{{range .RepoDigests}}{{println .}}{{end}}' \
+              | sed -n "s|^${image_name}@||p" | head -n 1)"
+          else
+            make image-push | tee /tmp/catalog-image-push.log
+            digest="$(sed -n 's/.*digest: \(sha256:[0-9a-f]\{64\}\).*/\1/p' /tmp/catalog-image-push.log | tail -n 1)"
+          fi
+          test -n "${digest}"
+          image_digest="${image_name}@${digest}"
+          docker pull "${image_digest}"
+          test "$(docker image inspect "${image_digest}" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "${GITHUB_SHA}"
+          test "$(docker image inspect "${image_digest}" --format '{{index .Config.Labels "org.comses.catalog.citation-revision"}}')" = "$(git rev-parse HEAD:citation)"
+          python3 scripts/release_manifest.py write --image "${image_digest}" --output release-manifest.json
+          cat release-manifest.json >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload the release manifest
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: catalog-release-manifest-${{ github.sha }}
+          path: release-manifest.json
+          if-no-files-found: error
+          retention-days: 90
+          overwrite: true

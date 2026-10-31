@@ -1,0 +1,122 @@
+name: Publish final release
+
+on:
+  push:
+    tags:
+      - 'v[0-9][0-9][0-9][0-9].[0-9][0-9]'
+      - 'v[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9]'
+      - 'v[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9]'
+      - 'v[0-9][0-9][0-9][0-9].[0-9][0-9].[0-9][0-9][0-9]'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish-final-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Verify annotated release tag on main
+        id: release
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          [[ "${tag}" =~ ^v[0-9]{4}\.[0-9]{2}(\.[0-9]{1,3})?$ ]]
+          test "$(git cat-file -t "${GITHUB_REF}")" = tag
+          revision="$(git rev-list -n 1 "${GITHUB_REF}")"
+          git fetch origin main
+          git merge-base --is-ancestor "${revision}" origin/main
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "revision=${revision}" >> "${GITHUB_OUTPUT}"
+
+      - name: Log in to GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "${GHCR_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
+
+      - name: Fetch the release manifest of the tested build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REVISION: ${{ steps.release.outputs.revision }}
+        run: |
+          run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow docker-build.yml --branch main \
+            --commit "${REVISION}" --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          test -n "${run_id}" || { echo "ERROR: no successful main build for ${REVISION}" >&2; exit 1; }
+          gh run download "${run_id}" --repo "${GITHUB_REPOSITORY}" \
+            --name "catalog-release-manifest-${REVISION}" --dir tested-manifest
+          mv tested-manifest/release-manifest.json release-manifest.json
+          python3 scripts/release_manifest.py check release-manifest.json --revision "${REVISION}"
+
+      - name: Alias the tested image without rebuilding
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          image_name="ghcr.io/${GITHUB_REPOSITORY,,}"
+          source_image="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["image"])' release-manifest.json)"
+          test "${source_image%@*}" = "${image_name}"
+          release_image="${image_name}:${TAG}"
+          docker pull "${source_image}"
+          docker tag "${source_image}" "${release_image}"
+          docker push "${release_image}" | tee /tmp/catalog-release-push.log
+          release_digest="$(sed -n 's/.*digest: \(sha256:[0-9a-f]\{64\}\).*/\1/p' /tmp/catalog-release-push.log | tail -n 1)"
+          test "${release_digest}" = "${source_image##*@}"
+          cat release-manifest.json >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload release manifest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: catalog-release-${{ steps.release.outputs.tag }}
+          path: release-manifest.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          if ! gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release create "${TAG}" \
+              'release-manifest.json#Release manifest' \
+              --repo "${GITHUB_REPOSITORY}" \
+              --verify-tag \
+              --title "Catalog ${TAG#v}" \
+              --generate-notes
+          else
+            test "$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json tagName --jq .tagName)" = "${TAG}"
+            test "$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json isPrerelease --jq .isPrerelease)" = false
+
+            asset_count="$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json assets \
+              --jq '[.assets[] | select(.name == "release-manifest.json")] | length')"
+            case "${asset_count}" in
+              0)
+                gh release upload "${TAG}" \
+                  'release-manifest.json#Release manifest' \
+                  --repo "${GITHUB_REPOSITORY}"
+                ;;
+              1)
+                existing_release_dir="$(mktemp -d)"
+                gh release download "${TAG}" \
+                  --repo "${GITHUB_REPOSITORY}" \
+                  --pattern release-manifest.json \
+                  --dir "${existing_release_dir}"
+                cmp release-manifest.json "${existing_release_dir}/release-manifest.json"
+                ;;
+              *)
+                echo "ERROR: release ${TAG} has duplicate release-manifest.json assets" >&2
+                exit 1
+                ;;
+            esac
+
+            if [[ "$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json isDraft --jq .isDraft)" == true ]]; then
+              gh release edit "${TAG}" --repo "${GITHUB_REPOSITORY}" --draft=false
+            fi
+          fi
+
+          test "$(gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" --json isDraft --jq .isDraft)" = false
