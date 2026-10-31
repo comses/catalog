@@ -5,16 +5,14 @@ set -o nounset
 set -o pipefail
 
 environment="${1:-dev}"
-# Default output is the repo-root docker-compose.yml for every environment.
-# This is the operational file used by both development and deployment.
+# The default output is the repo-root development Compose file.
 output="${2:-docker-compose.yml}"
 
-# A direct render to the canonical root is a development convenience, not a
-# way to rewrite a tracked deployment checkout. Deployment renders use a
-# temporary candidate path and therefore do not trip this guard.
-if [[ "${output}" == "docker-compose.yml" && -s deploy/state/release.env && "${COMPOSE_ALLOW_DEPLOY_RENDER:-0}" != 1 ]]; then
-    echo "ERROR: deployment state is present; refusing to overwrite root docker-compose.yml" >&2
-    echo "       use make deploy/rollback/start/stop, or set DEV_OVERRIDE=1 deliberately" >&2
+# Refuse to mutate a checkout still carrying state from the retired
+# single-host deploy script unless the operator explicitly wants local dev.
+if [[ "${output}" == "docker-compose.yml" && -s deploy/state/release.env && "${DEV_OVERRIDE:-0}" != 1 ]]; then
+    echo "ERROR: legacy deployment state exists at deploy/state/release.env" >&2
+    echo "       follow docs/deployment-runbook.md, or set DEV_OVERRIDE=1 for local development" >&2
     exit 1
 fi
 

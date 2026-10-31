@@ -1,14 +1,8 @@
-# Prod releases inherit the deployment contract from staging.yml (merged
-# by scripts/compose.sh for env=prod):
-#   - image: ${CATALOG_IMAGE} — immutable tag/digest, enforced by
-#     scripts/deploy.sh (:latest and bare references are rejected)
-#   - ELASTICSEARCH_HOST: ${CATALOG_ES_HOST} — explicit endpoint;
-#     elasticsearch8 is a gated cutover
-#   - service labels comses.catalog.image / comses.catalog.previous-image /
-#     comses.catalog.es-host record the deployment and rollback state
-# Full procedure (build, ES8 staging/validation, cutover, rollback):
-#   docs/deployment-runbook.md
+# Production inherits the staging topology but enables production settings.
 services:
   django:
     environment:
-      DOMAIN_NAME: 'catalog.comses.net'
+      DJANGO_SETTINGS_MODULE: 'catalog.settings.prod'
+  scheduler:
+    environment:
+      DJANGO_SETTINGS_MODULE: 'catalog.settings.prod'

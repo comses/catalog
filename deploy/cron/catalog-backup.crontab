@@ -1,0 +1,2 @@
+# Nightly verified database backup; the schedule the CoMSES infrastructure declares for this workload.
+0 2 * * * root /bin/sh /code/deploy/cron/backup_database

@@ -1,34 +1,16 @@
 services:
   django:
-    # Deployment/rollback unit: an immutable tag or digest injected by
-    # deploy.sh as CATALOG_IMAGE. Mutable references (:latest, bare) are
-    # rejected by the deploy flow; :latest is not a valid deployment unit.
-    # See docs/deployment-runbook.md.
-    image: ${CATALOG_IMAGE}
+    image: ${CATALOG_IMAGE:?CATALOG_IMAGE must be an immutable digest}
     environment:
-      DOMAIN_NAME: 'staging-catalog.comses.net'
-      # Per-release ES endpoint gate (service names from base.yml):
-      # elasticsearch = ES 6.6.2,
-      # elasticsearch8 = ES 8.15.5. Switching a release to ES8 is gated:
-      # rebuild_es_index against ES8 + validation FIRST (runbook). Rollback
-      # is a redeploy of the recorded prior image with its recorded host, never an
-      # endpoint-only change.
-      ELASTICSEARCH_HOST: ${CATALOG_ES_HOST:?CATALOG_ES_HOST must be set}
-      # Startup ordering: Compose cannot name a depends_on service from a
-      # variable, so the release does not gate on Elasticsearch here.
-      # deploy/docker/prod.sh blocks (wait-for-it -t 0) on exactly this
-      # endpoint before Gunicorn starts, and the endpoint the release does
-      # not use is never waited on.
-    # Container labels record the deployment/rollback state:
-    # which immutable image is deployed, which image was deployed before
-    # this rollout (the rollback unit), and which ES endpoint the release
-    # uses. Inspect with:
-    #   docker inspect --format '{{json .Config.Labels}}' <django container>
+      DOMAIN_NAME: ${CATALOG_DOMAIN:?CATALOG_DOMAIN must be set}
+      DJANGO_SETTINGS_MODULE: 'catalog.settings.staging'
+      # Backup receipts record the release they were taken from.
+      CATALOG_IMAGE: ${CATALOG_IMAGE}
+      CATALOG_BUNDLE_REVISION: ${CATALOG_BUNDLE_REVISION:?CATALOG_BUNDLE_REVISION must be set}
     labels:
       - comses.catalog.image=${CATALOG_IMAGE}
-      - comses.catalog.previous-image=${CATALOG_PREVIOUS_IMAGE:-none}
-      - comses.catalog.previous-es-host=${CATALOG_PREVIOUS_ES_HOST:-none}
-      - comses.catalog.es-host=${CATALOG_ES_HOST:?CATALOG_ES_HOST must be set}
+      - comses.catalog.bundle-revision=${CATALOG_BUNDLE_REVISION:?CATALOG_BUNDLE_REVISION must be set}
+      - comses.catalog.host-id=${CATALOG_ENV:?CATALOG_ENV must be set}
     restart: always
     volumes:
       - static:/catalog/static
@@ -36,25 +18,71 @@ services:
       # container in the same stack) can only reach it through this shared
       # volume. See deploy/docker/prod.sh (bind) and the nginx upstream.
       - gunicornsocket:/catalog/socket
-  nginx:
-    image: nginx:1.28.3
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS --unix-socket /catalog/socket/gunicorn.sock http://localhost/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+  scheduler:
+    image: ${CATALOG_IMAGE:?CATALOG_IMAGE must be an immutable digest}
+    command: ["/bin/sh", "/code/deploy/docker/scheduler.sh"]
+    # cron as PID 1 ignores SIGTERM; an init process lets drain stop it promptly.
+    init: true
+    environment:
+      DOMAIN_NAME: ${CATALOG_DOMAIN:?CATALOG_DOMAIN must be set}
+      DJANGO_SETTINGS_MODULE: 'catalog.settings.staging'
+      LANG: "C.UTF-8"
+      DB_USER: catalog
+      DB_HOST: db
+      DB_NAME: comses_catalog
+      DB_PORT: 5432
+      ELASTICSEARCH_HOST: elasticsearch
+      CATALOG_IMAGE: ${CATALOG_IMAGE}
+      CATALOG_BUNDLE_REVISION: ${CATALOG_BUNDLE_REVISION:?CATALOG_BUNDLE_REVISION must be set}
+    labels:
+      - comses.catalog.image=${CATALOG_IMAGE}
+      - comses.catalog.bundle-revision=${CATALOG_BUNDLE_REVISION:?CATALOG_BUNDLE_REVISION must be set}
+      - comses.catalog.host-id=${CATALOG_ENV:?CATALOG_ENV must be set}
     restart: always
     volumes:
-      - ./deploy/nginx/catalog-haproxy.conf:/etc/nginx/nginx.conf
+      - ${CATALOG_SHARED_DIR:?CATALOG_SHARED_DIR must be set}:/shared
+    secrets:
+      - catalog_django_config
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /run/catalog-scheduler.env && kill -0 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  nginx:
+    image: nginx:1.28.3@sha256:146adea4768b83c607d0bdfa4188464e3da6e0a3ad4475db1d1d8f64f27c29cc
+    restart: always
+    volumes:
+      - ${CATALOG_BUNDLE_DIR:?CATALOG_BUNDLE_DIR must be set}/deploy/nginx/catalog-haproxy.conf:/etc/nginx/nginx.conf:ro
       - gunicornsocket:/catalog/socket
       - static:/catalog/static
-      - ./docker/shared/nginx/logs:/var/log/nginx
     command: ["nginx", "-g", "daemon off;"]
     ports:
-      - "80:80"
+      - "${CATALOG_HTTP_BIND:-127.0.0.1:80}:80"
+    healthcheck:
+      # nginx answers this itself; the controller then requests a real page through it
+      test: ["CMD-SHELL", "curl -fsS -o /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     depends_on:
-      - django
+      django:
+        condition: service_healthy
 
 volumes:
-  # Renamed from uwsgisocket when the app server moved from uWSGI to
-  # Gunicorn: after the first deploy of this change the old volume
-  # (catalog_uwsgisocket) is orphaned and can be removed with
-  # `docker volume rm catalog_uwsgisocket`. It holds only the socket
-  # file, so no data is lost.
   gunicornsocket:
     driver: local

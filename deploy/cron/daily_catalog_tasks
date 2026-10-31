@@ -1,3 +1,15 @@
-/code/manage.py flagged_faulty_data_publication >> /var/log/cron.log 2>&1
-/code/manage.py cache_data >> /var/log/cron.log 2>&1
-/code/manage.py remove_orphans >> /var/log/cron.log 2>&1
+#!/bin/sh
+
+set -u
+
+# shellcheck source=/dev/null
+. /run/catalog-scheduler.env
+
+# Cron jobs write to the container's streams (PID 1 is the init process).
+status=0
+{
+    /opt/venv/bin/python3 /code/manage.py flagged_faulty_data_publication || status=$?
+    /opt/venv/bin/python3 /code/manage.py cache_data || status=$?
+    /opt/venv/bin/python3 /code/manage.py remove_orphans || status=$?
+} >> /proc/1/fd/1 2>> /proc/1/fd/2
+exit "${status}"

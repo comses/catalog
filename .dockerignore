@@ -1,5 +1,9 @@
 .dockerignore
 **/*.sql
+**/*.sql.*
+**/*.dump
+**/*.dump.*
+private/
 base.yml
 dev.yml
 prod.yml
