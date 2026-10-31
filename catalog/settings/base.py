@@ -14,7 +14,6 @@ from pathlib import Path
 import configparser
 import logging
 import os
-import sys
 
 from django.contrib.messages import constants as messages
 
@@ -37,20 +36,8 @@ MANAGERS = ADMINS
 
 DATA_DIR = 'data'
 
-HAYSTACK_CONNECTIONS = {
-    'default': {
-        'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
-        'URL': 'http://{0}:{1}/solr/{2}'.format(config.get('solr', 'HOST'),
-                                                config.get('solr', 'PORT'),
-                                                config.get('solr', 'CORE_NAME'))
-    },
-}
-
-# Elasticsearch 8 endpoint: a single host:port derived from the
-# environment (deployment injects these from the catalog secret). This
-# endpoint is the inter-cluster cutover and rolls back independently by
-# pointing it at the previous cluster. Sniffing is disabled: deployment
-# owns cluster membership and the app must not reconfigure itself.
+# Elasticsearch 8 endpoint: a single host:port derived from the environment.
+# Sniffing is disabled because deployment owns cluster membership.
 ELASTICSEARCH = {
     # The ES8 client requires a full URL (scheme://host:port). Deployments
     # may override the whole endpoint with ELASTICSEARCH_URL (e.g. from the
@@ -58,21 +45,28 @@ ELASTICSEARCH = {
     'hosts': [os.environ.get(
         'ELASTICSEARCH_URL',
         '{0}://{1}:{2}'.format(os.environ.get('ELASTICSEARCH_SCHEME', 'http'),
-                               os.environ.get('ELASTICSEARCH_HOST', 'elasticsearch8'),
+                               os.environ.get('ELASTICSEARCH_HOST', 'elasticsearch'),
                                os.environ.get('ELASTICSEARCH_PORT', '9200')))
     ],
     'sniff_on_start': False,
     'sniff_on_node_failure': False,
 }
 
+
+def env_or_config(env_name, section, option):
+    if env_name in os.environ:
+        return os.environ[env_name]
+    return config.get(section, option)
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'HOST': config.get('db', 'HOST'),
-        'NAME': config.get('db', 'NAME'),
-        'PASSWORD': config.get('db', 'PASSWORD'),
-        'PORT': config.get('db', 'PORT'),
-        'USER': config.get('db', 'USER'),
+        'HOST': env_or_config('DB_HOST', 'db', 'HOST'),
+        'NAME': env_or_config('DB_NAME', 'db', 'NAME'),
+        'PASSWORD': env_or_config('DB_PASSWORD', 'db', 'PASSWORD'),
+        'PORT': env_or_config('DB_PORT', 'db', 'PORT'),
+        'USER': env_or_config('DB_USER', 'db', 'USER'),
     }
 }
 
@@ -93,11 +87,6 @@ CACHES = {
 PIPELINE_COMPILERS = (
     'react.utils.pipeline.JSXCompiler',
 )
-
-# Haystack settings
-HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
-
-HAYSTACK_SEARCH_RESULTS_PER_PAGE = 25
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -179,7 +168,6 @@ DJANGO_APPS = (
 
 THIRD_PARTY_APPS = (
     'bootstrap3',
-    'haystack',
     'rest_framework',
     'django_extensions',
     'django_cas_ng',
@@ -244,24 +232,12 @@ MEDIA_ROOT = '/var/www/catalog/uploads'
 MEDIA_URL = 'https://catalog.comses.net/uploads/'
 
 
-def is_accessible(directory_path):
-    return os.path.isdir(directory_path) and os.access(directory_path, os.W_OK | os.X_OK)
+# Verified database backups; on hosts this is the infrastructure's bind of
+# /srv/backups/comses_model_catalog.
+BACKUP_ROOT = os.environ.get('CATALOG_BACKUP_ROOT', '/shared/backups')
 
-
-LOG_DIRECTORY = '/shared/catalog/logs'
-
-if not is_accessible(LOG_DIRECTORY):
-    try:
-        os.makedirs(LOG_DIRECTORY)
-    except OSError:
-        print("Unable to create log directory %s, setting to relative path logs" % LOG_DIRECTORY, file=sys.stderr)
-        LOG_DIRECTORY = 'logs'
-        if not is_accessible(LOG_DIRECTORY):
-            try:
-                os.makedirs(LOG_DIRECTORY)
-            except OSError:
-                print("Couldn't create any log directory, startup will fail", file=sys.stderr)
-
+# Everything logs to the container's stdout; Docker's logging driver owns
+# collection and rotation.
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
@@ -270,7 +246,7 @@ LOGGING = {
     # the root logger, replacing the old raven SentryHandler.
     'root': {
         'level': 'INFO',
-        'handlers': ['catalog.file', 'console'],
+        'handlers': ['console'],
     },
     'formatters': {
         'verbose': {
@@ -286,28 +262,15 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'catalog.file': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'formatter': 'verbose',
-            'filename': os.path.join(LOG_DIRECTORY, 'catalog.log'),
-            'backupCount': 6,
-            'maxBytes': 10000000,
-        },
     },
     'loggers': {
         'django.db.backends': {
             'level': 'ERROR',
-            'handlers': ['catalog.file', 'console'],
+            'handlers': ['console'],
             'propagate': False,
         },
-        'pysolr': {
-            'level': 'WARNING',
-            'handlers': ['catalog.file', 'console']
-        },
         # ERROR records from these loggers propagate to the root logger, where
-        # the sentry-sdk logging integration captures them for Sentry (the
-        # root's file/console handlers produce the same output as before).
+        # the sentry-sdk logging integration captures them for Sentry.
         'catalog': {
             'level': 'DEBUG',
             'handlers': [],
@@ -317,6 +280,11 @@ LOGGING = {
             'level': 'DEBUG',
             'handlers': [],
             'propagate': True,
+        },
+        'elastic_transport.transport': {
+            'level': 'WARNING',
+            'handlers': ['console'],
+            'propagate': False,
         },
         'bokeh': {
             'level': 'DEBUG',

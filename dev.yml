@@ -1,17 +1,12 @@
 services:
   db:
+    volumes:
+      - ./docker/pgdata:/var/lib/postgresql
     ports:
       - "127.0.0.1:5437:5432"
   elasticsearch:
-    environment:
-      - bootstrap.memory_lock=true
     ports:
       - "127.0.0.1:9200:9200"
-  elasticsearch8:
-    # Dev-only publication; staging/prod reach ES8 via the internal
-    # service name only.
-    ports:
-      - "127.0.0.1:9201:9200"
   django:
     build:
       args:
@@ -26,23 +21,3 @@ services:
       - "127.0.0.1:5006:5006"
     volumes:
       - .:/code
-    # Dev's selected ES endpoint (base.yml already gates db/redis/solr);
-    # keeping this dependency is what makes `docker compose run django`
-    # (make test / check / migrations-check) start it on demand and wait
-    # for it to be healthy.
-    depends_on:
-      elasticsearch8:
-        condition: service_healthy
-  kibana:
-    depends_on:
-      - elasticsearch
-    image: docker.elastic.co/kibana/kibana:6.6.2
-    ports:
-      - "127.0.0.1:5601:5601"
-  solr:
-    ports:
-      - "127.0.0.1:8983:8983"
-    volumes:
-      # Live-edit the core schema in development; the same conf is baked
-      # into the solr image (solr.Dockerfile) for staging/prod.
-      - ./deploy/solr/conf:/catalog-solr-conf

@@ -23,7 +23,6 @@ dependencies = [
   "django-bootstrap3~=26.2",
   # Shared with citation - constraint follows citation/pyproject.toml exactly.
   "django-extensions~=4.1",
-  "django-haystack~=3.4.0",
   # Shared with citation - constraint follows citation/pyproject.toml exactly.
   "django-model-utils~=5.0.0",
   # Shared with citation - constraint follows citation/pyproject.toml exactly.
@@ -33,13 +32,9 @@ dependencies = [
   # Shared with citation - constraint follows citation/pyproject.toml exactly.
   # (Replaces incompatible pin psycopg2-binary==2.8.3: no Python 3.12 wheels.)
   "psycopg2-binary~=2.9.12",
-  "pysolr~=3.11.0",
   # Replaces abandoned raven (legacy Sentry SDK).
   "sentry-sdk",
-  # Elasticsearch 8 client pair. NOTE: runtime service/code migration from
-  # the legacy ES6 backend is still pending - the catalog search code and the
-  # deployed Elasticsearch service must be updated before these clients work
-  # against production.
+  # Elasticsearch 8 client pair used by the catalog search indexes and service.
   "elasticsearch>=8,<9",
   "elasticsearch_dsl>=8,<9",
   "django-redis",

@@ -124,7 +124,7 @@
                                     <div class="col-md-6">
                                         <small class="float-md-right"><b>Documentation:</b>
                                             {% for documentation in publication.model_documentation %}
-                                                <span class="badge badge-info">{{ documentation }}</span>
+                                                <span class="badge badge-info">{{ documentation.name }}</span>
                                                 {% empty %}
                                                 Unknown
                                             {% endfor %}

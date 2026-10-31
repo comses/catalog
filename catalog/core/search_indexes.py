@@ -1,120 +1,37 @@
+from collections import defaultdict
+from datetime import datetime, timezone
 import logging
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db.models import QuerySet
+from django.db.models import BigIntegerField, Case, Count, F, Max, Q, When
 from django.http import QueryDict
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-from elasticsearch_dsl import analyzer, tokenizer
-from haystack import indexes
-from typing import Dict, List
-
-from citation.models import Publication, Platform, Sponsor, Tag, ModelDocumentation, Container, Author
-
-logger = logging.getLogger(__name__)
-
-
-##########################################
-#  Publication query seach/filter index  #
-##########################################
-
-class PublicationIndex(indexes.SearchIndex, indexes.Indexable):
-    text = indexes.CharField(document=True, use_template=True)
-    title = indexes.CharField(model_attr='title')
-    date_published = indexes.DateField(model_attr='date_published', null=True)
-    last_modified = indexes.DateTimeField(model_attr='date_modified')
-    contact_email = indexes.BooleanField(model_attr='contact_email')
-    status = indexes.CharField(model_attr='status', faceted=True)
-    container = indexes.CharField(model_attr='container__name', null=True)
-    tags = indexes.EdgeNgramField(model_attr='tags__name', null=True)
-    sponsors = indexes.CharField(model_attr='sponsors__name', null=True)
-    platforms = indexes.CharField(model_attr='platforms__name', null=True)
-    model_documentation = indexes.CharField(model_attr='model_documentation__name', null=True)
-    authors = indexes.CharField(model_attr='creators__name', null=True)
-    assigned_curator = indexes.CharField(model_attr='assigned_curator', null=True)
-    flagged = indexes.BooleanField(model_attr='flagged')
-    is_primary = indexes.BooleanField(model_attr='is_primary')
-    is_archived = indexes.BooleanField(model_attr='is_archived')
-    contributor_data = indexes.MultiValueField(model_attr='contributor_data', null=True)
-
-    def prepare_last_modified(self, obj):
-        last_modified = self.prepared_data.get('last_modified')
-        if last_modified:
-            return last_modified.strftime('%Y-%m-%dT%H:%M:%SZ')
-        return ''
-
-    def prepare_contributor_data(self, obj):
-        contributor_data = self.prepared_data.get('contributor_data')
-        if contributor_data:
-            return '{0} ({1})%'.format(contributor_data[0]['creator'], contributor_data[0]['contribution'])
-        return ''
-
-    def get_model(self):
-        return Publication
-
-    def index_queryset(self, using=None):
-        return Publication.objects.filter(is_primary=True)
-
-
-##########################################
-#       AutoComplete Index Fields        #
-##########################################
-
-class NameAutocompleteIndex(indexes.SearchIndex):
-    text = indexes.CharField(document=True)
-    name = indexes.NgramField(model_attr='name')
-
-    class Meta:
-        abstract = True
-
-
-class PlatformIndex(NameAutocompleteIndex, indexes.Indexable):
-    def get_model(self):
-        return Platform
-
-
-class SponsorIndex(NameAutocompleteIndex, indexes.Indexable):
-    def get_model(self):
-        return Sponsor
-
-
-class TagIndex(NameAutocompleteIndex, indexes.Indexable):
-    def get_model(self):
-        return Tag
-
-
-class ModelDocumentationIndex(NameAutocompleteIndex, indexes.Indexable):
-    def get_model(self):
-        return ModelDocumentation
-
-
-##########################################
-#           Bulk Index Updates           #
-##########################################
-
-def bulk_index_update():
-    PublicationIndex().update()
-    PlatformIndex().update()
-    SponsorIndex().update()
-    TagIndex().update()
-    ModelDocumentationIndex().update()
-
-
-##########################################
-#           Public Indices               #
-##########################################
-
-from datetime import datetime, timezone
-
 from elasticsearch import NotFoundError
-from elasticsearch.helpers import bulk
-from elasticsearch_dsl import Document, InnerDoc, connections, aggs, query
+from elasticsearch.helpers import BulkIndexError, bulk
+from elasticsearch_dsl import Document, InnerDoc, aggs, analyzer, connections, query, tokenizer
 import elasticsearch_dsl as edsl
 
-from django.conf import settings
+from citation.models import (
+    Author,
+    AuditLog,
+    CodeArchiveUrl,
+    Container,
+    ModelDocumentation,
+    Platform,
+    Publication,
+    Sponsor,
+    Tag,
+)
 
 ALL_DATA_FIELD = 'all_data'
+INDEX_SETTINGS = {'number_of_shards': 1, 'number_of_replicas': 0}
+# Index creation stalled past the client's 10 s default while the hosts' volume was busy.
+REBUILD_REQUEST_TIMEOUT = 300
+
+logger = logging.getLogger(__name__)
 
 
 _ES_CLIENT = None
@@ -137,12 +54,22 @@ def get_es_client():
     return _ES_CLIENT
 
 
+def rebuild_client():
+    """
+    The client for rebuilds and validation: a long request timeout with
+    retries, so a slow node does not abort an index build. Web requests
+    keep the default client and its short timeout.
+    """
+    return get_es_client().options(
+        request_timeout=REBUILD_REQUEST_TIMEOUT, max_retries=3, retry_on_timeout=True)
+
+
 ##########################################
 #     Generation-based index rebuilds    #
 ##########################################
 #
 # Reads always go through stable aliases (the ``Index.name`` of each doc
-# class: publication, author, container, platform, sponsor, tag).
+# class: publication, publication_curator, and the autocomplete aliases).
 # Rebuilds write to a fresh generation index per alias
 # (``<alias>-<utc-stamp>``) and validate each one; only after *every*
 # generation validates are the stable aliases moved onto the new
@@ -155,7 +82,7 @@ class SearchRebuildError(Exception):
 
 
 def _utc_generation_timestamp():
-    return datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    return datetime.now(timezone.utc).strftime('%Y%m%dt%H%M%S%fz')
 
 
 def generation_index_name(alias):
@@ -178,6 +105,27 @@ def _index_doc_count(client, index_name):
     # raises ``AttributeError`` for a ``count`` key.
     response = client.count(index=index_name)
     return response.get('count')
+
+
+def query_text_parses(text, index):
+    """Whether Elasticsearch accepts ``text`` as query_string syntax, checked without running the search."""
+    client = get_es_client()
+    try:
+        return bool(client.indices.validate_query(
+            index=index,
+            query={'query_string': {'query': text, 'default_field': ALL_DATA_FIELD}},
+        )['valid'])
+    except Exception:
+        logger.warning('could not validate the query syntax; searching it as plain terms', exc_info=True)
+        return False
+
+
+def full_text_query(text, index):
+    """The documented search grammar (OR by default, AND, quotes, fields) for the index the query will run on;
+    syntax that index cannot parse searches as plain terms instead."""
+    if query_text_parses(text, index):
+        return query.QueryString(query=text, default_field=ALL_DATA_FIELD)
+    return query.SimpleQueryString(query=text, fields=[ALL_DATA_FIELD])
 
 
 def _delete_index_quietly(client, index_name):
@@ -206,7 +154,7 @@ def _prune_old_generations(client, alias, keep):
 
 def _force_actions_to_generation_index(documents):
     """
-    Return bulk actions with any per-action ``_index`` removed.
+    Yield bulk actions with any per-action ``_index`` removed.
 
     Actions built with ``Document.to_dict(include_meta=True)`` (see the
     ``from_instance`` classmethods) stamp the stable read *alias* onto
@@ -216,12 +164,10 @@ def _force_actions_to_generation_index(documents):
     *previous* generation) instead of the new one. Stripping the key
     forces every action onto the ``index=`` argument of the bulk call.
     """
-    forced = []
     for action in documents:
         action = dict(action)
         action.pop('_index', None)
-        forced.append(action)
-    return forced
+        yield action
 
 
 def build_document_generation(client, doc_class, documents, expected_count):
@@ -245,8 +191,10 @@ def build_document_generation(client, doc_class, documents, expected_count):
     """
     alias = doc_class._index._name
     index_name = generation_index_name(alias)
+    created = False
     try:
         _create_generation_index(client, doc_class, index_name)
+        created = True
         bulk(client=client,
              actions=_force_actions_to_generation_index(documents),
              index=index_name)
@@ -256,8 +204,9 @@ def build_document_generation(client, doc_class, documents, expected_count):
             raise SearchRebuildError(
                 'index {0} validation failed: expected {1} documents, found {2}'.format(
                     index_name, expected_count, actual_count))
-    except Exception:
-        _delete_index_quietly(client, index_name)
+    except BaseException:
+        if created:
+            _delete_index_quietly(client, index_name)
         raise
     return index_name
 
@@ -314,7 +263,7 @@ def rebuild_document_indices(client, builds):
                 client, doc_class, documents, expected_count)
         swap_generation_aliases(client, built)
         swapped = True
-    except Exception:
+    except BaseException:
         if not swapped:
             for index_name in built.values():
                 _delete_index_quietly(client, index_name)
@@ -326,13 +275,12 @@ class AuthorInnerDoc(InnerDoc):
     id = edsl.Integer(required=True)
     orcid = edsl.Keyword()
     researcherid = edsl.Keyword()
-    email = edsl.Keyword()
     name = edsl.Text(copy_to=ALL_DATA_FIELD)
 
 
 class CodeArchiveUrlInnerDoc(InnerDoc):
     id = edsl.Integer(required=True)
-    url = edsl.Text()
+    url = edsl.Text(copy_to=ALL_DATA_FIELD)
     status = edsl.Keyword()
 
 
@@ -352,7 +300,10 @@ def normalize_search_querydict(qd: QueryDict):
     field_names_lookup = PublicationDocSearch.get_filter_field_names()
     filters = {}
     for field_name in field_names_lookup:
-        filters[field_name] = set(int(ident) for ident in qd.getlist(field_name))
+        # a facet id that is not a plain integer within the mapping's range is ignored rather than erroring the page
+        filters[field_name] = {int(ident) for ident in qd.getlist(field_name)
+                               if ident.isascii() and ident.isdigit() and len(ident) <= 10
+                               and int(ident) <= 2147483647}
     return search, filters
 
 
@@ -472,9 +423,9 @@ class PublicationDocSearch:
         return PublicationDocSearch(self.search[val])
 
     def _full_text(self, q):
-        return query.QueryString(**{'query': q, 'default_field': ALL_DATA_FIELD})
+        return full_text_query(q, PublicationDoc._index._name)
 
-    def _filter(self, facet_filters: Dict[str, List[int]]):
+    def _filter(self, facet_filters: dict[str, list[int]]):
         queries = []
         for field_name in facet_filters:
             ids = facet_filters[field_name]
@@ -524,42 +475,92 @@ class PublicationDocSearch:
         return response
 
 
-class PublicationDoc(Document):
+def _publication_document_data(publication):
+    container = publication.container
+    code_archive_urls = list(publication.code_archive_urls.all())
+    return {
+        'id': publication.id,
+        'title': publication.title,
+        'abstract': publication.abstract,
+        'date_published': publication.date_published,
+        'incomplete_date_published': publication.incomplete_date_published,
+        'last_modified': publication.date_modified,
+        'code_archive_urls': [
+            CodeArchiveUrlInnerDoc(id=item.id, url=item.url, status=item.status)
+            for item in code_archive_urls
+        ],
+        'doi': publication.doi,
+        'container': ContainerInnerDoc(
+            id=container.id,
+            name=container.name,
+            issn=container.issn,
+        ),
+        'tags': [RelatedInnerDoc(id=item.id, name=item.name) for item in publication.tags.all()],
+        'sponsors': [
+            RelatedInnerDoc(id=item.id, name=item.name)
+            for item in publication.sponsors.all()
+        ],
+        'platforms': [
+            RelatedInnerDoc(id=item.id, name=item.name)
+            for item in publication.platforms.all()
+        ],
+        'model_documentation': [
+            RelatedInnerDoc(id=item.id, name=item.name)
+            for item in publication.model_documentation.all()
+        ],
+        'authors': [
+            AuthorInnerDoc(
+                id=item.id,
+                name=item.name,
+                orcid=item.orcid,
+                researcherid=item.researcherid,
+            )
+            for item in publication.creators.all()
+        ],
+        'is_archived': any(
+            item.status != CodeArchiveUrl.STATUS.unavailable
+            for item in code_archive_urls
+        ),
+    }
+
+
+class PublicationDocument(Document):
     all_data = edsl.Text()
-    id = edsl.Integer()
+    id = edsl.Integer(required=True)
     title = edsl.Text(copy_to=ALL_DATA_FIELD)
+    abstract = edsl.Text(copy_to=ALL_DATA_FIELD)
+    date_published = edsl.Date()
     incomplete_date_published = edsl.Keyword()
     last_modified = edsl.Date()
     code_archive_urls = edsl.Nested(CodeArchiveUrlInnerDoc)
     doi = edsl.Keyword()
-    contact_email = edsl.Keyword(copy_to=ALL_DATA_FIELD)
     container = edsl.Object(ContainerInnerDoc)
     tags = edsl.Nested(RelatedInnerDoc)
     sponsors = edsl.Nested(RelatedInnerDoc)
     platforms = edsl.Nested(RelatedInnerDoc)
-    model_documentation = edsl.Keyword()
+    model_documentation = edsl.Nested(RelatedInnerDoc)
     authors = edsl.Nested(AuthorInnerDoc)
+    is_archived = edsl.Boolean()
+
+    @property
+    def pk(self):
+        return self.id
+
+    @classmethod
+    def _matches(cls, hit):
+        index_name = hit.get('_index', '')
+        alias = cls._index._name
+        return index_name == alias or index_name.startswith('{0}-'.format(alias))
+
+    class Meta:
+        abstract = True
+
+
+class PublicationDoc(PublicationDocument):
 
     @classmethod
     def from_instance(cls, publication):
-        container = publication.container
-        doc = cls(meta={'id': publication.id},
-                  id=publication.id,
-                  title=publication.title,
-                  incomplete_date_published=publication.incomplete_date_published,
-                  last_modified=publication.date_modified,
-                  code_archive_urls=[CodeArchiveUrlInnerDoc(id=c.id, url=c.url, status=c.status)
-                                     for c in publication.code_archive_urls.all()],
-                  contact_email=publication.contact_email,
-                  container=ContainerInnerDoc(id=container.id, name=container.name, issn=container.issn),
-                  doi=publication.doi,
-                  tags=[RelatedInnerDoc(id=t.id, name=t.name) for t in publication.tags.all()],
-                  sponsors=[RelatedInnerDoc(id=s.id, name=s.name) for s in publication.sponsors.all()],
-                  platforms=[RelatedInnerDoc(id=p.id, name=p.name) for p in publication.platforms.all()],
-                  model_documentation=[md.name for md in publication.model_documentation.all()],
-                  authors=[
-                      AuthorInnerDoc(id=a.id, name=a.name, orcid=a.orcid, researcherid=a.researcherid, email=a.email)
-                      for a in publication.creators.all()])
+        doc = cls(meta={'id': publication.id}, **_publication_document_data(publication))
         return doc.to_dict(include_meta=True)
 
     def get_public_detail_url(self):
@@ -582,11 +583,113 @@ class PublicationDoc(Document):
 
     class Index:
         name = 'publication'
-        settings = {
-            'number_of_shards': 1,
-            # single-node cluster: replicas only add write overhead
-            'number_of_replicas': 0
-        }
+        settings = INDEX_SETTINGS
+
+
+class CuratorPublicationDoc(PublicationDocument):
+    status = edsl.Keyword()
+    has_contact_email = edsl.Boolean()
+    assigned_curator = edsl.Keyword()
+    assigned_curator_id = edsl.Integer()
+    flagged = edsl.Boolean()
+    contributor_data = edsl.Keyword()
+
+    @classmethod
+    def from_instance(cls, publication, contributor_data=None):
+        assigned_curator = publication.assigned_curator
+        if contributor_data is None:
+            contributor_data = [
+                _contribution_label(item['creator'], item['contribution'])
+                for item in publication.contributor_data()
+            ]
+        doc = cls(
+            meta={'id': publication.id},
+            status=publication.status,
+            has_contact_email=bool(publication.contact_email),
+            assigned_curator=assigned_curator.username if assigned_curator else '',
+            assigned_curator_id=assigned_curator.id if assigned_curator else None,
+            flagged=publication.flagged,
+            contributor_data=contributor_data,
+            **_publication_document_data(publication),
+        )
+        return doc.to_dict(include_meta=True)
+
+    class Index:
+        name = 'publication_curator'
+        settings = INDEX_SETTINGS
+
+
+def build_curator_publication_search(cleaned_data, search=None):
+    search = CuratorPublicationDoc.search() if search is None else search
+    must = []
+    filters = []
+
+    text = cleaned_data.get('q') or ''
+    if text:
+        must.append(full_text_query(text, CuratorPublicationDoc._index._name))
+    if cleaned_data.get('publication_start_date'):
+        filters.append(query.Range(
+            date_published={'gte': cleaned_data['publication_start_date']}))
+    if cleaned_data.get('publication_end_date'):
+        filters.append(query.Range(
+            date_published={'lte': cleaned_data['publication_end_date']}))
+    if cleaned_data.get('status'):
+        filters.append(query.Term(status=cleaned_data['status']))
+    if cleaned_data.get('journal'):
+        filters.append(query.MatchPhrase(**{
+            'container.name': cleaned_data['journal'],
+        }))
+
+    # Any selected tag and any author name token matches, as the Haystack form's __in filters did.
+    tag_filters = [
+        query.Nested(path='tags', query=query.MatchPhrase(**{'tags.name': tag_name}))
+        for tag_name in cleaned_data.get('tags') or []
+    ]
+    if tag_filters:
+        filters.append(query.Bool(should=tag_filters, minimum_should_match=1))
+    if cleaned_data.get('authors'):
+        filters.append(query.Nested(
+            path='authors',
+            query=query.Match(**{'authors.name': {'query': cleaned_data['authors'], 'operator': 'or'}}),
+        ))
+    if cleaned_data.get('assigned_curator'):
+        filters.append(query.Term(
+            assigned_curator=cleaned_data['assigned_curator']))
+    if cleaned_data.get('flagged'):
+        filters.append(query.Term(
+            flagged=cleaned_data['flagged'] == 'True'))
+    if cleaned_data.get('is_archived'):
+        filters.append(query.Term(
+            is_archived=cleaned_data['is_archived'] == 'True'))
+    if cleaned_data.get('contact_email'):
+        filters.append(query.Term(has_contact_email=True))
+
+    if must or filters:
+        search = search.query(query.Bool(must=must, filter=filters))
+    if not text:
+        search = search.sort('-date_published', '-last_modified')
+    return search
+
+
+def curator_status_facets(search):
+    get_es_client()
+    facet_search = search[:0]
+    facet_search.aggs.bucket('status', aggs.Terms(field='status', size=20))
+    response = facet_search.execute()
+    return [(bucket.key, bucket.doc_count) for bucket in response.aggs.status.buckets]
+
+
+def autocomplete_search(model, text, size=25):
+    doc_class = get_search_index(model)
+    search = doc_class.search()
+    if text:
+        # the last token matches as a prefix, so a partly typed name finds the complete one
+        search = search.query('match_bool_prefix', name={'query': text, 'operator': 'and'})
+    return search[:size]
+
+
+def autocomplete_documents(model, text, size=25):
+    return autocomplete_search(model, text, size).execute()
 
 
 autocomplete_analyzer = analyzer('autocomplete_analyzer',
@@ -609,6 +712,7 @@ def get_search_index(model):
     lookup = {
         Author: AuthorDoc,
         Container: ContainerDoc,
+        ModelDocumentation: ModelDocumentationDoc,
         Platform: PlatformDoc,
         Sponsor: SponsorDoc,
         Tag: TagDoc,
@@ -623,7 +727,6 @@ class AuthorDoc(Document):
     id = edsl.Integer(required=True)
     orcid = edsl.Keyword()
     researcherid = edsl.Keyword()
-    email = edsl.Keyword()
     name = edsl.Text(copy_to=ALL_DATA_FIELD,
                      analyzer=autocomplete_analyzer,
                      search_analyzer='standard')
@@ -634,7 +737,6 @@ class AuthorDoc(Document):
                   id = author.id,
                   orcid = author.orcid,
                   researcherid = author.researcherid,
-                  email = author.email,
                   name = author.name)
         return doc.to_dict(include_meta=True)
 
@@ -735,38 +837,265 @@ class TagDoc(Document):
         }
 
 
-def bulk_index_public():
-    """
-    Rebuild the public search indices from PostgreSQL.
-
-    Every document class (author, container, platform, sponsor, tag and
-    publication) is built into a fresh generation index under its stable
-    read alias and validated; only after *all* generations validate are
-    the stable aliases swapped onto the new generations in one atomic
-    multi-alias operation (see ``rebuild_document_indices``). Any bulk
-    failure, document-count mismatch, or failed swap leaves the live
-    aliases untouched and cleans up only the new generations; previous
-    generations are retained so the swap can be rolled back.
-    """
-    client = get_es_client()
-    public_publications = Publication.api.primary().filter(status='REVIEWED')
-    publication_ids = list(public_publications.values_list('id', flat=True))
-
-    related_documents = (
-        (AuthorDoc, Author.objects.filter(publications__id__in=publication_ids).distinct()),
-        (ContainerDoc, Container.objects.filter(publications__id__in=publication_ids).distinct()),
-        (PlatformDoc, Platform.objects.filter(publications__id__in=publication_ids).distinct()),
-        (SponsorDoc, Sponsor.objects.filter(publications__id__in=publication_ids).distinct()),
-        (TagDoc, Tag.objects.filter(publications__id__in=publication_ids).distinct()),
+class ModelDocumentationDoc(Document):
+    id = edsl.Integer(required=True)
+    name = edsl.Text(
+        copy_to=ALL_DATA_FIELD,
+        analyzer=autocomplete_analyzer,
+        search_analyzer='standard',
     )
-    builds = [(doc_class,
-               (doc_class.from_instance(instance) for instance in queryset),
-               queryset.count())
-              for doc_class, queryset in related_documents]
-    builds.append((PublicationDoc,
-                   (PublicationDoc.from_instance(publication) for publication in public_publications
-                    .select_related('container')
-                    .prefetch_related('code_archive_urls', 'tags', 'sponsors', 'platforms',
-                                      'creators', 'model_documentation').iterator()),
-                   len(publication_ids)))
-    rebuild_document_indices(client, builds)
+
+    @classmethod
+    def from_instance(cls, instance):
+        doc = cls(meta={'id': instance.id}, id=instance.id, name=instance.name)
+        return doc.to_dict(include_meta=True)
+
+    class Index:
+        name = 'model_documentation'
+        settings = INDEX_SETTINGS
+
+
+RELATED_DOCUMENTS = {
+    Author: AuthorDoc,
+    Container: ContainerDoc,
+    ModelDocumentation: ModelDocumentationDoc,
+    Platform: PlatformDoc,
+    Sponsor: SponsorDoc,
+    Tag: TagDoc,
+}
+
+
+def _document_actions(doc_class, queryset):
+    for instance in queryset.iterator(chunk_size=500):
+        yield doc_class.from_instance(instance)
+
+
+def _contribution_label(creator, percentage):
+    return '{0} ({1}%)'.format(creator, percentage)
+
+
+def _curator_contributor_data():
+    publication_table = Publication._meta.model_name
+    rows = list(
+        AuditLog.objects.filter(
+            Q(table=publication_table) | Q(pub_id__isnull=False),
+            audit_command__action='MANUAL',
+        )
+        .annotate(
+            search_publication_id=Case(
+                When(table=publication_table, then=F('row_id')),
+                default=F('pub_id'),
+                output_field=BigIntegerField(),
+            )
+        )
+        .values('search_publication_id', 'audit_command__creator__username')
+        .annotate(
+            contribution_count=Count('id'),
+            last_contribution=Max('audit_command__date_added'),
+        )
+    )
+    totals = defaultdict(int)
+    for row in rows:
+        totals[row['search_publication_id']] += row['contribution_count']
+
+    contributions = defaultdict(list)
+    for row in rows:
+        publication_id = row['search_publication_id']
+        percentage = row['contribution_count'] * 100 // totals[publication_id]
+        value = _contribution_label(row['audit_command__creator__username'], percentage)
+        contributions[publication_id].append((row['last_contribution'], value))
+
+    return {
+        publication_id: [value for _, value in sorted(values, reverse=True)]
+        for publication_id, values in contributions.items()
+    }
+
+
+def _publication_documents(queryset, doc_class):
+    queryset = queryset.select_related('container', 'assigned_curator').prefetch_related(
+        'code_archive_urls',
+        'tags',
+        'sponsors',
+        'platforms',
+        'creators',
+        'model_documentation',
+    )
+    if doc_class is not CuratorPublicationDoc:
+        yield from _document_actions(doc_class, queryset)
+        return
+
+    contributor_data = _curator_contributor_data()
+    for publication in queryset.iterator(chunk_size=500):
+        yield doc_class.from_instance(
+            publication,
+            contributor_data=contributor_data.get(publication.pk, []),
+        )
+
+
+def search_index_counts():
+    return {
+        AuthorDoc._index._name: Author.objects.count(),
+        ContainerDoc._index._name: Container.objects.count(),
+        ModelDocumentationDoc._index._name: ModelDocumentation.objects.count(),
+        PlatformDoc._index._name: Platform.objects.count(),
+        SponsorDoc._index._name: Sponsor.objects.count(),
+        TagDoc._index._name: Tag.objects.count(),
+        PublicationDoc._index._name: Publication.api.primary().filter(
+            status=Publication.Status.REVIEWED).count(),
+        CuratorPublicationDoc._index._name: Publication.api.primary().count(),
+    }
+
+
+def bulk_index_all():
+    client = rebuild_client()
+    related_querysets = (
+        (AuthorDoc, Author.objects.all()),
+        (ContainerDoc, Container.objects.all()),
+        (ModelDocumentationDoc, ModelDocumentation.objects.all()),
+        (PlatformDoc, Platform.objects.all()),
+        (SponsorDoc, Sponsor.objects.all()),
+        (TagDoc, Tag.objects.all()),
+    )
+    builds = [
+        (doc_class, _document_actions(doc_class, queryset), queryset.count())
+        for doc_class, queryset in related_querysets
+    ]
+
+    public_publications = Publication.api.primary().filter(
+        status=Publication.Status.REVIEWED)
+    curator_publications = Publication.api.primary()
+    builds.extend((
+        (
+            PublicationDoc,
+            _publication_documents(public_publications, PublicationDoc),
+            public_publications.count(),
+        ),
+        (
+            CuratorPublicationDoc,
+            _publication_documents(curator_publications, CuratorPublicationDoc),
+            curator_publications.count(),
+        ),
+    ))
+    return rebuild_document_indices(client, builds)
+
+
+def validate_search_indices():
+    client = rebuild_client()
+    expected_counts = search_index_counts()
+    actual_counts = {}
+    for alias, expected_count in expected_counts.items():
+        if _alias_target(client, alias) is None:
+            raise SearchRebuildError("search alias '{0}' is missing".format(alias))
+        actual_count = _index_doc_count(client, alias)
+        actual_counts[alias] = actual_count
+        if actual_count != expected_count:
+            raise SearchRebuildError(
+                "alias '{0}' has {1} documents; expected {2}".format(
+                    alias, actual_count, expected_count))
+    client.search(index=PublicationDoc._index._name, size=1, query={'match_all': {}})
+    client.search(index=CuratorPublicationDoc._index._name, size=1, query={'match_all': {}})
+    return actual_counts
+
+
+def _alias_checker(client):
+    """Whether an alias exists, asked once per alias per pass: writing through a missing alias would create a
+    concrete index of that name and block every later rebuild."""
+    known = {}
+
+    def exists(alias, publication_id):
+        if alias not in known:
+            known[alias] = _alias_target(client, alias) is not None
+            if not known[alias]:
+                logger.warning('search alias %s does not exist; run rebuild_es_index before indexing publication %s',
+                               alias, publication_id)
+        return known[alias]
+    return exists
+
+
+def _index_action(doc_class, instance):
+    source = doc_class.from_instance(instance)['_source']
+    return {'_op_type': 'index', '_index': doc_class._index._name, '_id': instance.pk, '_source': source}
+
+
+def _delete_action(doc_class, pk):
+    return {'_op_type': 'delete', '_index': doc_class._index._name, '_id': pk}
+
+
+def _apply_search_actions(client, actions):
+    """Batch updates with ``wait_for`` so successful changes are searchable when the helper returns."""
+    actions = list(actions)
+    if not actions:
+        return
+    _, errors = bulk(client, actions, refresh='wait_for', raise_on_error=False, stats_only=False)
+    failures = [error for error in errors
+                if not ('delete' in error and error['delete'].get('status') == 404)]
+    if failures:
+        raise BulkIndexError('{0} search document(s) failed to update'.format(len(failures)), failures)
+
+
+def _related_instances(publication):
+    yield from ([publication.container] if publication.container_id else [])
+    yield from publication.creators.all()
+    yield from publication.platforms.all()
+    yield from publication.sponsors.all()
+    yield from publication.tags.all()
+    yield from publication.model_documentation.all()
+
+
+def _related_actions(publication):
+    """A platform, sponsor, tag or author created while saving a publication reaches autocomplete at once."""
+    for instance in _related_instances(publication):
+        doc_class = RELATED_DOCUMENTS.get(type(instance))
+        if doc_class is not None:
+            yield _index_action(doc_class, instance)
+
+
+def refresh_search_documents(publication_ids=(), sender=None, related_ids=()):
+    client = get_es_client()
+    alias_exists = _alias_checker(client)
+    actions = (
+        action for action in _search_actions(publication_ids, sender, related_ids)
+        if action['_op_type'] == 'delete' or alias_exists(action['_index'], action['_id'])
+    )
+    _apply_search_actions(client, actions)
+
+
+def _search_actions(publication_ids, sender, related_ids):
+    requested_publication_ids = {int(pk) for pk in publication_ids}
+    publications = Publication.api.primary().filter(
+        pk__in=requested_publication_ids,
+    ).select_related('container', 'assigned_curator').prefetch_related(
+        'code_archive_urls',
+        'tags',
+        'sponsors',
+        'platforms',
+        'creators',
+        'model_documentation',
+    )
+    publications_by_id = {publication.pk: publication for publication in publications}
+
+    for publication_id in requested_publication_ids:
+        publication = publications_by_id.get(publication_id)
+        if publication is None:
+            yield _delete_action(PublicationDoc, publication_id)
+            yield _delete_action(CuratorPublicationDoc, publication_id)
+            continue
+        yield _index_action(CuratorPublicationDoc, publication)
+        if publication.status == Publication.Status.REVIEWED:
+            yield _index_action(PublicationDoc, publication)
+        else:
+            yield _delete_action(PublicationDoc, publication_id)
+        yield from _related_actions(publication)
+
+    doc_class = RELATED_DOCUMENTS.get(sender)
+    if doc_class is None:
+        return
+    requested_related_ids = {int(pk) for pk in related_ids}
+    instances = sender.objects.filter(pk__in=requested_related_ids)
+    instances_by_id = {instance.pk: instance for instance in instances}
+    for related_id in requested_related_ids:
+        instance = instances_by_id.get(related_id)
+        if instance is None:
+            yield _delete_action(doc_class, related_id)
+        else:
+            yield _index_action(doc_class, instance)

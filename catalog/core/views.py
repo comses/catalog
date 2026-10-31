@@ -6,18 +6,16 @@ from datetime import timedelta, datetime
 from hashlib import sha1
 from operator import attrgetter
 
-from dateutil.parser import parse as datetime_parse
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
-from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.core.paginator import Paginator
 from django.db import models
-from django.db.models import Count, Q, F, Value as V, Max
+from django.db.models import Count, Q, F, Value as V
 from django.db.models.functions import Concat
 from django.http import JsonResponse, HttpResponseRedirect, StreamingHttpResponse, QueryDict
 from django.shortcuts import resolve_url, render, redirect
@@ -31,18 +29,18 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 from django.views.generic import TemplateView, FormView, DetailView
-from haystack.generic_views import SearchView
-from haystack.query import SearchQuerySet
 from rest_framework import status, renderers, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from citation.export_data import PublicationCSVExporter
 from citation.graphviz.data import (generate_aggregated_code_archived_platform_data,
-                                    generate_aggregated_distribution_data, generate_network_graph)
+                                    generate_aggregated_distribution_data, generate_network_graph,
+                                    publication_ids_for_filters)
 from citation.graphviz.globals import RelationClassifier, CacheNames
-from citation.models import (Publication, Platform, Sponsor, ModelDocumentation, Tag, Container, CodeArchiveUrl,
-                             URLStatusLog, SuggestedMerge, Submitter, AuthorCorrespondenceLog)
+from citation.models import (Publication, Platform, Sponsor, ModelDocumentation, Tag, Container,
+                             SuggestedMerge, SUGGESTED_MERGE_MODEL_NAMES, Submitter,
+                             AuthorCorrespondenceLog)
 from citation.serializers import (CatalogPagination, PublicationListSerializer,
                                   ContactFormSerializer, UserProfileSerializer,
                                   PublicationAggregationSerializer, AuthorAggregrationSerializer,
@@ -50,8 +48,9 @@ from citation.serializers import (CatalogPagination, PublicationListSerializer,
 from citation.util import render_sanitized_markdown, send_markdown_email
 from .forms import CatalogAuthenticationForm, CatalogSearchForm
 from .forms import PublicSearchForm, SuggestedPublicationForm, SubmitterForm, ContactAuthorsForm
-from .search_indexes import (PublicationDoc, PublicationDocSearch, normalize_search_querydict,
-                             get_search_index)
+from .search_indexes import (CuratorPublicationDoc, PublicationDoc, PublicationDocSearch,
+                             autocomplete_documents, curator_status_facets, get_es_client,
+                             normalize_search_querydict, get_search_index)
 from .visualization import plots, data_access
 from .visualization.data_access import visualization_cache
 
@@ -66,9 +65,30 @@ def export_data(self):
     return response
 
 
-def queryset_gen(search_qs):
-    for item in search_qs:
-        yield item.pk
+MAX_RESULT_WINDOW = 10000
+
+
+def paginate_search(search, page_number, page_size=25):
+    """One Elasticsearch request per page; the total rides with the hits and stays within the result window."""
+    get_es_client()
+    try:
+        page = max(int(page_number), 1)
+    except (TypeError, ValueError):
+        page = 1
+    page = min(page, MAX_RESULT_WINDOW // page_size)
+
+    def fetch(number):
+        start = (number - 1) * page_size
+        return search[start:start + page_size].extra(track_total_hits=True).execute()
+
+    response = fetch(page)
+    total = min(response.hits.total.value, MAX_RESULT_WINDOW)
+    paginator = Paginator(range(total), page_size)
+    page_obj = paginator.get_page(page)
+    if page_obj.number != page:
+        response = fetch(page_obj.number)
+    page_obj.object_list = list(response)
+    return page_obj
 
 
 def visualization_query_filter(request):
@@ -335,10 +355,8 @@ class AutocompleteView(LoginRequiredMixin, generics.GenericAPIView):
 
     def get(self, request, format=None):
         query = request.GET.get('q', '').strip()
-        sqs = SearchQuerySet().models(self.model_class)
-        if query:
-            sqs = sqs.autocomplete(name=query)
-        data = [{'id': int(result.pk), 'name': result.name} for result in sqs]
+        results = autocomplete_documents(self.model_class, query)
+        data = [{'id': int(result.id), 'name': result.name} for result in results]
         return Response(json.dumps(data))
 
 
@@ -372,32 +390,50 @@ class JournalSearchView(AutocompleteView):
         return Container
 
 
-class CatalogSearchView(LoginRequiredMixin, SearchView):
-    """ generic django haystack SearchView using a custom form """
-    form_class = CatalogSearchForm
-    """ Retrieving the tags value from request and passing it to the CatalogSearchForm"""
-
-    def get_form_kwargs(self):
-        kw = super(CatalogSearchView, self).get_form_kwargs()
-        kw['tag_list'] = self.request.GET.getlist('tags')
-        return kw
-
-
-class CuratorWorkflowView(LoginRequiredMixin, SearchView):
-    """ django haystack searchview """
-    template_name = 'workflow/curator.html'
-    form_class = CatalogSearchForm
+class CatalogSearchView(LoginRequiredMixin, TemplateView):
+    template_name = 'search/search.html'
 
     def get_context_data(self, **kwargs):
-        context = super(CuratorWorkflowView, self).get_context_data(**kwargs)
-        sqs = SearchQuerySet().filter(assigned_curator=self.request.user, is_primary=True).facet('status')
-        context.update(facets=sqs.facet_counts(),
-                       total_number_of_records=Publication.objects.filter(assigned_curator=self.request.user).count())
+        context = super().get_context_data(**kwargs)
+        form = CatalogSearchForm(
+            self.request.GET or None,
+            tag_list=self.request.GET.getlist('tags'))
+        page_obj = paginate_search(form.search(), self.request.GET.get('page'))
+        context.update(
+            form=form,
+            object_list=page_obj.object_list,
+            page_obj=page_obj,
+            paginator=page_obj.paginator,
+            query=form.cleaned_data.get('q', '') if form.is_valid() else '',
+            search=reverse('core:haystack_search'))
         return context
 
-    def get_queryset(self):
-        sqs = super(CuratorWorkflowView, self).get_queryset()
-        return sqs.filter(assigned_curator=self.request.user, is_primary=True).order_by('-last_modified', '-status')
+
+class CuratorWorkflowView(LoginRequiredMixin, TemplateView):
+    template_name = 'workflow/curator.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        get_es_client()
+        assigned = CuratorPublicationDoc.search().filter(
+            'term', assigned_curator_id=self.request.user.pk)
+        form = CatalogSearchForm(
+            self.request.GET or None,
+            tag_list=self.request.GET.getlist('tags'))
+        status_facets = curator_status_facets(assigned)
+        search = form.search(search=assigned)
+        if not (form.is_valid() and form.cleaned_data.get('q')):
+            # The curator's list is "most recently touched first" unless a query ranks it.
+            search = search.sort('-last_modified', '-status')
+        page_obj = paginate_search(search, self.request.GET.get('page'))
+        context.update(
+            form=form,
+            object_list=page_obj.object_list,
+            page_obj=page_obj,
+            paginator=page_obj.paginator,
+            facets={'fields': {'status': status_facets}},
+            total_number_of_records=sum(count for _, count in status_facets))
+        return context
 
 
 class VisualizationSearchView(LoginRequiredMixin, generics.GenericAPIView):
@@ -428,9 +464,7 @@ class AggregatedJournalRelationList(LoginRequiredMixin, generics.GenericAPIView)
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        sqs = SearchQuerySet()
-        sqs = sqs.filter(**visualization_query_filter(request))
-        pub_pk = queryset_gen(sqs)
+        pub_pk = publication_ids_for_filters(visualization_query_filter(request))
         pubs = Publication.api.aggregated_list(pk__in=pub_pk, identifier='container')
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)
@@ -448,9 +482,7 @@ class AggregatedSponsorRelationList(LoginRequiredMixin, generics.GenericAPIView)
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        sqs = SearchQuerySet()
-        sqs = sqs.filter(**visualization_query_filter(request))
-        pub_pk = queryset_gen(sqs)
+        pub_pk = publication_ids_for_filters(visualization_query_filter(request))
         pubs = Publication.api.aggregated_list(pk__in=pub_pk, identifier='sponsors')
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)
@@ -468,9 +500,7 @@ class AggregatedPlatformRelationList(LoginRequiredMixin, generics.GenericAPIView
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        sqs = SearchQuerySet()
-        sqs = sqs.filter(**visualization_query_filter(request)).models(Publication)
-        pub_pk = queryset_gen(sqs)
+        pub_pk = publication_ids_for_filters(visualization_query_filter(request))
         pubs = Publication.api.aggregated_list(pk__in=pub_pk, identifier='platforms')
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)
@@ -488,9 +518,7 @@ class AggregatedAuthorRelationList(LoginRequiredMixin, generics.GenericAPIView):
     renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
 
     def get(self, request):
-        sqs = SearchQuerySet()
-        sqs = sqs.filter(**visualization_query_filter(request)).models(Publication)
-        pub_pk = queryset_gen(sqs)
+        pub_pk = publication_ids_for_filters(visualization_query_filter(request))
         pubs = Publication.api.primary(pk__in=pub_pk). \
             annotate(given_name=F('creators__given_name'), family_name=F('creators__family_name')). \
             values('given_name', 'family_name'). \
@@ -533,59 +561,6 @@ class ModelDocumentationPublicationRelation(LoginRequiredMixin, generics.Generic
             dct[categories['category']] = values
         return Response({'json': json.dumps(dct)},
                         template_name="visualization/model_documentation_publication_relation.html")
-
-
-class AggregatedCodeArchivedURLView(LoginRequiredMixin, generics.GenericAPIView):
-    renderer_classes = (renderers.TemplateHTMLRenderer, renderers.JSONRenderer)
-
-    def get(self, request):
-
-        url_logs = URLStatusLog.objects.all().values('publication').order_by('publication', '-last_modified'). \
-            annotate(last_modified=Max('last_modified')). \
-            values_list('publication', 'type', 'publication__date_published_text').order_by('publication')
-        all_records = Counter()
-        years = []
-        if url_logs:
-            start_year = 1900
-            end_year = 2100
-            if request.query_params.get('start_date'):
-                start_year = int(request.query_params.get('start_date'))
-            if request.query_params.get('end_date'):
-                end_year = int(request.query_params.get('end_date'))
-
-            for pub, category, date in url_logs:
-                try:
-                    date_published = int(datetime_parse(str(date)).year)
-                except:
-                    date_published = None
-                if date_published is not None and start_year <= date_published <= end_year:
-                    years.append(date_published)
-                    all_records[(date_published, category)] += 1
-        else:
-            sqs = SearchQuerySet()
-            sqs = sqs.filter(**visualization_query_filter(request))
-            filtered_pubs = queryset_gen(sqs)
-            pubs = Publication.api.primary(pk__in=filtered_pubs)
-            for pub in pubs:
-                if pub.code_archive_url and pub.year_published is not None:
-                    years.append(pub.year_published)
-                    all_records[(pub.year_published, CodeArchiveUrl.categorize_url(pub.code_archive_url))] += 1
-
-        group = []
-        data = [['x']]
-        for name in URLStatusLog.PLATFORM_TYPES:
-            group.append(name[0])
-            data.append([name[0]])
-
-        for year in sorted(set(years)):
-            data[0].append(year)
-            index = 1
-            for name in URLStatusLog.PLATFORM_TYPES:
-                data[index].append(all_records[(year, name[0])])
-                index += 1
-
-        return Response({"aggregated_data": json.dumps(data), "group": json.dumps(group)},
-                        template_name="visualization/code_archived_url_staged_bar.html")
 
 
 class AggregatedStagedVisualizationView(LoginRequiredMixin, generics.GenericAPIView):
@@ -650,9 +625,7 @@ class PublicationListDetail(LoginRequiredMixin, generics.GenericAPIView):
         elif relation == RelationClassifier.AUTHOR.value:
             filter_criteria.update(authors__name__exact=name.replace("/", " "))
 
-        sqs = SearchQuerySet()
-        sqs = sqs.filter(**filter_criteria).models(Publication)
-        pubs_pk = queryset_gen(sqs)
+        pubs_pk = publication_ids_for_filters(filter_criteria)
         pubs = Publication.api.primary(pk__in=pubs_pk)
         paginator = CatalogPagination()
         result_page = paginator.paginate_queryset(pubs, request)
@@ -757,10 +730,19 @@ def with_vary_header(view):
     return f
 
 
+def requested_page(value, page_size):
+    """A page number from user input: 1 when unusable, never past the Elasticsearch result window."""
+    try:
+        page = max(int(value), 1)
+    except (TypeError, ValueError):
+        page = 1
+    return min(page, MAX_RESULT_WINDOW // page_size)
+
+
 def public_search_view(request):
     search, filters = normalize_search_querydict(request.GET)
     query_dict = request.GET.copy()
-    current_page = int(query_dict.pop('page', [1])[0])
+    current_page = requested_page(query_dict.pop('page', [1])[0], 10)
 
     from_qs = (current_page - 1) * 10
     to_qs = from_qs + 10
@@ -963,17 +945,18 @@ class PublicationDetailView(DetailView):
 
 def autocomplete(request):
     qd = request.GET
-    try:
-        model_name = qd['model_name']
-    except KeyError:
-        raise ValidationError(_('Missing model_name query param'), code='invalid')
+    model_name = qd.get('model_name')
+    if model_name is None:
+        return JsonResponse({'error': _('Missing model_name query param')}, status=400)
 
-    try:
-        search = qd['search']
-    except KeyError:
-        raise ValidationError(_('Missing search query param'), code='invalid')
+    search = qd.get('search')
+    if search is None:
+        return JsonResponse({'error': _('Missing search query param')}, status=400)
 
-    content_type = ContentType.objects.get(model=model_name)
+    if model_name not in SUGGESTED_MERGE_MODEL_NAMES:
+        return JsonResponse({'error': _('Invalid model_name')}, status=400)
+
+    content_type = ContentType.objects.get(app_label='citation', model=model_name)
     model = content_type.model_class()
     model_doc = get_search_index(model)
     response = model_doc.search().query('match', name=search).execute()
@@ -996,7 +979,8 @@ class SuggestedMergeView(APIView):
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
 
-        content_type = ContentType.objects.get(model=validated_data['model_name'])
+        content_type = ContentType.objects.get(
+            app_label='citation', model=validated_data['model_name'])
         creator, created = Submitter.get_or_create(user=user, email=data.get('email', ''))
         duplicates = [instance['id'] for instance in validated_data['instances']]
         new_content = validated_data['new_content']

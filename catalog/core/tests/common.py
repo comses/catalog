@@ -58,13 +58,13 @@ class BaseTest(TestCase):
         response = self.get(url)
         self.assertEqual(before_status, response.status_code)
 
-        if before_status is not 200:
+        if before_status != 200:
             self.assertTrue(self.login_url in response['Location'])
 
         self.login()
 
         response = self.get(url)
-        if after_status is 302:
+        if after_status == 302:
             # Redirects back to login after logging in should not occur
             self.assertTrue(self.login_url not in response['Location'])
 
