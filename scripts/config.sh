@@ -19,8 +19,13 @@ validate() {
 }
 
 generate() {
+    if [[ "${FORCE:-0}" != "1" && -s "${config_ini}" && -s "${postgres_password_file}" ]]; then
+        echo "Local configuration already exists; use FORCE=1 make config-generate to rotate credentials"
+        return
+    fi
+
     if [[ -e "${config_ini}" || -e "${postgres_password_file}" ]]; then
-        [[ "${FORCE:-0}" == "1" ]] || die "configuration already exists; use FORCE=1 make config-generate to rotate credentials"
+        [[ "${FORCE:-0}" == "1" ]] || die "local configuration is incomplete; use FORCE=1 make config-generate to recreate it"
 
         if [[ -e "${config_ini}" ]]; then
             backup_name="deploy/conf/config-backup-$(date '+%Y-%m-%d.%H-%M-%S').ini"
