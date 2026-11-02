@@ -88,6 +88,7 @@ class ActivationOperations(CandidateOperations):
             }
         )
         if journal["operation"] == "deploy":
+            self.release_migration_backup(journal.get("candidate", {}))
             self.layout.candidate.unlink(missing_ok=True)
         self.layout.journal.unlink(missing_ok=True)
 

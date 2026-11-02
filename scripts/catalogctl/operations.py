@@ -90,6 +90,8 @@ class ReportingOperations(ActivationOperations):
             "drain_status",
             "migration_status",
             "migration_applied",
+            "migration_backup",
+            "migration_started_at",
             "data_rebuild_status",
         )
         result: dict[str, Any] = {

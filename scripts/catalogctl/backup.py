@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
+import re
+import stat
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from .common import CatalogError, log, parse_utc, read_json, require_json, sha256_file
+from .common import CatalogError, atomic_json, atomic_write, fsync_directory, log, parse_utc, read_json, require_json, sha256_file
 from .database import DatabaseOperations
 from .manifest import release_id
 
@@ -97,12 +101,87 @@ class BackupOperations(DatabaseOperations):
             created = parse_utc(receipt["created_at"])
             if cutoff and created >= cutoff:
                 continue
-            if datetime.now(timezone.utc) - created > timedelta(hours=24):
+            reference_time = cutoff or datetime.now(timezone.utc)
+            if not timedelta(0) <= reference_time - created <= timedelta(hours=24):
                 continue
             artifact = self.layout.backups / receipt["archive"]
             if artifact.is_file() and sha256_file(artifact) == receipt["sha256"]:
                 return receipt
         raise CatalogError(
             "migration requires a verified backup of the active release, under 24 hours old "
-            "and taken before any earlier migration attempt"
+            "at selection and taken before any earlier migration attempt"
         )
+
+    def retained_backup_directory(self, reference: dict[str, Any]):
+        token = reference.get("directory", "")
+        if not isinstance(token, str) or not re.fullmatch(r"[0-9a-f]{32}", token):
+            raise CatalogError("invalid retained backup directory")
+        parent = self.layout.backups / ".migration-backups"
+        directory = parent / token
+        if parent.is_symlink() or directory.is_symlink():
+            raise CatalogError("retained backup directories must not be symlinks")
+        return directory
+
+    def verify_migration_backup(self, reference: dict[str, Any], active: dict[str, Any]) -> dict[str, Any]:
+        directory = self.retained_backup_directory(reference)
+        receipt = reference["receipt"]
+        if not self.receipt_matches(receipt, active):
+            raise CatalogError("retained migration backup belongs to another release")
+        for name in ("archive.dump", "receipt.json", "archive.dump.sha256"):
+            path = directory / name
+            if not path.exists() or not stat.S_ISREG(path.lstat().st_mode):
+                raise CatalogError(f"retained migration backup is missing or unsafe: {path}")
+        if (require_json(directory / "receipt.json") != receipt
+                or sha256_file(directory / "archive.dump") != receipt["sha256"]
+                or (directory / "archive.dump.sha256").read_text() != receipt["sha256"] + "  archive.dump\n"):
+            raise CatalogError("retained migration backup failed integrity verification")
+        return receipt
+
+    def retain_migration_backup(self, receipt: dict[str, Any]) -> dict[str, Any]:
+        reference = {"directory": uuid.uuid4().hex, "receipt": receipt}
+        directory = self.retained_backup_directory(reference)
+        directory.parent.mkdir(mode=0o700, exist_ok=True)
+        os.chmod(directory.parent, 0o700)
+        directory.mkdir(mode=0o700)
+        archive = receipt["archive"]
+        if not isinstance(archive, str) or not re.fullmatch(r"[^/\\]+\.dump", archive):
+            raise CatalogError("invalid backup archive name")
+        source = self.layout.backups / archive
+        if not stat.S_ISREG(source.lstat().st_mode):
+            raise CatalogError("migration backup must be a regular file")
+        os.link(source, directory / "archive.dump", follow_symlinks=False)
+        atomic_json(directory / "receipt.json", receipt)
+        atomic_write(directory / "archive.dump.sha256", (receipt["sha256"] + "  archive.dump\n").encode())
+        with (directory / "archive.dump").open("rb") as archive_file:
+            os.fsync(archive_file.fileno())
+        fsync_directory(directory)
+        fsync_directory(directory.parent)
+        fsync_directory(self.layout.backups)
+        return reference
+
+    def release_migration_backup(self, candidate: dict[str, Any]) -> None:
+        reference = candidate.get("migration_backup")
+        if not reference:
+            return
+        directory = self.retained_backup_directory(reference)
+        if not directory.exists():
+            return
+        for name in ("archive.dump", "receipt.json", "archive.dump.sha256"):
+            (directory / name).unlink(missing_ok=True)
+        directory.rmdir()
+        fsync_directory(directory.parent)
+
+    def select_migration_backup(self, candidate: dict[str, Any], active: dict[str, Any]) -> dict[str, Any]:
+        reference = candidate.get("migration_backup")
+        if reference and candidate.get("migration_started_at"):
+            self.verify_migration_backup(reference, active)
+            return reference
+        receipt = self.latest_valid_backup(active, before=candidate.get("migration_started_at"))
+        reference = self.retain_migration_backup(receipt)
+        self.verify_migration_backup(reference, active)
+        # Retention may take time; an unstarted attempt still needs a fresh backup.
+        if not candidate.get("migration_started_at"):
+            age = datetime.now(timezone.utc) - parse_utc(receipt["created_at"])
+            if not timedelta(0) <= age <= timedelta(hours=24):
+                raise CatalogError("selected backup expired before migration started; take a fresh backup")
+        return reference

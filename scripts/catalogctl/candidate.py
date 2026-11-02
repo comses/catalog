@@ -249,8 +249,12 @@ class CandidateOperations(SearchOperations):
             values["drain_status"] = "pending"
         if candidate.get("data_rebuild_status") == "succeeded":
             values.update(data_rebuild_status="pending", search_aliases_after=None)
+        if not candidate.get("migration_applied") and candidate.get("migration_status") != "in_progress":
+            values.update(migration_backup=None, migration_started_at=None)
         if values:
             self.update_candidate(candidate, **values)
+            if "migration_backup" in values:
+                self.release_migration_backup(candidate)
 
     def require_schema_untouched_by_candidate(self) -> None:
         """Refuses to run a previous release while a candidate changed, or is changing, the database."""
@@ -311,16 +315,18 @@ class CandidateOperations(SearchOperations):
             if active:
                 self.verify_release_artifact(active, "active")
                 self.require_writers_drained(candidate, active)
-                backup = self.latest_valid_backup(active, before=candidate.get("migration_started_at"))
             elif candidate.get("restore_status") != "succeeded":
                 raise CatalogError("fresh-host migration requires a successful restore receipt")
             compose_file = Path(candidate["compose_file"])
             self.compose(compose_file, "up", "-d", "--wait", *DEPENDENCY_SERVICES, capture=False)
+            if active:
+                backup = self.select_migration_backup(candidate, active)
             candidate = self.update_candidate(
                 candidate,
                 migration_status="in_progress",
                 migration_started_at=candidate.get("migration_started_at") or utc_now(),
                 migration_applied=bool(candidate.get("migration_applied")),
+                migration_backup=backup,
             )
             try:
                 self.manage(compose_file, "makemigrations", "--check", "--dry-run")
@@ -354,7 +360,7 @@ class CandidateOperations(SearchOperations):
                 "phase": "migrate",
                 "ok": True,
                 "plan": plan,
-                "backup": backup["archive"] if backup else None,
+                "backup": backup["receipt"]["archive"] if backup else None,
             }
 
     def candidate_retry(self, confirmed: bool) -> dict[str, Any]:

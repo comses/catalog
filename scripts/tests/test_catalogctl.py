@@ -686,6 +686,7 @@ class ControllerTestCase(unittest.TestCase):
             drained_at="2026-10-26T10:00:00Z",
             migration_applied=True,
             migration_started_at="2026-10-26T10:01:00Z",
+            migration_backup={"directory": "a" * 32, "receipt": {"archive": "prior.dump"}},
         )
         manifest_path, _manifest = self.write_manifest()
         with self.prepare_environment():
@@ -696,6 +697,7 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(candidate["drain_status"], "drained")
         self.assertIs(candidate["migration_applied"], True)
         self.assertEqual(candidate["migration_started_at"], "2026-10-26T10:01:00Z")
+        self.assertEqual(candidate["migration_backup"]["receipt"]["archive"], "prior.dump")
         with (
             mock.patch.object(self.controller, "compose") as compose,
             self.assertRaisesRegex(catalogctl.CatalogError, "migrations were applied"),
@@ -1122,6 +1124,149 @@ class ControllerTestCase(unittest.TestCase):
             self.controller.latest_valid_backup(active, before=receipt["created_at"])
 
     # rebuild
+
+    def migration_backup_fixture(self):
+        self.provision()
+        active = self.write_active()
+        receipt = self.write_backup(active)
+        reference = self.controller.select_migration_backup({}, active)
+        candidate = self.write_candidate(
+            migration_backup=reference, migration_started_at=catalogctl.utc_now(),
+            migration_applied=True, migration_status="unmigrated", drain_status="drained",
+        )
+        return active, receipt, reference, candidate
+
+    def test_retained_backup_survives_age_and_original_pruning(self):
+        active, receipt, reference, candidate = self.migration_backup_fixture()
+        for suffix in ("", ".json", ".sha256"):
+            (self.layout.backups / (receipt["archive"] + suffix)).unlink()
+        from catalogctl import backup as backup_module
+        with mock.patch.object(backup_module, "datetime", wraps=datetime) as clock:
+            clock.now.return_value = datetime.now(timezone.utc) + timedelta(days=31)
+            self.assertEqual(self.controller.select_migration_backup(candidate, active), reference)
+            with mock.patch.object(self.controller, "compose"), mock.patch.object(
+                self.controller, "manage", side_effect=self.migration_commands([])
+            ):
+                self.assertEqual(self.controller.migrate(True)["backup"], receipt["archive"])
+
+    def test_retained_backup_rejects_corruption_missing_files_and_wrong_release(self):
+        active, receipt, reference, candidate = self.migration_backup_fixture()
+        directory = self.controller.retained_backup_directory(reference)
+        with self.assertRaisesRegex(catalogctl.CatalogError, "another release"):
+            self.controller.select_migration_backup(candidate, {**active, "image": "other"})
+        (directory / "archive.dump").write_bytes(b"corrupt")
+        with self.assertRaisesRegex(catalogctl.CatalogError, "integrity"):
+            self.controller.select_migration_backup(candidate, active)
+        (directory / "archive.dump").unlink()
+        with self.assertRaisesRegex(catalogctl.CatalogError, "missing"):
+            self.controller.select_migration_backup(candidate, active)
+
+    def test_unstarted_retained_backup_does_not_waive_freshness(self):
+        active, _, reference, _ = self.migration_backup_fixture()
+        from catalogctl import backup as backup_module
+        with mock.patch.object(backup_module, "datetime", wraps=datetime) as clock:
+            clock.now.return_value = datetime.now(timezone.utc) + timedelta(hours=25)
+            with self.assertRaisesRegex(catalogctl.CatalogError, "24 hours"):
+                self.controller.select_migration_backup({"migration_backup": reference}, active)
+
+    def test_legacy_attempt_uses_freshness_at_original_start(self):
+        self.provision()
+        active = self.write_active()
+        receipt = self.write_backup(active)
+        start = datetime.now(timezone.utc) - timedelta(days=2)
+        receipt["created_at"] = (start - timedelta(hours=1)).isoformat()
+        catalogctl.atomic_json(self.layout.backups / (receipt["archive"] + ".json"), receipt)
+        reference = self.controller.select_migration_backup({"migration_started_at": start.isoformat()}, active)
+        self.assertEqual(reference["receipt"], receipt)
+        receipt["created_at"] = (start + timedelta(seconds=1)).isoformat()
+        catalogctl.atomic_json(self.layout.backups / (receipt["archive"] + ".json"), receipt)
+        with self.assertRaisesRegex(catalogctl.CatalogError, "earlier migration"):
+            self.controller.select_migration_backup({"migration_started_at": start.isoformat()}, active)
+
+    def test_restart_clears_selection_only_for_untouched_schema(self):
+        _, receipt, reference, candidate = self.migration_backup_fixture()
+        self.controller.writers_resumed()
+        self.assertEqual(catalogctl.require_json(self.layout.candidate)["migration_backup"], reference)
+        self.controller.update_candidate(candidate, migration_applied=False, migration_status="failed")
+        self.controller.writers_resumed()
+        state = catalogctl.require_json(self.layout.candidate)
+        self.assertIsNone(state["migration_backup"])
+        self.assertIsNone(state["migration_started_at"])
+        self.assertFalse(self.controller.retained_backup_directory(reference).exists())
+        self.assertTrue((self.layout.backups / receipt["archive"]).exists())
+
+    def test_retention_failure_does_not_record_started_migration(self):
+        self.provision()
+        active = self.write_active()
+        self.write_backup(active)
+        self.write_candidate(drain_status="drained")
+        from catalogctl import backup as backup_module
+        with mock.patch.object(self.controller, "compose"), mock.patch.object(
+            backup_module, "fsync_directory", side_effect=OSError("interrupted")
+        ), mock.patch.object(self.controller, "manage") as manage:
+            with self.assertRaises(OSError):
+                self.controller.migrate(True)
+        manage.assert_not_called()
+        candidate = catalogctl.require_json(self.layout.candidate)
+        self.assertFalse(candidate.get("migration_started_at"))
+        self.assertFalse(candidate.get("migration_backup"))
+
+    def test_retained_cleanup_is_idempotent_and_preserves_original(self):
+        _, receipt, reference, candidate = self.migration_backup_fixture()
+        directory = self.controller.retained_backup_directory(reference)
+        (directory / "archive.dump").unlink()
+        self.controller.release_migration_backup(candidate)
+        self.controller.release_migration_backup(candidate)
+        self.assertFalse(directory.exists())
+        self.assertTrue((self.layout.backups / receipt["archive"]).exists())
+
+    def test_migration_records_backup_and_start_before_sql(self):
+        self.provision()
+        active = self.write_active()
+        self.write_backup(active)
+        self.write_candidate(drain_status="drained")
+        def interrupted(*args, **kwargs):
+            state = catalogctl.require_json(self.layout.candidate)
+            self.assertTrue(state["migration_started_at"])
+            self.controller.verify_migration_backup(state["migration_backup"], active)
+            raise KeyboardInterrupt()
+        with mock.patch.object(self.controller, "compose"), mock.patch.object(
+            self.controller, "manage", side_effect=interrupted
+        ), self.assertRaises(KeyboardInterrupt):
+            self.controller.migrate(True)
+        self.assertEqual(catalogctl.require_json(self.layout.candidate)["migration_status"], "in_progress")
+
+    def test_cleanup_interruption_leaves_journal_for_idempotent_completion(self):
+        active, receipt, reference, candidate = self.migration_backup_fixture()
+        journal = {"operation": "deploy", "operation_id": "cleanup-test", "checkpoint": "committed",
+                   "new_active": active, "candidate": candidate}
+        self.controller.write_journal(journal)
+        def interrupted(_candidate):
+            (self.controller.retained_backup_directory(reference) / "archive.dump").unlink()
+            raise OSError("interrupted cleanup")
+        with mock.patch.object(self.controller, "release_migration_backup", side_effect=interrupted):
+            with self.assertRaises(OSError):
+                self.controller.complete_transition(journal)
+        self.assertTrue(self.layout.journal.exists())
+        self.assertTrue(self.layout.candidate.exists())
+        self.controller.complete_transition(journal)
+        self.controller.complete_transition(journal)
+        self.assertFalse(self.layout.journal.exists())
+        self.assertFalse(self.layout.candidate.exists())
+        self.assertTrue((self.layout.backups / receipt["archive"]).exists())
+
+    def test_failure_recording_start_leaves_no_started_attempt(self):
+        self.provision()
+        active = self.write_active()
+        self.write_backup(active)
+        self.write_candidate(drain_status="drained")
+        with mock.patch.object(self.controller, "compose"), mock.patch.object(
+            self.controller, "update_candidate", side_effect=OSError("state write failed")
+        ), mock.patch.object(self.controller, "manage") as manage:
+            with self.assertRaises(OSError):
+                self.controller.migrate(True)
+        manage.assert_not_called()
+        self.assertFalse(catalogctl.require_json(self.layout.candidate).get("migration_started_at"))
 
     def test_rebuild_validates_search_and_records_new_aliases(self) -> None:
         self.provision()

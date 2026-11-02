@@ -46,6 +46,7 @@ HOST_CANDIDATE_FIELDS = (
     "drained_at",
     "migration_applied",
     "migration_started_at",
+    "migration_backup",
 )
 # Journal checkpoints past which the new runtime was verified, so recovery finishes the transition instead of reverting it.
 FINALIZABLE_CHECKPOINTS = ("runtime-ready", "committed")

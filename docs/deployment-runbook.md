@@ -434,6 +434,18 @@ Always read `make status` before acting.
 After an SSH interruption, check `pgrep -af 'python3 -m catalogctl'` and wait for a running controller instead of starting another phase.
 A failed or interrupted restore, migration, or rebuild locks its candidate until `CONFIRM_CANDIDATE_RETRY=1 make candidate-retry` records an explicit retry.
 After that retry, `make prepare` may replace the candidate with a fixed release.
+The first migration attempt requires a verified backup of the active release no more than 24 hours old.
+Before migration starts, the controller retains that backup and records its identity together with the attempt timestamp.
+Retries and replacement candidates reverify the retained backup without aging out that selection; backups taken after the attempt began cannot replace it.
+Older interrupted candidates without a recorded selection require a verified backup from the 24 hours preceding their original attempt.
+If no such backup survives, preserve the installation and follow the recovery policy rather than clearing migration history.
+
+`make status` reports the selection in `candidate.migration_backup`.
+Its `directory` identifies `/srv/backups/comses_model_catalog/.migration-backups/<directory>/`, containing `archive.dump`, `archive.dump.sha256` and the original `receipt.json`.
+The retained archive is a hard link protected from ordinary retention deletion, not an independent copy or protection against corruption or volume loss.
+It remains protected until deployment commits, or until the unchanged previous application resumes and the next migration must select a fresh backup.
+Cleanup removes only retained files, never the original backup.
+An interruption before recording a selection can leave an unreferenced directory; retain it for investigation and remove it only after confirming no candidate or journal references it.
 The replacement keeps the host's restore, drain, and migration records, so a restored host is not restored again and `make start` stays refused once migrations were applied.
 
 ### Recovery policy
