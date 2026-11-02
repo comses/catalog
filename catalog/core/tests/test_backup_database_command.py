@@ -8,6 +8,7 @@ client tools.
 import fcntl
 import json
 import os
+import signal
 import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -103,6 +104,46 @@ class BackupDatabaseCommandTest(TestCase):
         receipt = json.loads((self.root / (result['archive'] + '.json')).read_text())
         self.assertTrue(result['scheduled'])
         self.assertTrue(receipt['scheduled'])
+
+    def test_partial_dump_is_private_even_with_permissive_umask(self):
+        for mask in (0, 0o022):
+            with self.subTest(umask=mask):
+                original = backups.write_dump
+                def inspect(destination, db):
+                    self.assertEqual(os.fstat(destination.fileno()).st_mode & 0o777, 0o600)
+                    return original(destination, db)
+                previous = os.umask(mask)
+                try:
+                    with mock.patch.object(backups, 'write_dump', side_effect=inspect):
+                        self.run_command()
+                finally:
+                    os.umask(previous)
+
+    def test_killed_dump_leaves_only_a_private_partial(self):
+        reader, writer = os.pipe()
+        child = os.fork()
+        if child == 0:
+            os.close(reader)
+            os.umask(0)
+            def interrupted(destination, db):
+                destination.write(b'private database contents')
+                destination.flush()
+                os.write(writer, b'ready')
+                os.kill(os.getpid(), signal.SIGKILL)
+            backups.write_dump = interrupted
+            backups.create_backup()
+            os._exit(1)
+        os.close(writer)
+        try:
+            self.assertEqual(os.read(reader, 5), b'ready')
+            _, status = os.waitpid(child, 0)
+            self.assertEqual(os.waitstatus_to_exitcode(status), -signal.SIGKILL)
+            partials = list(self.root.glob('.*.partial'))
+            self.assertEqual(len(partials), 1)
+            self.assertEqual(partials[0].stat().st_mode & 0o777, 0o600)
+            self.assertFalse((self.root / backups.MARKER_NAME).exists())
+        finally:
+            os.close(reader)
 
     def write_old_backup(self, name, age):
         created = datetime.now(timezone.utc) - age

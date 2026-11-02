@@ -137,14 +137,13 @@ def postgres_versions(env):
     return versions
 
 
-def write_dump(temporary, db):
-    with temporary.open('wb') as destination:
-        run(['pg_dump', *db['command'], '--format', 'custom', '--no-owner', '--no-privileges', db['name']],
-            db['env'], stdout=destination)
-        destination.flush()
-        os.fsync(destination.fileno())
-    with temporary.open('rb') as source:
-        run(['pg_restore', '--list'], db['env'], stdin=source, stdout=subprocess.DEVNULL)
+def write_dump(destination, db):
+    run(['pg_dump', *db['command'], '--format', 'custom', '--no-owner', '--no-privileges', db['name']],
+        db['env'], stdout=destination)
+    destination.flush()
+    os.fsync(destination.fileno())
+    destination.seek(0)
+    run(['pg_restore', '--list'], db['env'], stdin=destination, stdout=subprocess.DEVNULL)
 
 
 def read_receipts(root):
@@ -183,11 +182,13 @@ def create_backup(*, wait=False, scheduled=False, revision=None, image=None):
         target = root / name
         if target.exists():
             raise BackupError('refusing to replace an existing backup: {0}'.format(target))
-        temporary = root / '.{0}.partial'.format(name)
+        descriptor, temporary_name = tempfile.mkstemp(dir=root, prefix='.' + name, suffix='.partial')
+        temporary = Path(temporary_name)
         # Everything the receipt needs is gathered before the dump gets its final name, so a
         # failure never leaves a dump without a receipt (which prune would never see).
         try:
-            write_dump(temporary, db)
+            with os.fdopen(descriptor, 'w+b') as destination:
+                write_dump(destination, db)
             adopt(temporary)
             receipt = {
                 'schema_version': SCHEMA_VERSION,
