@@ -29,6 +29,9 @@ To replace the disposable local database from a dump:
 make dev-restore DUMP=./catalog.sql.xz CONFIRM=comses_catalog
 ```
 
+Custom `.dump` archives are checked with `pg_restore --list` before stopping Django or replacing the development database.
+This rejects invalid or unsupported archive headers; it does not guarantee that all archive contents can be restored.
+
 Run the release checks with:
 
 ```sh

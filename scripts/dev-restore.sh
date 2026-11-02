@@ -44,12 +44,14 @@ bash scripts/deploy.sh dev-compose
 bash scripts/config.sh validate
 compose=(docker compose --project-directory . -p catalog -f docker-compose.yml)
 "${compose[@]}" up -d --wait db redis elasticsearch
+if [[ "${format}" == custom ]]; then
+    "${compose[@]}" exec -T db pg_restore --list < "${dump}" >/dev/null
+fi
 "${compose[@]}" stop django >/dev/null 2>&1 || true
 "${compose[@]}" exec -T db dropdb --force --if-exists --username catalog comses_catalog
 "${compose[@]}" exec -T db createdb --username catalog --owner catalog comses_catalog
 
 if [[ "${format}" == custom ]]; then
-    "${compose[@]}" exec -T db pg_restore --list < "${dump}" >/dev/null
     "${compose[@]}" exec -T db pg_restore --username catalog --dbname comses_catalog \
         --exit-on-error --no-owner --no-privileges < "${dump}"
 elif [[ "${format}" == sql-xz ]]; then
