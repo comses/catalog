@@ -18,7 +18,8 @@ from unittest import mock
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import TestCase, override_settings
+from django.db import connection
+from django.test import TransactionTestCase, override_settings
 
 from catalog.core import backups
 
@@ -47,7 +48,7 @@ def fake_run(failing=()):
     return run
 
 
-class BackupDatabaseCommandTest(TestCase):
+class BackupDatabaseCommandTest(TransactionTestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -109,9 +110,9 @@ class BackupDatabaseCommandTest(TestCase):
         for mask in (0, 0o022):
             with self.subTest(umask=mask):
                 original = backups.write_dump
-                def inspect(destination, db):
+                def inspect(destination, db, snapshot):
                     self.assertEqual(os.fstat(destination.fileno()).st_mode & 0o777, 0o600)
-                    return original(destination, db)
+                    return original(destination, db, snapshot)
                 previous = os.umask(mask)
                 try:
                     with mock.patch.object(backups, 'write_dump', side_effect=inspect):
@@ -120,18 +121,22 @@ class BackupDatabaseCommandTest(TestCase):
                     os.umask(previous)
 
     def test_killed_dump_leaves_only_a_private_partial(self):
+        connection.close()
         reader, writer = os.pipe()
         child = os.fork()
         if child == 0:
             os.close(reader)
             os.umask(0)
-            def interrupted(destination, db):
+            def interrupted(destination, db, snapshot):
                 destination.write(b'private database contents')
                 destination.flush()
                 os.write(writer, b'ready')
                 os.kill(os.getpid(), signal.SIGKILL)
             backups.write_dump = interrupted
-            backups.create_backup()
+            try:
+                backups.create_backup()
+            except BaseException:
+                os._exit(1)
             os._exit(1)
         os.close(writer)
         try:

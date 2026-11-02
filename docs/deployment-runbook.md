@@ -569,6 +569,9 @@ A release or rollback recreates the containers and discards their logs; a failed
 
 The scheduler container runs the nightly backup at 02:00 UTC from `/etc/cron.d/catalog-backup`, the schedule the CoMSES infrastructure declares for this workload, and the application's daily and monthly tasks from `cron.daily` and `cron.monthly`.
 `manage.py backup_database` holds `.backup.lock`, writes a PostgreSQL custom-format dump validated with `pg_restore --list`, its SHA-256 file, a JSON receipt, and the `last-successful-backup` marker into the backups root, and removes dumps older than 30 days.
+Partial dumps are owner-only from creation; completed backups retain operator ownership and group read access.
+The dump and its receipt counts use the same exported PostgreSQL snapshot, so concurrent application edits cannot make those counts describe a later database state.
+Receipts created by earlier releases are unchanged and may contain counts taken after the dump.
 `make backup` runs the same command before a release and verifies the result from the host; `make backup-status MAX_AGE=86400` fails unless the latest receipt verifies, the marker names it, and it is under a day old.
 These backups share the `/srv` volume with the database; losing that volume loses both, and off-host copies are still to come.
 

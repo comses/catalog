@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from django.conf import settings
-from django.db import connection
+from django.db import DatabaseError, connection, transaction
 
 SCHEMA_VERSION = 1
 RETENTION = timedelta(days=30)
@@ -117,28 +117,40 @@ def atomic_write(path, text):
     os.replace(handle.name, path)
 
 
-def publication_counts():
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT to_regclass('public.citation_publication') IS NOT NULL")
-        if not cursor.fetchone()[0]:
-            return {'citation_publication': 0, 'primary_publication': 0}
-        cursor.execute('SELECT count(*), count(*) FILTER (WHERE is_primary) FROM citation_publication')
-        total, primary = cursor.fetchone()
+def publication_counts(cursor):
+    cursor.execute("SELECT to_regclass('public.citation_publication') IS NOT NULL")
+    if not cursor.fetchone()[0]:
+        return {'citation_publication': 0, 'primary_publication': 0}
+    cursor.execute('SELECT count(*), count(*) FILTER (WHERE is_primary) FROM citation_publication')
+    total, primary = cursor.fetchone()
     return {'citation_publication': total, 'primary_publication': primary}
 
 
-def postgres_versions(env):
-    with connection.cursor() as cursor:
-        cursor.execute('SHOW server_version')
-        server = cursor.fetchone()[0]
+def postgres_versions(env, cursor):
+    cursor.execute('SHOW server_version')
+    server = cursor.fetchone()[0]
     versions = {'server': server}
     for tool in ('pg_dump', 'pg_restore'):
         versions[tool] = run([tool, '--version'], env, capture_output=True, text=True).stdout.strip()
     return versions
 
 
-def write_dump(destination, db):
-    run(['pg_dump', *db['command'], '--format', 'custom', '--no-owner', '--no-privileges', db['name']],
+@contextmanager
+def backup_snapshot():
+    try:
+        if not connection.get_autocommit() or connection.in_atomic_block:
+            raise BackupError('backup requires its own transaction; call it outside an existing transaction')
+        with transaction.atomic(durable=True), connection.cursor() as cursor:
+            cursor.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY')
+            cursor.execute('SELECT pg_export_snapshot()')
+            yield cursor, cursor.fetchone()[0]
+    except DatabaseError as error:
+        raise BackupError('backup snapshot failed: {0}'.format(error)) from error
+
+
+def write_dump(destination, db, snapshot):
+    run(['pg_dump', *db['command'], '--format', 'custom', '--no-owner', '--no-privileges',
+         '--snapshot', snapshot, db['name']],
         db['env'], stdout=destination)
     destination.flush()
     os.fsync(destination.fileno())
@@ -188,7 +200,10 @@ def create_backup(*, wait=False, scheduled=False, revision=None, image=None):
         # failure never leaves a dump without a receipt (which prune would never see).
         try:
             with os.fdopen(descriptor, 'w+b') as destination:
-                write_dump(destination, db)
+                with backup_snapshot() as (cursor, snapshot):
+                    counts = publication_counts(cursor)
+                    versions = postgres_versions(db['env'], cursor)
+                    write_dump(destination, db, snapshot)
             adopt(temporary)
             receipt = {
                 'schema_version': SCHEMA_VERSION,
@@ -198,8 +213,8 @@ def create_backup(*, wait=False, scheduled=False, revision=None, image=None):
                 'bytes': temporary.stat().st_size,
                 'sha256': sha256_file(temporary),
                 'database': db['name'],
-                'counts': publication_counts(),
-                'postgres': postgres_versions(db['env']),
+                'counts': counts,
+                'postgres': versions,
                 'scheduled': scheduled,
                 'revision': revision,
                 'image': image,
