@@ -793,8 +793,8 @@ def public_visualization_view(request):
     ]
 
     cache_key = '/visualization/{}'.format(request.GET.urlencode())
-    plot_items = cache.get(cache_key)
-    if not plot_items:
+    plot_items = cache.get(cache_key) if publication_pks else {}
+    if publication_pks and not plot_items:
         cached_dfs = visualization_cache.get_or_create_many()
         publication_df = cached_dfs['publications']
         code_archive_urls_df = cached_dfs['code_archive_urls']

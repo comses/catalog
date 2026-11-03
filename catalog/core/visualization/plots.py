@@ -162,7 +162,8 @@ def archival_timeseries_plot(publication_df: pd.DataFrame, code_archive_urls_df:
         .fillna(0.0)
     df[('publications', 'count')] = year_counts
 
-    df_percent = df.apply(lambda x: x / x[('publications', 'count')], axis=1)['category'].fillna(0.0)
+    category_counts = df.get('category', pd.DataFrame(index=df.index))
+    df_percent = category_counts.div(year_counts, axis=0).fillna(0.0)
 
     year = list(df.index)
     count_data = []

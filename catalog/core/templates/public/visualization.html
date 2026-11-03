@@ -1,7 +1,9 @@
 {% extends 'public/base.html' %}
 
 {% block head %}
-    <script src="https://cdn.plot.ly/plotly-2.4.2.min.js"></script>
+    {% if plots %}
+        <script src="https://cdn.plot.ly/plotly-2.4.2.min.js"></script>
+    {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -29,7 +31,12 @@
                 <div class="row">
                     <div class="col-12">
                         <p>Found <b>{{ n_matches }}</b> matching publications</p>
-
+                        {% if not n_matches %}
+                            <p role="status">No publications match your search and filters. Try another search or remove a filter.</p>
+                        {% endif %}
+                    </div>
+                    {% if n_matches %}
+                    <div class="col-12">
                         <h2>Documentation Standards</h2>
 
                         <p>
@@ -116,6 +123,7 @@
 
                         <div id="{{ plots.top_sponsor_plot.id }}"></div>
                     </div>
+                    {% endif %}
                 </div>
             </section>
         </div>

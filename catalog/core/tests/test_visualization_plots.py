@@ -54,3 +54,6 @@ class ArchivalTimeseriesPlotTest(SimpleTestCase):
         self.assertEqual(count_traces['Archive'].y[year_2020], 1)
         self.assertEqual(count_traces['Repository'].y[year_2020], 1)
         self.assertEqual(count_traces['Total'].y[year_2020], 2)
+        percent_traces = {trace.name: trace for trace in result['percent'].data}
+        self.assertEqual(percent_traces['Archive'].y[year_2020], 0.5)
+        self.assertEqual(percent_traces['Repository'].y[year_2020], 0.5)
