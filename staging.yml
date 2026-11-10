@@ -13,6 +13,11 @@ services:
       - comses.catalog.host-id=${CATALOG_ENV:?CATALOG_ENV must be set}
     restart: always
     volumes:
+      - type: bind
+        source: ${CATALOG_BACKUP_DIR:?CATALOG_BACKUP_DIR must be set}
+        target: /shared/backups
+        bind:
+          create_host_path: false
       - static:/catalog/static
       # The Gunicorn unix socket is a filesystem object; nginx (a separate
       # container in the same stack) can only reach it through this shared
@@ -47,6 +52,11 @@ services:
     restart: always
     volumes:
       - ${CATALOG_SHARED_DIR:?CATALOG_SHARED_DIR must be set}:/shared
+      - type: bind
+        source: ${CATALOG_BACKUP_DIR:?CATALOG_BACKUP_DIR must be set}
+        target: /shared/backups
+        bind:
+          create_host_path: false
     secrets:
       - catalog_django_config
     depends_on:

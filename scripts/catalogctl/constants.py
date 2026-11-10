@@ -21,7 +21,7 @@ HOST_DOMAINS = {
 # Hosts use the project name the CoMSES infrastructure declares; local development keeps base.yml's catalog.
 COMPOSE_PROJECT = "comses-catalog"
 # Durable host state lives on the /srv volume, inside the canonical checkout's ignored docker/ tree;
-# the infrastructure binds the workload's backups root onto docker/deploy/shared/backups.
+# backups live separately and Compose mounts their canonical root directly into containers.
 SRV_ROOT = Path("/srv")
 CANONICAL_CHECKOUT = Path("/srv/apps/comses-catalog")
 HOST_DIR = CANONICAL_CHECKOUT / "docker"

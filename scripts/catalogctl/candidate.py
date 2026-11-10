@@ -165,6 +165,7 @@ class CandidateOperations(SearchOperations):
                 CATALOG_BUNDLE_REVISION=revision,
                 CATALOG_CONFIG_DIR=str(self.layout.secrets),
                 CATALOG_SHARED_DIR=str(self.layout.shared),
+                CATALOG_BACKUP_DIR=str(self.layout.backups),
                 CATALOG_BUNDLE_DIR=str(release_dir),
                 CATALOG_HTTP_BIND=host.http_bind,
                 CATALOG_DOMAIN=host.domain,

@@ -232,8 +232,8 @@ MEDIA_ROOT = '/var/www/catalog/uploads'
 MEDIA_URL = 'https://catalog.comses.net/uploads/'
 
 
-# Verified database backups; on hosts this is the infrastructure's bind of
-# /srv/backups/comses_model_catalog.
+# Verified database backups; on hosts Compose mounts
+# /srv/backups/comses_model_catalog directly at /shared/backups.
 BACKUP_ROOT = os.environ.get('CATALOG_BACKUP_ROOT', '/shared/backups')
 
 # Everything logs to the container's stdout; Docker's logging driver owns

@@ -260,9 +260,8 @@ class ControllerTestCase(unittest.TestCase):
         with self.assertRaisesRegex(catalogctl.CatalogError, "must not be a symlink"):
             self.controller.storage_preflight()
 
-    def test_storage_preflight_on_a_host_requires_the_infrastructure_bind(self) -> None:
+    def test_storage_preflight_on_a_host_requires_persistent_backups_without_a_checkout_bind(self) -> None:
         self.controller.storage_prepare()
-        self.layout.backups_bind.mkdir()
         mounts = {("--mountpoint", "/srv"): "/srv", ("-T",): "/srv"}
 
         def findmnt(command: list[str], **_kwargs: object) -> str:
@@ -274,12 +273,13 @@ class ControllerTestCase(unittest.TestCase):
             mock.patch.object(catalogctl.host, "CANONICAL_CHECKOUT", self.controller.root),
             mock.patch.object(self.controller, "command_output", side_effect=findmnt),
         ):
-            with self.assertRaisesRegex(catalogctl.CatalogError, "not the infrastructure's bind"):
+            result = self.controller.storage_preflight()
+            self.assertEqual(result["backups"], str(self.layout.backups))
+            self.assertFalse((self.layout.shared / "backups").exists())
+            mounts[("-T",)] = "/"
+            with self.assertRaisesRegex(catalogctl.CatalogError, "on the root filesystem"):
                 self.controller.storage_preflight()
-            bound = catalogctl.Controller(ROOT, catalogctl.Layout(self.layout.root, self.layout.backups_bind))
-            with mock.patch.object(bound, "command_output", side_effect=findmnt):
-                result = bound.storage_preflight()
-            self.assertEqual(result["bind"], str(self.layout.backups_bind))
+            mounts[("-T",)] = "/srv"
             mounts[("--mountpoint", "/srv")] = ""
             with self.assertRaisesRegex(catalogctl.CatalogError, "not a mountpoint"):
                 self.controller.storage_preflight()
@@ -369,7 +369,6 @@ class ControllerTestCase(unittest.TestCase):
         self.assertEqual(layout.host_env, Path("/srv/apps/comses-catalog/docker/deploy/host.env"))
         self.assertEqual(layout.canonical_compose, Path("/srv/apps/comses-catalog/docker/deploy/runtime/docker-compose.yml"))
         self.assertEqual(layout.backups, Path("/srv/backups/comses_model_catalog"))
-        self.assertEqual(layout.backups_bind, Path("/srv/apps/comses-catalog/docker/deploy/shared/backups"))
         self.assertEqual(layout.lock, Path("/srv/backups/comses_model_catalog/.backup.lock"))
         self.assertEqual(layout.backup_marker, Path("/srv/backups/comses_model_catalog/last-successful-backup"))
 
@@ -542,6 +541,7 @@ class ControllerTestCase(unittest.TestCase):
 
         pull.assert_called_once_with(IMAGE, REVISION, CITATION)
         self.assertEqual(self.render_environment["COMPOSE_PROJECT_NAME"], "comses-catalog")
+        self.assertEqual(self.render_environment["CATALOG_BACKUP_DIR"], str(self.layout.backups))
         candidate = catalogctl.require_json(self.layout.candidate)
         self.assertEqual(candidate["manifest"], manifest)
         self.assertEqual(candidate["manifest_sha256"], catalogctl.sha256_file(manifest_path))

@@ -88,11 +88,6 @@ class Layout:
         return self.backups / BACKUP_MARKER
 
     @property
-    def backups_bind(self) -> Path:
-        # The infrastructure binds the backups root here; containers mount shared/ as /shared.
-        return self.shared / "backups"
-
-    @property
     def active(self) -> Path:
         return self.state / "active.json"
 

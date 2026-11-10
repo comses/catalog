@@ -77,6 +77,7 @@ def rendered_images(environment: str, image: str, revision: str) -> list[str]:
         CATALOG_BUNDLE_REVISION=revision,
         CATALOG_CONFIG_DIR=str(ROOT / "deploy" / "conf"),
         CATALOG_SHARED_DIR="/srv/apps/comses-catalog/docker/deploy/shared",
+        CATALOG_BACKUP_DIR="/srv/backups/comses_model_catalog",
         CATALOG_BUNDLE_DIR=str(ROOT),
         CATALOG_HTTP_BIND="127.0.0.1:80",
         CATALOG_ENV=environment,

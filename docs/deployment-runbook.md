@@ -238,7 +238,7 @@ A host that still runs the single-host stack (Compose project `catalog`) follows
 A first production deployment requires the final release from Section 5.
 
 The host needs Git, GNU Make, Python 3.12 or newer (3.10.12+ and 3.11.4+ also work), `xz`, Docker Engine, Docker Compose v2 or newer, and an operator in the `docker` group.
-The CoMSES infrastructure creates the operator's checkout at `/srv/apps/comses-catalog`, binds the workload's backups root `/srv/backups/comses_model_catalog` onto its `docker/deploy/shared/backups`, and sets `vm.max_map_count`; nothing on the application side needs root.
+The CoMSES infrastructure creates the operator's checkout at `/srv/apps/comses-catalog` and backups root at `/srv/backups/comses_model_catalog`, and sets `vm.max_map_count`; nothing on the application side needs root.
 On any other host, see the acceptance guide for reproducing that layout.
 
 Copy the manifest, the dump, and its checksum from the workstation:
@@ -267,7 +267,7 @@ make host-check
 ```
 
 `storage-prepare` creates the owner-only directories under `docker/` as the operator and never touches the backups root.
-`storage-preflight` changes nothing: it confirms the `/srv` mount, the canonical checkout, those directories, the infrastructure's backups bind, and the kernel setting, so a host the infrastructure has not converged fails here rather than later.
+`storage-preflight` changes nothing: it confirms the `/srv` mount, the canonical checkout, those directories, the infrastructure's backups directory, and the kernel setting, so a host the infrastructure has not converged fails here rather than later.
 `configure` runs as the operator, writes the fixed identity, and generates the database and Django secrets once; it is idempotent and refuses to change a host from staging to production or back.
 A later run keeps the recorded HTTP bind unless `HTTP_BIND` names a different one.
 Leave staging SMTP settings empty; production needs host, port, user, and password.
@@ -333,7 +333,7 @@ make host-check
 make prepare MANIFEST="$MANIFEST"
 ```
 
-`storage-preflight` fails until the infrastructure has converged the host with Catalog's backups bind and kernel setting; that convergence belongs before the window.
+`storage-preflight` fails until the infrastructure has converged the host with Catalog's backups directory and kernel setting; that convergence belongs before the window.
 
 `IMPORT_CONFIG` copies the old `deploy/conf/config.ini` values for every key of the new template except the database section, so email, Sentry, the audit account, and the Django secret key carry over while the new database gets a new password.
 The result lists only the imported key names.
@@ -536,7 +536,25 @@ This procedure does not establish off-host backup coverage or a rehearsed produc
 
 ### Host layout
 
-Host state lives on the persistent `/srv` volume inside the Git-ignored `docker/` tree of the operator's checkout:
+Django and the scheduler mount `CATALOG_BACKUP_DIR` directly at `/shared/backups`.
+The controller sets it to `/srv/backups/comses_model_catalog` on managed hosts;
+Compose refuses to create a missing source directory. Local development keeps
+`docker/shared/backups` through its existing `/shared` mount.
+
+When replacing a release that used the checkout backup bind, keep the canonical
+backup directory and its `.backup.lock` intact. Prepare the new candidate, drain
+the old Django and scheduler containers, and complete the release with both using
+the direct mount before removing the obsolete host bind and its fstab entry.
+Coordinate that removal with infrastructure convergence so it cannot recreate the
+bind. Verify the running containers' `/shared/backups` source is
+`/srv/backups/comses_model_catalog`, then unmount only
+`/srv/apps/comses-catalog/docker/deploy/shared/backups`; do not delete or copy the
+canonical directory. Retain the old bind while an older release is still needed
+for rollback. If backups were stored only in an unmounted checkout directory,
+stop writers and migrate that content into the canonical directory before the
+switch, preserving ownership and the lock file.
+
+Release state lives on the persistent `/srv` volume inside the Git-ignored `docker/` tree of the operator's checkout:
 
 | Path | Purpose |
 | --- | --- |
@@ -545,13 +563,13 @@ Host state lives on the persistent `/srv` volume inside the Git-ignored `docker/
 | `/srv/apps/comses-catalog/docker/deploy/state/` | candidate, active, rollback, journal, and history |
 | `/srv/apps/comses-catalog/docker/deploy/releases/` | immutable release bundles and rendered Compose files |
 | `/srv/apps/comses-catalog/docker/deploy/runtime/` | the active release's Compose file |
-| `/srv/apps/comses-catalog/docker/deploy/shared/` | staging mail, and the infrastructure's bind of the backups root at `shared/backups` |
+| `/srv/apps/comses-catalog/docker/deploy/shared/` | staging mail |
 | `/srv/apps/comses-catalog/docker/deploy/receipts/`, `reports/` | restore receipts, release reports, and the logs kept from failed activations |
 | `/srv/backups/comses_model_catalog/` | the infrastructure's backups root for this workload: verified dumps with their checksums and receipts, the `last-successful-backup` marker, and the `.backup.lock` the backup command and every changing phase hold |
 
 Never delete or `git clean` the `docker/` tree; it holds the secrets and records that match the database volume.
 A checkout used for local development may also hold `docker/pgdata` and `docker/shared`; release phases never touch them.
-Nothing on the application side lives on the root disk, and no host command runs as root (the processes inside the containers do, as the images define); after the infrastructure replaces the VM instance, its convergence restores the mount, the bind, and the kernel setting, and `make storage-preflight` confirms them.
+Nothing on the application side lives on the root disk, and no host command runs as root (the processes inside the containers do, as the images define); after the infrastructure replaces the VM instance, its convergence restores the mount, the backups directory, and the kernel setting, and `make storage-preflight` confirms them.
 After a reboot every container of the active release restarts on its own; nginx answers 502 until Elasticsearch and Django are up, about four minutes on the CoMSES hosts, and `make validate` confirms the result.
 Hosts always use Compose project `comses-catalog`, as the CoMSES infrastructure declares; local development uses `catalog`.
 Database and search volumes are named volumes under `/srv/docker` and are never deleted by release phases.

@@ -46,16 +46,12 @@ Re-run the fork `main` run once and confirm its manifest names the same image di
 
 Follow runbook Section 7 with the fork manifest.
 On a fork, `make prepare` checks out Citation from the fork first when called with `CITATION_OWNER="$SOURCE_OWNER"`.
-A host without the CoMSES infrastructure needs the checkout and the backups bind that its convergence would create.
-Ansible gives every directory it creates on the way to the bind target the same owner and mode, so create each level explicitly:
+A host without the CoMSES infrastructure needs the checkout and canonical backups directory that its convergence would create:
 
 ```sh
 sudo install -d -o "$USER" -g "$(id -gn)" /srv/apps/comses-catalog
 git clone "https://github.com/${SOURCE_OWNER}/catalog.git" /srv/apps/comses-catalog
-for directory in /srv/backups/comses_model_catalog /srv/apps/comses-catalog/docker{,/deploy,/deploy/shared,/deploy/shared/backups}; do
-  sudo install -d -o "$USER" -g "$(id -gn)" -m 2775 "$directory"
-done
-sudo mount --bind /srv/backups/comses_model_catalog /srv/apps/comses-catalog/docker/deploy/shared/backups
+sudo install -d -o "$USER" -g "$(id -gn)" -m 2775 /srv/backups/comses_model_catalog
 ```
 
 Confirm that counts match the source, `make validate` passes, staging reports the file email backend, the scheduler discovers its tasks, running `/bin/sh /code/deploy/cron/backup_database` in the scheduler container succeeds, and `make backup-status MAX_AGE=600` reports a verified backup.
@@ -83,7 +79,7 @@ Validate each failure path in turn, and restore a clean state before the next on
 
 Before production is cut over, set staging up like production (the single-host stack at production's commit, restored from a production dump) and run runbook Section 8 against it with the manifest intended for production.
 Run it twice: once through the fallback, which must bring the old stack back serving, and once to acceptance.
-Then reboot the staging VM and confirm that only the new stack starts, the backups bind is mounted again, and `make validate` passes once the healthchecks settle (nginx answers 502 for a few minutes while Elasticsearch starts).
+Then reboot the staging VM and confirm that only the new stack starts, Django and the scheduler mount `/srv/backups/comses_model_catalog` directly at `/shared/backups`, and `make validate` passes once the healthchecks settle (nginx answers 502 for a few minutes while Elasticsearch starts).
 Record the downtime from the write freeze to a passing `make validate`.
 
 Acceptance passes only when automated checks, fork CI behaviour, counts, independent host state, search rebuilds, backups, scheduler discovery, rollback, the cutover rehearsal, and every failure check behave as expected.

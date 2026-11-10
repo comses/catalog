@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -34,6 +36,18 @@ class ReleaseManifestTestCase(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             release_manifest.search_backend([POSTGRES])
+
+    @unittest.skipUnless(shutil.which("docker"), "Docker Compose is required for rendering")
+    def test_rendered_images_supplies_required_host_paths_without_shell_configuration(self) -> None:
+        for environment in ("staging", "prod"):
+            with (
+                self.subTest(environment=environment),
+                mock.patch.dict(os.environ, {"CATALOG_BACKUP_DIR": ""}),
+            ):
+                images = release_manifest.rendered_images(environment, IMAGE, "b" * 40)
+                self.assertIn(IMAGE, images)
+                self.assertTrue(any(image.startswith("postgres:18@") for image in images))
+                self.assertTrue(any("elasticsearch:8." in image for image in images))
 
     def test_build_facts_come_from_the_image_not_the_clock(self) -> None:
         inspected = "2026-10-27T06:24:38.999495867Z\thttps://example.invalid/runs/1"

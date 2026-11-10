@@ -75,7 +75,7 @@ class HostOperations(ControllerBase):
             directory.mkdir(parents=True, exist_ok=True)
             os.chmod(directory, 0o700)
         if not self.layout.system:
-            # Outside a managed host nothing binds the backups root, so stand in for the infrastructure.
+            # Outside a managed host, stand in for the infrastructure by creating the backups root.
             self.layout.backups.mkdir(parents=True, exist_ok=True)
         log(f"Prepared {self.layout.root} for {operator}")
         return {
@@ -118,7 +118,7 @@ class HostOperations(ControllerBase):
         if stat.S_IMODE(self.layout.secrets.stat().st_mode) & 0o077:
             raise CatalogError(f"{self.layout.secrets} must be owner-only (0700)")
         backups = self.layout.backups
-        self.require_directory(backups, hint="the infrastructure creates and binds this backups root")
+        self.require_directory(backups, hint="the infrastructure creates this backups root")
         mode = stat.S_IMODE(backups.stat().st_mode)
         if mode & 0o002:
             raise CatalogError(f"{backups} must not be world-writable")
@@ -128,10 +128,6 @@ class HostOperations(ControllerBase):
         if system:
             if self.mount_target(backups) == "/":
                 raise CatalogError(f"{backups} is on the root filesystem, not the persistent volume")
-            bind = self.layout.backups_bind
-            self.require_directory(bind, hint="the infrastructure binds the backups root onto it")
-            if (backups.stat().st_dev, backups.stat().st_ino) != (bind.stat().st_dev, bind.stat().st_ino):
-                raise CatalogError(f"{bind} is not the infrastructure's bind of {backups}")
         if MAX_MAP_COUNT_PATH.exists() and int(MAX_MAP_COUNT_PATH.read_text().strip()) < MAX_MAP_COUNT:
             raise CatalogError(f"vm.max_map_count must be at least {MAX_MAP_COUNT}; the infrastructure sets it")
         log(f"Storage preflight passed for {self.layout.root}")
@@ -140,7 +136,6 @@ class HostOperations(ControllerBase):
             "ok": True,
             "root": str(self.layout.root),
             "backups": str(backups),
-            "bind": str(self.layout.backups_bind) if system else None,
         }
 
     @staticmethod

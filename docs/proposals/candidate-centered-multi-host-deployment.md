@@ -48,7 +48,7 @@ The setup commands (`storage-prepare`, `configure`) and the read-only ones (`sto
 
 | Phase | Effect |
 | --- | --- |
-| `storage-prepare`, `storage-preflight` | the operator-owned directories under `docker/`; verification of the `/srv` mount, canonical checkout, the infrastructure's backups bind, and the kernel setting, changing nothing |
+| `storage-prepare`, `storage-preflight` | the operator-owned directories under `docker/`; verification of the `/srv` mount, canonical checkout, the infrastructure's backups directory, and the kernel setting, changing nothing |
 | `configure` | fixed host identity, HTTP bind, secrets generated once (optionally importing an existing installation's settings); as the operator |
 | `host-check` | the storage preflight plus identity, secrets, Docker, disk, and Python |
 | `prepare --manifest` | validates the manifest, pulls, renders the candidate; the current release keeps serving |
@@ -76,8 +76,8 @@ CATALOG_HTTP_BIND=<address>:<port>, 127.0.0.1:80 unless HTTP_BIND is given
 ```
 
 Secrets are owner-only under `docker/secrets`; state, release bundles, the runtime directory, shared files, receipts, and reports live under `docker/deploy`.
-Backups live in `/srv/backups/comses_model_catalog`, the infrastructure's collaborative root for this workload (`debian:operators 2775`), which its convergence binds onto `docker/deploy/shared/backups` so the containers see it as `/shared/backups`; the application writes its verified dumps, receipts, and the `last-successful-backup` marker there under the `.backup.lock` that every changing phase also holds.
-No host command runs as root (processes inside the containers do, as the images define): the infrastructure owns the `/srv` mount, the bind, and the `vm.max_map_count` setting, and `storage-preflight` only verifies them.
+Backups live in `/srv/backups/comses_model_catalog`, the infrastructure's collaborative root for this workload (`debian:operators 2775`), which Compose mounts directly into Django and the scheduler at `/shared/backups`; the application writes its verified dumps, receipts, and the `last-successful-backup` marker there under the `.backup.lock` that every changing phase also holds.
+No host command runs as root (processes inside the containers do, as the images define): the infrastructure owns the `/srv` mount, the backups directory, and the `vm.max_map_count` setting, and `storage-preflight` only verifies them.
 Containers log to stdout and stderr under the infrastructure's bounded Docker logging policy; no file logs, so no log binding or rotation rule.
 Hosts use Compose project `comses-catalog`, as the infrastructure declares; local development keeps `catalog`.
 
