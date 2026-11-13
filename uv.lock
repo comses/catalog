@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.12.*"
 resolution-markers = [
     "sys_platform == 'win32'",
@@ -78,7 +78,6 @@ dependencies = [
     { name = "django-bootstrap3" },
     { name = "django-cas-ng" },
     { name = "django-extensions" },
-    { name = "django-haystack" },
     { name = "django-model-utils" },
     { name = "django-pandas" },
     { name = "django-redis" },
@@ -90,7 +89,6 @@ dependencies = [
     { name = "pandas" },
     { name = "plotly" },
     { name = "psycopg2-binary" },
-    { name = "pysolr" },
     { name = "requests" },
     { name = "sentry-sdk" },
     { name = "sqlparse" },
@@ -112,7 +110,6 @@ requires-dist = [
     { name = "django-bootstrap3", specifier = "~=26.2" },
     { name = "django-cas-ng", specifier = "~=5.1.1" },
     { name = "django-extensions", specifier = "~=4.1" },
-    { name = "django-haystack", specifier = "~=3.4.0" },
     { name = "django-model-utils", specifier = "~=5.0.0" },
     { name = "django-pandas", specifier = "~=0.6.7" },
     { name = "django-redis" },
@@ -124,7 +121,6 @@ requires-dist = [
     { name = "pandas", specifier = "~=3.0.5" },
     { name = "plotly", specifier = ">=5.22.0,<6" },
     { name = "psycopg2-binary", specifier = "~=2.9.12" },
-    { name = "pysolr", specifier = "~=3.11.0" },
     { name = "requests", specifier = "~=2.34.2" },
     { name = "sentry-sdk" },
     { name = "sqlparse", specifier = ">=0.5.0" },
@@ -358,16 +354,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/6d/b3/ed0f54ed706ec0b54
 wheels = [
     { url = "https://files.pythonhosted.org/packages/64/96/d967ca440d6a8e3861120f51985d8e5aec79b9a8bdda16041206adfe7adc/django_extensions-4.1-py3-none-any.whl", hash = "sha256:0699a7af28f2523bf8db309a80278519362cd4b6e1fd0a8cd4bf063e1e023336", size = 232980, upload-time = "2025-04-11T01:15:37.701Z" },
 ]
-
-[[package]]
-name = "django-haystack"
-version = "3.4.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "django" },
-    { name = "packaging" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/08/00/2fee5c12b650bbc643f0b65ead96b6f7533f5fa76573449f814d820dda6f/django_haystack-3.4.0.tar.gz", hash = "sha256:1226a7c9ce13e1e7ead8ac83f6e87bfef4996f146ed24971fde7896115b1c530", size = 454662, upload-time = "2026-06-04T19:12:33.644Z" }
 
 [[package]]
 name = "django-model-utils"
@@ -868,16 +854,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pysolr"
-version = "3.11.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "requests" },
-    { name = "setuptools" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0d/2a/b6c793a17e173524ccc7a90cdd8ebb65264f6ebcdb1942eba2478ec3a85e/pysolr-3.11.0.tar.gz", hash = "sha256:bbd0e7467835316880f994b55386c9bc3c146733c17d85a3fed317755976c40a", size = 63983, upload-time = "2025-11-18T10:42:40.247Z" }
-
-[[package]]
 name = "python-cas"
 version = "1.7.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1017,15 +993,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/9a/e7/c504a4bd2d95df2e0ab73714a9161ff1cf6ff1486922685e5f46dfd9eba8/sentry_sdk-2.68.1.tar.gz", hash = "sha256:6a97895230b04bc35d4d8d2e51e3b9e21902dfb0086ccf1f131a80c15c7b997a", size = 1019262, upload-time = "2026-08-24T13:09:38.108Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2b/28/465ad9382be98f2172e691f5836cf87f936773913ad7ab85ba1ba1d6706e/sentry_sdk-2.68.1-py3-none-any.whl", hash = "sha256:775b78871783a0ffd758276ad01b3bb2b1ebcdad8f9d2f0a7723f76b73c99b65", size = 520851, upload-time = "2026-08-24T13:09:36.186Z" },
-]
-
-[[package]]
-name = "setuptools"
-version = "84.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6d/44/f5da03a8ef95d369145c5bb53050e7877c9f3d312e128605fd9504829143/setuptools-84.0.0.tar.gz", hash = "sha256:f4695c21257f0d9b537ec2692c941d02ee143b7cc1276941349a546573b2ef73", size = 1168449, upload-time = "2026-08-08T18:27:58.365Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/95/9c/c510029fc6ef33a6275cd2c5d3cecd6613dfd6aa401d57c54f1c18852ccf/setuptools-84.0.0-py3-none-any.whl", hash = "sha256:51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670", size = 818216, upload-time = "2026-08-08T18:27:56.719Z" },
 ]
 
 [[package]]

@@ -1,1 +1,8 @@
-/code/manage.py validate_urls >> /var/log/cron.log 2>&1
+#!/bin/sh
+
+set -eu
+
+# shellcheck source=/dev/null
+. /run/catalog-scheduler.env
+
+/opt/venv/bin/python3 /code/manage.py validate_urls >> /proc/1/fd/1 2>> /proc/1/fd/2

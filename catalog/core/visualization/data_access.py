@@ -5,10 +5,14 @@ from django.core.cache import cache
 from django_pandas.io import read_frame
 
 from catalog.core.search_indexes import PublicationDocSearch
-from citation.models import Publication, Author, PublicationAuthors, Platform, PublicationPlatforms, Sponsor, \
-    PublicationSponsors, Tag, PublicationTags, Container, CodeArchiveUrl
+from citation.models import Publication, PublicationAuthors, PublicationPlatforms, PublicationSponsors, \
+    CodeArchiveUrl
 
 logger = logging.getLogger('data_access')
+
+
+def _create_indexed_dataframe(records, columns, index):
+    return pd.DataFrame.from_records(records, columns=columns).set_index(index)
 
 
 def create_publication_queryset():
@@ -25,8 +29,7 @@ def create_publication_df(publication_queryset):
                 'container_id': p.container.id,
                 'container_name': p.container.name,
                 'date_published': p.date_published,
-                'year_published':
-                    p.date_published.year if p.date_published is not None else None,
+                'year_published': p.year_published,
                 'has_available_code': p.has_available_code,
                 'has_flow_charts': 'Flow charts' in model_documentation,
                 'has_math_description': 'Mathematical description' in model_documentation,
@@ -35,7 +38,14 @@ def create_publication_df(publication_queryset):
                 'status': p.status,
                 'title': p.title}
 
-    return pd.DataFrame.from_records((_publication_as_dict(p) for p in publication_queryset), index='id')
+    return _create_indexed_dataframe(
+        (_publication_as_dict(p) for p in publication_queryset),
+        columns=[
+            'id', 'container_id', 'container_name', 'date_published', 'year_published',
+            'has_available_code', 'has_flow_charts', 'has_math_description', 'has_odd',
+            'has_pseudocode', 'status', 'title'
+        ],
+        index='id')
 
 
 def create_archive_url_df(publication_queryset):
@@ -48,9 +58,10 @@ def create_archive_url_df(publication_queryset):
             'available': c.status == 'available'
         }
 
-    df = pd.DataFrame.from_records(
+    df = _create_indexed_dataframe(
         (_code_archive_url_as_dict(c) for c in
          CodeArchiveUrl.objects.filter(publication__in=publication_queryset).select_related('category')),
+        columns=['publication_id', 'code_archive_url_id', 'category', 'subcategory', 'available'],
         index='publication_id')
     df['category'] = df['category'].astype('category')
     df['subcategory'] = df['subcategory'].astype('category')
@@ -65,9 +76,10 @@ def create_publication_author_df(publication_queryset):
             'name': pa.author.name
         }
 
-    return pd.DataFrame.from_records(
+    return _create_indexed_dataframe(
         (_publication_author_as_dict(pa) for pa in
          PublicationAuthors.objects.filter(publication__in=publication_queryset).select_related('author')),
+        columns=['publication_id', 'author_id', 'name'],
         index='publication_id')
 
 

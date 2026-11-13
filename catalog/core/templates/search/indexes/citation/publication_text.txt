@@ -1,4 +1,0 @@
-{{ object.title }}
-{{ object.abstract }}
-{{ object.date_published }}
-{{ object.code_archive_url }}

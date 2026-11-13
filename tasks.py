@@ -1,5 +1,3 @@
-import datetime
-import glob
 import logging
 import os
 import sys
@@ -78,7 +76,7 @@ def coverage(ctx):
 
 @task
 def server(ctx, ip="0.0.0.0", port=8000):
-    dj('runserver {ip}:{port}'.format(ip=ip, port=port), capture=False)
+    dj(ctx, 'runserver {ip}:{port}'.format(ip=ip, port=port), capture=False)
 
 
 @task(aliases=['cd'])
@@ -98,76 +96,6 @@ def clean_data(ctx, creator=None):
     datafiles = ['sponsor.delete', 'platform.delete']
     for d in datafiles:
         ctx.run('{python} manage.py clean_data --file catalog/citation/migrations/clean_data/{datafile} --creator={creator}'.format(datafile=d, creator=creator, **env))
-
-@task(aliases=['rdb', 'resetdb'])
-def reset_database(ctx):
-    create_pgpass_file(ctx)
-    ctx.run('psql -h {db_host} -c "alter database {db_name} connection limit 1;" -w {db_name} {db_user}'.format(**env),
-            echo=True, warn=True)
-    ctx.run('psql -h {db_host} -c "select pg_terminate_backend(pid) from pg_stat_activity where datname=\'{db_name}\'" -w {db_name} {db_user}'.format(**env),
-            echo=True, warn=True)
-    ctx.run('dropdb -w --if-exists -e {db_name} -U {db_user} -h {db_host}'.format(**env), echo=True, warn=True)
-    ctx.run('createdb -w {db_name} -U {db_user} -h {db_host}'.format(**env), echo=True, warn=True)
-
-
-@task(aliases=['rfd'])
-def restore_from_dump(ctx, dumpfile='catalog.sql', init_db_schema=True, force=False):
-    import django
-    django.setup()
-    from citation.models import Publication
-    number_of_publications = 0
-    try:
-        number_of_publications = Publication.objects.count()
-    except:
-        pass
-    if number_of_publications > 0 and not force:
-        print("Ignoring restore, database with {0} publications already exists. Use --force to override.".format(number_of_publications))
-    else:
-        reset_database(ctx)
-        if os.path.isfile(dumpfile):
-            logger.debug("loading data from %s", dumpfile)
-            ctx.run('psql -w -q -h db {db_name} {db_user} < {dumpfile}'.format(dumpfile=dumpfile, **env),
-                    warn=True)
-    if init_db_schema:
-        initialize_database_schema(ctx)
-
-
-@task(aliases=['pgpass'])
-def create_pgpass_file(ctx, force=False):
-    pgpass_path = os.path.join(os.path.expanduser('~'), '.pgpass')
-    if os.path.isfile(pgpass_path) and not force:
-        return
-    with open(pgpass_path, 'w+') as pgpass:
-        db_password = settings.DATABASES['default']['PASSWORD']
-        pgpass.write('db:*:*:{db_user}:{db_password}\n'.format(db_password=db_password, **env))
-        ctx.run('chmod 0600 ~/.pgpass')
-
-
-@task
-def backup(ctx, destination='/shared/backups/postgres', keep=14):
-    """Create a compressed database dump using pg_dump and prune old backups."""
-    os.makedirs(destination, exist_ok=True)
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S')
-    dump_filename = '{db_name}_{timestamp}.sql.gz'.format(timestamp=timestamp, **env)
-    dump_path = os.path.join(destination, dump_filename)
-
-    create_pgpass_file(ctx)
-    print('Backing up {db_name} from {db_host} to {dump_path}...'.format(dump_path=dump_path, **env))
-    ctx.run('pg_dump -h {db_host} -U {db_user} {db_name} | gzip > {dump_path}'.format(
-        dump_path=dump_path, **env))
-    print('Backup completed: {dump_path}'.format(dump_path=dump_path))
-
-    if keep and keep > 0:
-        pattern = os.path.join(destination, '{db_name}_*.sql.gz'.format(**env))
-        backups = sorted(glob.glob(pattern))
-        if len(backups) > keep:
-            for old_backup in backups[:-keep]:
-                try:
-                    os.remove(old_backup)
-                    print('Pruned old backup: {0}'.format(old_backup))
-                except OSError as e:
-                    logger.warning('Failed to remove old backup %s: %s', old_backup, e)
-
 
 @task(aliases=['idb', 'init_db'])
 def initialize_database_schema(ctx):
@@ -204,64 +132,9 @@ def zotero_import(ctx, group=None, collection=None):
     ctx.run(_command.format(**env))
 
 
-@task(aliases=['ri:solr'])
-def rebuild_solr_index(ctx, noinput=False):
-    cmd = '{python} manage.py rebuild_index'
-    if noinput:
-        cmd += ' --noinput'
-    ctx.run(cmd.format(**env))
-
-
-@task(aliases=['ri:es'])
+@task(aliases=['ri', 'ri:es'])
 def rebuild_elasticsearch_index(ctx):
     import django
     django.setup()
-    from catalog.core.search_indexes import bulk_index_public
-    bulk_index_public()
-
-
-@task(aliases=['ri'], pre=[call(rebuild_solr_index, noinput=True), rebuild_elasticsearch_index])
-def rebuild_index(ctx):
-    pass
-
-
-@task
-def createuser(ctx):
-    ctx.run("createuser {db_user} -rd -U postgres".format(**env))
-
-
-@task
-def createdb(ctx):
-    ctx.run("createdb {db_name} -U {db_user}".format(**env))
-
-
-@task(createuser, createdb)
-def setup_postgres(ctx):
-    print("Postgres user {db_user} and db {db_name} created.".format(**env))
-
-
-@task(setup_postgres, initialize_database_schema, zotero_import, rebuild_index)
-def setup(ctx):
-    print("Omnibus setup invoked.")
-
-
-@task(aliases=['relu'])
-def reload_uwsgi(ctx):
-    """Legacy no-op: uWSGI was replaced by Gunicorn.
-
-    The application server is Gunicorn, started as the container's main
-    process by the release script (deploy/docker/prod.sh). There is no
-    supervisor-managed uWSGI process and no HUP-based reload. To reload
-    the application server, restart the django container instead:
-
-        docker compose restart django
-
-    This task intentionally remains a no-op (logging an error, not
-    failing) so legacy playbooks and runbooks that still reference it do
-    not break; the logged message documents the Gunicorn-compatible
-    replacement.
-    """
-    logger.error(
-        "reload_uwsgi is a no-op: uWSGI has been replaced by Gunicorn "
-        "(see deploy/docker/prod.sh). Reload the application server by "
-        "restarting the django container: docker compose restart django")
+    from catalog.core.search_indexes import bulk_index_all
+    bulk_index_all()

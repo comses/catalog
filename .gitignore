@@ -8,7 +8,6 @@ release-version.txt
 
 # Temporary Files
 *~
-solr-*
 zotero_data.json
 .vagrant
 *.swp
@@ -18,11 +17,14 @@ zotero_data.json
 
 # Dumps
 catalog.sql
+*.sql.*
 *.dump
+*.dump.*
+private/
 
 ### Docker
 docker-compose.yml
-docker
+/docker/
 deploy/state/
 
 ### Django ###
@@ -83,3 +85,5 @@ jspm_packages
 
 *.sql
 .slim/deepwork/
+
+thoughts/

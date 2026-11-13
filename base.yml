@@ -1,35 +1,9 @@
 # Shared services for all Compose environments (dev, staging, prod).
-# The stack is a single monolithic Compose project (project name pinned
-# below so volumes and the network keep their `catalog_*` identities).
+# Local development uses project `catalog`; hosts pass `-p comses-catalog`.
 name: catalog
 services:
-  solr:
-    build:
-      context: ./
-      dockerfile: ./deploy/images/solr.Dockerfile
-    entrypoint:
-      - docker-entrypoint.sh
-      - solr-precreate
-      - catalog_core
-      - /catalog-solr-conf
-    image: comses/catalog/solr:6.6
-    restart: always
-    # JVM tuning shared by all environments (previously a swarm config in
-    # staging.yml and a bind mount in dev.yml; the file is the same either
-    # way, so it lives here).
-    volumes:
-      - solr:/opt/solr/server/solr/mycores
-      - ./deploy/solr/init.d/solr.in.sh:/opt/solr/bin/solr.in.sh
-    healthcheck:
-      # The solr image ships wget (no curl); the cores API answers 200
-      # only once the core is up and serving.
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8983/solr/admin/cores || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 60s
   redis:
-    image: redis:8.10.1
+    image: redis:8.10.1@sha256:8a1efc5f479551822b47424ccae982026b633f28818eab0387348120a61e10e2
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -38,37 +12,14 @@ services:
       retries: 5
       start_period: 5s
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:6.6.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.21@sha256:cbf5cd6cfe5532a9c02d510c66d238bf329cd51fe3d57170a2a880aca7d47419
+    # Settings live here rather than in a bind-mounted file from the release
+    # bundle, so a new release does not restart Elasticsearch.
     environment:
-      - cluster.name=docker-cluster
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    cap_add:
-      - IPC_LOCK
-    restart: always
-    # discovery.zen.minimum_master_nodes=1 in the mounted config file makes
-    # this a valid single-node cluster (the swarm multi-node discovery env
-    # vars are gone with the swarm deployment).
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 40s
-    volumes:
-      - ./deploy/elasticsearch.conf.d/log4j2.properties:/usr/share/elasticsearch/config/log4j2.properties
-      - ./deploy/elasticsearch.conf.d/elasticsearch-dev.yml:/usr/share/elasticsearch/config/elasticsearch.yml
-      - esdata:/usr/share/elasticsearch/data
-  elasticsearch8:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
-    environment:
-      - cluster.name=docker-cluster8
+      - cluster.name=catalog-search
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     ulimits:
       memlock:
@@ -85,14 +36,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
-      start_period: 40s
+      # a cold start on the hosts' volume took five minutes while PostgreSQL was restoring
+      start_period: 600s
     volumes:
-      - ./deploy/elasticsearch.conf.d/elasticsearch8.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      # Never attach Elasticsearch 8 to the legacy ES6 data volume. Search data
+      # is rebuilt from PostgreSQL into this separate volume.
       - esdata8:/usr/share/elasticsearch/data
   db:
-    image: postgres:18
+    image: postgres:18@sha256:86c951e05bf56c93d95d397747fb8820ac76cc3bedb78f43abd83eedbe3666ae
     volumes:
-      - ./docker/pgdata:/var/lib/postgresql
+      - pgdata:/var/lib/postgresql
     restart: always
     environment:
       POSTGRES_USER: catalog
@@ -108,8 +61,7 @@ services:
       start_period: 10s
   django:
     volumes:
-      - solr:/etc/solr/mycores/
-      - ./docker/shared:/shared
+      - ${CATALOG_SHARED_DIR:-./docker/shared}:/shared
     environment:
       DJANGO_SETTINGS_MODULE: 'catalog.settings.prod'
       LANG: "C.UTF-8"
@@ -117,31 +69,18 @@ services:
       DB_HOST: db
       DB_NAME: comses_catalog
       DB_PORT: 5432
-      SOLR_HOST: solr
-      SOLR_PORT: 8983
-      SOLR_CORE_NAME: catalog_core
-      ELASTICSEARCH_HOST: elasticsearch8
+      ELASTICSEARCH_HOST: elasticsearch
     secrets:
       - catalog_django_config
-    # Required dependencies only. Elasticsearch is deliberately not here:
-    # the endpoint is per-environment (dev pins elasticsearch8 in
-    # dev.yml; a staging/prod release selects CATALOG_ES_HOST at render
-    # time, and Compose cannot pick a depends_on service name from a
-    # variable). The selected endpoint is waited on exactly where the
-    # value is known: dev.yml's dependency gate and
-    # deploy/docker/prod.sh's wait-for-it (ELASTICSEARCH_HOST), so a
-    # release never blocks on the ES version it does not use.
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-      solr:
+      elasticsearch:
         condition: service_healthy
 volumes:
-  solr:
-    driver: local
-  esdata:
+  pgdata:
     driver: local
   esdata8:
     driver: local
@@ -153,9 +92,9 @@ volumes:
 # reads /run/secrets/catalog_django_config (catalog/settings/base.py) and
 # the Postgres entrypoint reads POSTGRES_PASSWORD_FILE
 # (/run/secrets/catalog_db_password). The source files are generated by
-# `make config-generate`.
+# `make config-generate` locally or `make configure` on a host.
 secrets:
   catalog_django_config:
-    file: ./deploy/conf/config.ini
+    file: ${CATALOG_CONFIG_DIR:-./deploy/conf}/config.ini
   catalog_db_password:
-    file: ./deploy/conf/postgres_password
+    file: ${CATALOG_CONFIG_DIR:-./deploy/conf}/postgres_password

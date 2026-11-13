@@ -5,7 +5,7 @@ from unittest import mock
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from haystack.query import SearchQuerySet
+from django.core.paginator import Paginator
 
 from citation.models import Publication
 from .common import BaseTest
@@ -16,7 +16,7 @@ MAX_EXAMPLES = 30
 
 CONTACT_US_URL = 'core:contact_us'
 DASHBOARD_URL = 'core:dashboard'
-HAYSTACK_SEARCH_URL = 'core:haystack_search'
+CATALOG_SEARCH_URL = 'core:haystack_search'
 PUBLICATIONS_URL = 'citation:publications'
 PUBLICATION_DETAIL_URL = 'citation:publication_detail'
 USER_PROFILE_URL = 'core:user_profile'
@@ -25,40 +25,113 @@ HOME_URL = 'core:public-home'
 
 
 class UrlTest(BaseTest):
-    TEST_URLS = (CONTACT_US_URL, DASHBOARD_URL, HAYSTACK_SEARCH_URL, PUBLICATIONS_URL, USER_PROFILE_URL, WORKFLOW_URL)
+    TEST_URLS = (CONTACT_US_URL, DASHBOARD_URL, CATALOG_SEARCH_URL, PUBLICATIONS_URL, USER_PROFILE_URL, WORKFLOW_URL)
 
-    def test_urls(self):
+    @patch('catalog.core.views.curator_status_facets', return_value=[])
+    @patch('catalog.core.views.paginate_search')
+    def test_urls(self, paginate_search, _status_facets):
+        paginate_search.return_value = Paginator([], 25).get_page(1)
         self.login()
         for url in UrlTest.TEST_URLS:
             response = self.get(url)
-            self.assertTrue(200, response.status_code)
+            self.assertEqual(200, response.status_code)
+
+
+class FakeSearch:
+    """Records the slices and extras paginate_search asks for and answers with a fixed total."""
+
+    def __init__(self, total):
+        self.total = total
+        self.slices = []
+        self.extras = []
+
+    def __getitem__(self, item):
+        self.slices.append((item.start, item.stop))
+        return self
+
+    def extra(self, **kwargs):
+        self.extras.append(kwargs)
+        return self
+
+    def execute(self):
+        class Response(list):
+            hits = SimpleNamespace(total=SimpleNamespace(value=self.total, relation='eq'))
+
+        return Response(range(25))
+
+
+class PaginateSearchTest(BaseTest):
+    def test_one_request_per_page_with_the_total_from_the_hits(self):
+        from catalog.core.views import paginate_search
+        search = FakeSearch(total=60)
+        with mock.patch('catalog.core.views.get_es_client'):
+            page = paginate_search(search, '2')
+        self.assertEqual(search.slices, [(25, 50)])
+        self.assertEqual(search.extras, [{'track_total_hits': True}])
+        self.assertEqual(page.paginator.count, 60)
+        self.assertEqual(page.number, 2)
+
+    def test_pages_never_reach_past_the_elasticsearch_result_window(self):
+        from catalog.core.views import MAX_RESULT_WINDOW, paginate_search
+        search = FakeSearch(total=25000)
+        with mock.patch('catalog.core.views.get_es_client'):
+            page = paginate_search(search, '999')
+        self.assertEqual(page.paginator.count, MAX_RESULT_WINDOW)
+        self.assertEqual(page.number, MAX_RESULT_WINDOW // 25)
+        self.assertEqual(search.slices, [(MAX_RESULT_WINDOW - 25, MAX_RESULT_WINDOW)])
+
+    def test_a_page_past_the_end_falls_back_to_the_last_page(self):
+        from catalog.core.views import paginate_search
+        search = FakeSearch(total=30)
+        with mock.patch('catalog.core.views.get_es_client'):
+            page = paginate_search(search, 'nonsense')
+        self.assertEqual(page.number, 1)
+        search = FakeSearch(total=30)
+        with mock.patch('catalog.core.views.get_es_client'):
+            page = paginate_search(search, '7')
+        self.assertEqual(page.number, 2)
+        self.assertEqual(search.slices, [(150, 175), (25, 50)])
+
+
+class CuratorWorkflowOrderingTest(BaseTest):
+    @patch('catalog.core.views.curator_status_facets', return_value=[])
+    @patch('catalog.core.views.paginate_search')
+    def test_assigned_list_is_most_recently_touched_first_without_a_query(self, paginate_search, _facets):
+        paginate_search.return_value = Paginator([], 25).get_page(1)
+        self.login()
+        self.assertEqual(200, self.get(WORKFLOW_URL).status_code)
+        self.assertEqual(paginate_search.call_args.args[0].to_dict()['sort'],
+                         [{'last_modified': {'order': 'desc'}}, {'status': {'order': 'desc'}}])
+
+        self.assertEqual(200, self.client.get(self.reverse(WORKFLOW_URL) + '?q=agents').status_code)
+        self.assertNotIn('sort', paginate_search.call_args.args[0].to_dict())
 
 
 class AuthTest(BaseTest):
     def test_login(self):
         response = self.get(self.login_url)
-        self.assertTrue(200, response.status_code)
+        self.assertEqual(200, response.status_code)
 
     def test_login_with_bad_credentials(self):
         response = self.post(
             self.login_url, {'username': 'wrong_username', 'password': 'temporary'})
-        self.assertTrue(200, response.status_code)
+        self.assertEqual(200, response.status_code)
         self.assertTrue(b'Please enter a correct username and password.' in response.content)
 
     def test_login_with_good_credentials(self):
         response = self.post(self.login_url, {'username': self.default_username, 'password': self.default_password})
-        self.assertTrue(200, response.status_code)
+        self.assertEqual(302, response.status_code)
         self.assertTrue(self.reverse(HOME_URL) in response['Location'])
 
     def test_login_with_inactive_user(self):
         self.user.is_active = False
         self.user.save()
         response = self.post(self.login_url, {'username': self.default_username, 'password': self.default_password})
-        self.assertTrue(200, response.status_code)
+        self.assertEqual(200, response.status_code)
 
     def test_logout(self):
         response = self.get(self.logout_url)
-        self.assertTrue(302, response.status_code)
+        self.assertEqual(302, response.status_code)
 
 
 class ProfileViewTest(BaseTest):
@@ -101,7 +174,7 @@ class ProfileViewTest(BaseTest):
         self.login()
         response = self.post(url, {'first_name': first_name, 'last_name': last_name,
                                    'username': username})
-        self.assertTrue(400, response.status_code)
+        self.assertEqual(400, response.status_code)
 
 
 class IndexViewTest(BaseTest):
@@ -144,6 +217,30 @@ class PublicationsViewTest(BaseTest):
                 'tags': set(),
             },
         )
+
+    @patch('catalog.core.views.PublicationDocSearch')
+    def test_public_search_tolerates_unusable_page_and_facet_input(self, publication_doc_search):
+        class SearchResponse(list):
+            hits = SimpleNamespace(total=SimpleNamespace(value=30000, relation='eq'))
+
+        publication_query = mock.MagicMock()
+        publication_query.find.return_value = publication_query
+        publication_query.__getitem__.return_value = publication_query
+        publication_query.agg_by_count.return_value = publication_query
+        publication_query.execute.return_value = SearchResponse()
+        publication_query.cache = {}
+        publication_doc_search.return_value = publication_query
+
+        for query in ('page=nonsense', 'page=0', 'tags=abc&tags=7', 'page=1001'):
+            with self.subTest(query=query):
+                response = self.client.get('/publications/?' + query)
+                self.assertEqual(200, response.status_code)
+        publication_query.find.assert_called_with(q='', facet_filters=mock.ANY)
+        self.assertEqual(publication_query.find.call_args_list[2].kwargs['facet_filters']['tags'], {7})
+        # page 1001 is past the result window and lands on the last page inside it
+        from catalog.core.views import MAX_RESULT_WINDOW
+        self.assertEqual(publication_query.__getitem__.call_args_list[-1].args[0],
+                         slice(MAX_RESULT_WINDOW - 10, MAX_RESULT_WINDOW))
 
     def test_publication_view_with_query_parameter(self):
         self.login()
@@ -209,9 +306,16 @@ class PublicationDetailViewTest(BaseTest):
 
 
 class SearchViewTest(BaseTest):
+    def setUp(self):
+        super().setUp()
+        patcher = patch('catalog.core.views.paginate_search')
+        self.paginate_search = patcher.start()
+        self.addCleanup(patcher.stop)
+        self.paginate_search.return_value = Paginator([], 25).get_page(1)
+
     def test_search_with_no_query_parameters(self):
         self.without_login_and_with_login_test(
-            self.reverse(HAYSTACK_SEARCH_URL))
+            self.reverse(CATALOG_SEARCH_URL))
 
     def test_search_with_all_query_parameters(self):
         query_parameters = {
@@ -231,24 +335,17 @@ class SearchViewTest(BaseTest):
         self.logout()
         print("Query Parameter", query_parameters)
         url = self.reverse(
-            HAYSTACK_SEARCH_URL, query_parameters=query_parameters)
+            CATALOG_SEARCH_URL, query_parameters=query_parameters)
         self.without_login_and_with_login_test(url)
 
-        # Test to verify if it returns same output list or not
-        p = SearchQuerySet().filter(is_primary=True, date_published__gte='2014-01-01T00:00:00Z',
-                                    date_published__lte='2015-01-01T00:00:00Z',
-                                    status=Publication.Status.REVIEWED, container__name='ECOLOGICAL MODELLING',
-                                    authors='Guiller', assigned_curator='yhsieh22', flagged=False,
-                                    is_archived=True).count()
         self.login()
-        url = self.reverse(HAYSTACK_SEARCH_URL)
+        url = self.reverse(CATALOG_SEARCH_URL)
         response = self.client.get(
             url + "?q=&publication_start_date=1%2F1%2F2014&publication_end_date=1%2F1%2F2015&status=&journal=\
             ECOLOGICAL+MODELLING&tags=Agriculture&authors=Guiller&assigned_curator=yhsieh22&flagged=False&is_archived=True")
         object_count = response.context['object_list']
         self.assertEqual(200, response.status_code)
-        if p < 25 or len(object_count) < 25:
-            self.assertEqual(p, len(object_count))
+        self.assertEqual(0, len(object_count))
 
     def test_search_with_few_query_parameters(self):
         query_parameters = {
@@ -259,9 +356,8 @@ class SearchViewTest(BaseTest):
             'status': Publication.Status.UNREVIEWED
         }
         url = self.reverse(
-            HAYSTACK_SEARCH_URL, query_parameters=query_parameters)
+            CATALOG_SEARCH_URL, query_parameters=query_parameters)
         self.without_login_and_with_login_test(url)
-
 
 class ContactViewTest(BaseTest):
     def test_contact_view(self):

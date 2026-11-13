@@ -6,7 +6,7 @@
 #   ./compose staging    # staging: base.yml + staging.yml
 #   ./compose prod       # prod: base.yml + staging.yml + prod.yml
 #
-# Prefer the Make targets: make compose-dev | make compose-staging | make compose-prod
+# Prefer `make compose-dev`; hosts render staging and production Compose files with `make prepare`.
 
 set -o errexit
 set -o nounset
@@ -14,5 +14,5 @@ set -o pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "NOTE: ./compose is deprecated; use 'make compose-<env>' (scripts/compose.sh)" >&2
+echo "NOTE: ./compose is deprecated; use 'make compose-dev', or 'make prepare' on a host" >&2
 exec bash "${script_dir}/scripts/compose.sh" "${1:-dev}"

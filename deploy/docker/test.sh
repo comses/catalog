@@ -12,9 +12,6 @@ uv sync --locked
 # instead of generating migration files as a side effect.
 invoke check-migrations
 /code/deploy/docker/wait-for-it.sh db:5432 -- invoke migrate
-# The test suite exercises the Elasticsearch 8 index code paths; block
-# until ES8 is reachable (internal service port 9200) before testing.
-/code/deploy/docker/wait-for-it.sh -t 0 elasticsearch8:9200 -- echo "ElasticSearch 8 is ready."
-# The suite queries Solr (Haystack): block until it is reachable, the same
-# way the release runtime blocks on it.
-/code/deploy/docker/wait-for-it.sh -t 0 solr:8983 -- invoke coverage
+# The test suite exercises Elasticsearch-backed search paths.
+/code/deploy/docker/wait-for-it.sh -t 0 elasticsearch:9200 -- echo "Elasticsearch is ready."
+invoke coverage

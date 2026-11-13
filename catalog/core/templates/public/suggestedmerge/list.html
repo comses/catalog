@@ -47,7 +47,7 @@
                         Page {{ suggested_merges.number }} of {{ suggested_merges.paginator.num_pages }}.
                     </span>
 
-                    {% if contacts.has_next %}
+                    {% if suggested_merges.has_next %}
                         <a href="?page={{ suggested_merges.next_page_number }}">next</a>
                         <a href="?page={{ suggested_merges.paginator.num_pages }}">last &raquo;</a>
                     {% endif %}
