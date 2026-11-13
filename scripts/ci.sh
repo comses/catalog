@@ -20,6 +20,7 @@ validate_scripts() {
         scripts/ci.sh
         scripts/compose.sh
         scripts/deploy.sh
+        scripts/publish-release.sh
         scripts/dev-restore.sh
         scripts/checkout-citation.sh
         deploy/docker/prod.sh
