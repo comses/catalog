@@ -10,7 +10,7 @@ CATALOGCTL = PYTHONPATH=scripts python3 -m catalogctl
 
 .DEFAULT_GOAL := help
 
-.PHONY: help compose-dev config-generate config-validate bootstrap up down dev-logs dev-restore shell clean migrations-check test check test-all cite-config cite-build cite-up cite-clean cite-test cite-check cite-migrations-check cite-format cite-lock cite-publish image-build image-push release-version deploy-controller-test storage-prepare storage-preflight configure host-check prepare backup backup-status restore drain migrate rebuild activate validate candidate-retry rollback recover status release-report start stop logs search-rebuild search-validate
+.PHONY: help compose-dev config-generate config-validate bootstrap up down dev-logs dev-restore shell clean migrations-check test check test-all cite-config cite-build cite-up cite-clean cite-test cite-check cite-migrations-check cite-format cite-lock cite-publish ci-check ci-compose-check image-build image-check image-push image-publish release-version deploy-controller-test storage-prepare storage-preflight configure host-check prepare backup backup-status restore drain migrate rebuild activate validate candidate-retry rollback recover status release-report start stop logs search-rebuild search-validate
 
 help:
 	@printf '%s\n' \
@@ -27,7 +27,10 @@ help:
 		'' \
 		'Build:' \
 		'  image-build CATALOG_IMAGE=<name:tag>' \
+		'  image-check CATALOG_IMAGE=<name:tag>' \
 		'  image-push  CATALOG_IMAGE=<name:tag>' \
+		'  image-publish CATALOG_IMAGE=<ghcr.io/owner/name:sha-commit>  # needs GH_TOKEN and docker login' \
+		'  ci-check | ci-compose-check  # Compose checks need bootstrap first' \
 		'  release-version' \
 		'' \
 		'Host (run as the operator in /srv/apps/comses-catalog at the manifest commit; each prints a JSON result):' \
@@ -89,6 +92,18 @@ cite-config:
 
 cite-build cite-up cite-clean cite-test cite-check cite-migrations-check cite-format cite-lock cite-publish:
 	$(MAKE) -C citation $(@:cite-%=%)
+
+ci-check:
+	bash scripts/ci.sh check
+
+ci-compose-check:
+	bash scripts/ci.sh compose-check
+
+image-check:
+	CATALOG_IMAGE="$(CATALOG_IMAGE)" bash scripts/ci.sh image-check
+
+image-publish:
+	CATALOG_IMAGE="$(CATALOG_IMAGE)" bash scripts/ci.sh publish
 
 image-build:
 	CATALOG_IMAGE="$(CATALOG_IMAGE)" ALLOW_DIRTY_BUILD="$(ALLOW_DIRTY_BUILD)" bash scripts/deploy.sh build
